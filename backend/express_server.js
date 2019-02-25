@@ -42,7 +42,7 @@ var threshold = false; // default until supplied
 var search_str = "";
 var out_array = [];
 
-app.get('/', function (req, res) {
+app.get('/api', function (req, res) {
 
 	num_res = 20; // Default
 	threshold = false; // Default

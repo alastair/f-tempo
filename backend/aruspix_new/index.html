@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Upload your image</title>
+  </head>
+  <body>
+    <h1>Upload image for recognition</h1>
+    <p>If you provide an image file here, it will be processed and an
+      encoding of the diatonic intervals recognised will be downloaded to you.</p>
+    <form method="post" enctype="multipart/form-data" action="result.php">
+      <div>
+        <label for="page">Choose file to upload</label>
+        <input type="file" name="page" id="page">
+      </div>
+      <div>
+        <button>Submit</button>
+      </div>
+    </form>
+  </body>
+</html>

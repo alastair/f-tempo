@@ -1,0 +1,49 @@
+In working directory: a---A
+Query code is: query:
+Diat interval string (fasta): >code query: 
+query:
+2018-06-20 18:23:12+01:00: Generating MAWs for code_query:
+ Error: input file page.txt contains an unexpected character :!
+
+In working directory: a---A
+Query code is: query:
+Diat interval string (fasta): >code query: 
+query:
+2018-06-20 18:27:12+01:00: Generating MAWs for code_query:
+ Error: input file page.txt contains an unexpected character :!
+
+In working directory: a---A
+Query code is: query:
+Diat interval string (fasta): >code query: 
+query:
+2018-06-20 18:28:21+01:00: Generating MAWs for code_query:
+ Error: input file page.txt contains an unexpected character :!
+
+In working directory: a---A
+Query code is: query:
+Diat interval string (fasta): >code query: 
+query:
+2018-06-20 18:28:27+01:00: Generating MAWs for code_query:
+ Error: input file page.txt contains an unexpected character :!
+
+In working directory: a---A
+Query code is: query:
+Diat interval string (fasta): >code query: 
+query:
+2018-06-20 18:35:17+01:00: Generating MAWs for code_query:
+ Error: input file page.txt contains an unexpected character :!
+
+In working directory: a---A
+Query code is: query:
+Diat interval string (fasta): >code query: 
+query:
+2018-06-20 18:37:33+01:00: Generating MAWs for code_query:
+ Error: input file page.txt contains an unexpected character :!
+
+In working directory: a---A
+Query code is: query:
+Diat interval string (fasta): >code query: 
+query:
+2018-06-20 18:37:47+01:00: Generating MAWs for code_query:
+ Error: input file page.txt contains an unexpected character :!
+

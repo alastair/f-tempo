@@ -6,11 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>EMO Search</title>
 
-    <script src='static/ext/jquery.min.js'></script>
-    <script src='static/ext/jquery.zoom.js'></script>
-    <link rel="stylesheet" type="text/css" href="static/css/styles.css">
+    <script src='ext/jquery.min.js'></script>
+    <script src='ext/jquery.zoom.js'></script>
+    <link rel="stylesheet" type="text/css" href="css/styles.css">
 
-    <script src='static/src/setup.js'></script>
+    <script src='src/setup.js'></script>
   </head>
 
   <body onload="initialise();">
@@ -28,12 +28,12 @@
               <b>Search: &nbsp;&#160;&#160;</b>
               <span class="tooltip">
                 <img class="prev_book zoom arrow" onclick="find_book_id(false);do_search(query_id,jaccard,num_res_disp);"
-                     src="static/img/prev_book.png">
+                     src="img/prev_book.png">
 			    <span class="tooltiptext">Go to prev book and search</span>
               </span>
               <span class="tooltip">
                 <img class="prev_page zoom arrow" onclick="find_page_id(false);do_search(query_id,jaccard,num_res_disp);"
-                     src="static/img/prev_page.png">
+                     src="img/prev_page.png">
               <span class="tooltiptext">Search for prev page</span>
               </span>
               <textArea onchange="show_query_display();" id="idText"></textArea>
@@ -43,12 +43,12 @@
               </span>
               <span class="tooltip">
                 <img class="next_page zoom arrow" onclick="find_page_id(true);do_search(query_id,jaccard,num_res_disp);"
-                     src="static/img/next_page.png">
+                     src="img/next_page.png">
 			    <span class="tooltiptext">Search for next page</span>
               </span>
               <span class="tooltip">
                 <img class="next_book zoom arrow" onclick="find_book_id(true);do_search(query_id,jaccard,num_res_disp);"
-                     src="static/img/next_book.png">
+                     src="img/next_book.png">
 			    <span class="tooltiptext">Go to next book and search</span>
               </span>
             </span>
@@ -128,7 +128,7 @@
 					 />
 			</form> 
 
-<script src='static/src/upload.js'></script>
+<script src='src/upload.js'></script>
 
 			                <!-- Progress Bar -->
                 <div class="row">
@@ -153,23 +153,23 @@
         <div id="query_display">
           <span class="tooltip">
             <img onclick="find_book_id(false);"
-                  class="prev_book arrow" src="static/img/prev_book.png">
+                  class="prev_book arrow" src="img/prev_book.png">
             <span class="tooltiptext">Show first page of prev book</span>
           </span>
           <span class="tooltip">
             <img onclick="find_page_id(false);"
-                  class="prev_page arrow" src="static/img/prev_page.png">
+                  class="prev_page arrow" src="img/prev_page.png">
             <span class="tooltiptext">Show prev page</span>
           </span>
           <span style="color:green" id="q_page_display"></span>
           <span class="tooltip">
             <img onclick="find_page_id(true);"
-                  class="next_page arrow" src="static/img/next_page.png">
+                  class="next_page arrow" src="img/next_page.png">
             <span class="tooltiptext">Show next page</span>
           </span>
           <span class="tooltip">
             <img onclick="find_book_id(true);"
-                  class="next_book arrow" src="static/img/next_book.png">
+                  class="next_book arrow" src="img/next_book.png">
             <span class="tooltiptext">Show first page of next book</span>
           </span>
         </div>

@@ -49,8 +49,13 @@ app.use(function(req, res, next) {
 });
 
 
+app.use(express.static('static'))
+
 
 // Handle requests
+app.get('/', function (req, res) {
+  res.send('Hello World!')
+})
 
 app.get('/api', function (req, res) {
 
@@ -76,7 +81,7 @@ app.get('/api', function (req, res) {
 		}
 //console.log(out_array)	
 	res.send(out_array);
-	});
+});
 
 app.listen(8000, () => console.log('EMO app listening on port 8000!')) // for Goldsmiths server
 

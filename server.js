@@ -1,7 +1,30 @@
+// DEPENDENCIES
 const express = require('express');
 const fileUpload = require('express-fileupload');
-var cp = require('child_process');
+const trie_module = require('./static/src/trie.js');
+const fs = require('fs');
+const cp = require('child_process');
+
 const app = express();
+const trie = new trie_module.Trie();
+const ng_trie = new trie_module.Trie();
+
+// Global variables:
+var trie_loaded = false;
+var ng_trie_loaded = false;
+var lines = [];
+var ng_lines = [];
+var database_data = "";
+var query_id="";
+
+var jaccard = "true"; // default
+var num_res = 20; // default num of results to display
+var threshold = false; // default until supplied
+var search_str = "";
+var out_array = [];
+
+
+// Server config
 app.use(function(req, res, next) {
     if (req.headers.origin) {
         res.header('Access-Control-Allow-Origin', '*')
@@ -24,23 +47,10 @@ app.use(function(req, res, next) {
 
     next()
 });
-const fs = require('fs');
-const trie_module = require('./express_trie.js');
-const trie = new trie_module.Trie();
-const ng_trie = new trie_module.Trie();
-// Global variables:
-var trie_loaded = false;
-var ng_trie_loaded = false;
-var lines = [];
-var ng_lines = [];
-var database_data = "";
-var query_id="";
 
-var jaccard = "true"; // default
-var num_res = 20; // default num of results to display
-var threshold = false; // default until supplied
-var search_str = "";
-var out_array = [];
+
+
+// Handle requests
 
 app.get('/api', function (req, res) {
 
@@ -143,18 +153,36 @@ function trieSearch(id,jaccard) {
 	searchTrie(id,jaccard);
 }
 
-function load_ngram_database(n) {
-	var ng_len = n;
-	if((ng_len>2)&&(ng_len<16)) {
-		db_name ="emo_data/databases/ngrams/emo_"+ng_len+"grams.txt";
-		console.log("Trying to load "+db_name);
-		get_and_load_ngram_database(db_name);
-	}
-	else alert("Loading ngram database failed!");
-}
+
+// Currently not in use...
+// function load_ngram_database(n) {
+//  var ng_len = n;
+//      if((ng_len>2)&&(ng_len<16)) {
+//		db_name ="./data/emo_data/databases/ngrams/emo_"+ng_len+"grams.txt";
+//		console.log("Trying to load "+db_name);
+//		get_and_load_ngram_database(db_name);
+//	}
+//	else alert("Loading ngram database failed!");
+//}
+
+// function get_and_load_ngram_database(db_name) {
+// 		console.log("Actually loading "+db_name);
+// 	fs.readFile(db_name,'utf8',(err,data) => {
+// 		if (err) {
+// 			throw err;
+// 		}
+// 		if(!data.length) console.log("No data!!");
+// 		else {
+// 			console.log("Loading "+data.length+" of ngram data")
+// 			load_ngram_data(data);
+// 		}
+// 	})
+// }
+
+
 
 function load_full_maws_database() {
-		db_name ="emo_data/databases/"+"maw_4-8_sameline.txt";
+		db_name ="./data/"+"maw_4-8_sameline.txt";
 		console.log("Loading "+db_name);
 		get_and_load_database(db_name);
 }
@@ -175,19 +203,6 @@ function get_and_load_database(db_name) {
 	
 }
 
-function get_and_load_ngram_database(db_name) {
-		console.log("Actually loading "+db_name);
-	fs.readFile(db_name,'utf8',(err,data) => {
-		if (err) {
-			throw err;
-		}
-		if(!data.length) console.log("No data!!");
-		else {
-			console.log("Loading "+data.length+" of ngram data")
-			load_ngram_data(data);
-		}
-	})
-}
 
 // array containing objects holding number of MAWs/ngrams for each id in database
 // for use in normalisation elsewhere

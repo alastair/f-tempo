@@ -1,5 +1,5 @@
-
-//This code came from http://blog.benoitvallon.com/data-structures-in-javascript/the-trie-data-structure/
+// Modified by TC to add ids for all words (see below)
+// originally from http://blog.benoitvallon.com/data-structures-in-javascript/the-trie-data-structure/
 
 function Node(data) {
   this.data = data;

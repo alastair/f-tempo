@@ -84,7 +84,7 @@ function get_query_from_id(id) {
 function search(id,jaccard,num_res_disp) {
     //                fetch('http://localhost:3000/?id='+id+"&jaccard="+jaccard+"&num_res="+num_res_disp)
     //                fetch('http://myserver.doc.gold.ac.uk:58265/?id='+id+"&jaccard="+jaccard+"&num_res="+num_res_disp)
-    fetch('http://www.doc.gold.ac.uk/usr/265/?id='+id+"&jaccard="+jaccard+"&num_res="+num_res_disp+"&threshold="+threshold,
+    fetch('api/?id='+id+"&jaccard="+jaccard+"&num_res="+num_res_disp+"&threshold="+threshold,
         {
             method:"GET",
             headers: {
@@ -105,7 +105,7 @@ function search(id,jaccard,num_res_disp) {
 
 function string_search(str,jaccard,num_res_disp) {
     document.getElementById("result_img_display").innerHTML = "Searching ...";
-    fetch( 'http://www.doc.gold.ac.uk/usr/265/?jaccard='+jaccard+'&num_res='+num_res_disp+'&threshold='+threshold+'&qstring='+str)
+    fetch( 'api/?jaccard='+jaccard+'&num_res='+num_res_disp+'&threshold='+threshold+'&qstring='+str)
         .then(function(response) {
             console.log(response)
             return response.json();

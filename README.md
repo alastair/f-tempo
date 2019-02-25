@@ -4,6 +4,7 @@
 ## Dependencies
 ```
 Node.js
+aruspix - https://github.com/DDMAL/aruspix
 ```
 
 To install, first

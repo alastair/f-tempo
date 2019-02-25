@@ -31,7 +31,7 @@ $('#uploadForm').on('submit', function (event) {
 function uploadFiles(formData) {
     document.getElementById("result_img_display").innerHTML = "Searching ...";
     $.ajax({
-        url: 'http://www.doc.gold.ac.uk/usr/265/upload',
+        url: 'upload',
         method: 'post',
         data: formData,
         processData: false,

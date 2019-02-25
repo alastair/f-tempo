@@ -737,7 +737,7 @@ function select_new_trial(){
 function initialise() {
     get_database_ids('maw_4-8_sameline.txt');
     document.getElementById("rank_toggle").innerHTML = (jaccard)? "Jaccard distance" : "Basic";
-    hide_upload_panel();
+    // hide_upload_panel();
 }
 
 

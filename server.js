@@ -53,10 +53,6 @@ app.use(express.static('static'))
 
 
 // Handle requests
-app.get('/', function (req, res) {
-  res.send('Hello World!')
-})
-
 app.get('/api', function (req, res) {
 
 	num_res = 20; // Default
@@ -89,8 +85,10 @@ app.listen(8000, () => console.log('EMO app listening on port 8000!')) // for Go
 app.use(fileUpload());
 var w_path = "";
 app.post('/upload', function(req, res) {
-  if (!req.files)
-    return res.status(400).send('No files were uploaded.');
+    if (!req.files) {
+        return res.status(400).send('No files were uploaded.');
+    }
+
   // The name of the input field (i.e. "sampleFile") is used to retrieve the uploaded file
   let sampleFile = req.files.sampleFile;
   

@@ -1,3 +1,6 @@
+# Project specific
+run/
+
 # emacs
 .*~
 *~
@@ -56,6 +59,4 @@ nosetests.xml
 .vscode/*
 
 # PyCharm
-.idea/workspace.xml
-.idea/pylint.xml
-.idea/dataSources.xml
+.idea/

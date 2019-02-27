@@ -1,33 +1,25 @@
 
-// On submitting form for image upload, handle the file uploads.
+// Handle file upload
 $('#uploadForm').on('submit', function (event) {
     event.preventDefault();
-    // Get the files from input, create new FormData.
-    var files = $('#file-id').get(0).files,
-        formData = new FormData();
+
+    const files = $('#file-id').get(0).files;
+    const formData = new FormData();
+
     if (files.length === 0) {
         alert('Select a file to upload.');
         return false;
-    }
-    if (files.length > 1) {
+    } else if (files.length > 1) {
         alert('You can only upload 1 file.');
         return false;
     }
-    // Append the files to the formData.
-    for (var i=0; i < files.length; i++) {
-        var file = files[i];
-        formData.append('user_image', file, file.name);
-    }
 
-    // Note: We are only appending the file inputs to the FormData.
+    const file = files[0];
+    formData.append('user_image', file, file.name);
     uploadFiles(formData);
 });
 
-/**
- * Upload the photos using ajax request.
- *
- * @param formData
- */
+ // Upload the photos using ajax request.
 function uploadFiles(formData) {
     document.getElementById("result_img_display").innerHTML = "Searching ...";
     $.ajax({

@@ -33,5 +33,3 @@ cat $name"_oneline.maw"
 echo >> log
 echo
 cd $old_dir
-
-

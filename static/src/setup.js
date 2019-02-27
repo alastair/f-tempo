@@ -84,7 +84,7 @@ function get_query_from_id(id) {
 function search(id,jaccard,num_res_disp) {
     //                fetch('http://localhost:3000/?id='+id+"&jaccard="+jaccard+"&num_res="+num_res_disp)
     //                fetch('http://myserver.doc.gold.ac.uk:58265/?id='+id+"&jaccard="+jaccard+"&num_res="+num_res_disp)
-    fetch('api/?id='+id+"&jaccard="+jaccard+"&num_res="+num_res_disp+"&threshold="+threshold,
+    fetch('api/query/?id='+id+"&jaccard="+jaccard+"&num_res="+num_res_disp+"&threshold="+threshold,
         {
             method:"GET",
             headers: {
@@ -371,8 +371,9 @@ function get_emo_ids(){
     $.ajax({
         type: "GET",
         url: "api/emo_ids",
-        success: (emo_ids) => {
-            emo_ids = emo_ids;
+        success: (db_emo_ids) => {
+            emo_ids = db_emo_ids;
+            console.log(emo_ids);
             show_query_panel();
         }
     });
@@ -525,11 +526,6 @@ function checkKey(e) {
         find_page_id(true);
         query_id = document.getElementById("idText").value;
         do_search(query_id,jaccard,num_res_disp);
-    }
-    else if (e.ctrlKey && (e.keyCode == '79')) {
-        console.log("Control + O pressed");
-        //        load_arbitrary_database();
-        load_full_maws_database();
     }
 }
 

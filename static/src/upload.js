@@ -16,7 +16,7 @@ $('#uploadForm').on('submit', function (event) {
     // Append the files to the formData.
     for (var i=0; i < files.length; i++) {
         var file = files[i];
-        formData.append('sampleFile', file, file.name);
+        formData.append('user_image', file, file.name);
     }
 
     // Note: We are only appending the file inputs to the FormData.
@@ -31,7 +31,7 @@ $('#uploadForm').on('submit', function (event) {
 function uploadFiles(formData) {
     document.getElementById("result_img_display").innerHTML = "Searching ...";
     $.ajax({
-        url: 'upload',
+        url: 'api/image_query',
         method: 'post',
         data: formData,
         processData: false,

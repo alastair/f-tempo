@@ -14,7 +14,7 @@ var matched_words = [];
 var words_in_page = [];
 
 // Array of page IDs loaded from database on initialisatiom
-var lines = [];
+let emo_ids;
 
 //    UID for identifying user to logs, etc.
 var UID = "";
@@ -74,8 +74,8 @@ function load_page_query_image(image) {
 }
 
 function get_query_from_id(id) {
-    for(var i=0;i<lines.length;i++) {
-        if((lines[i].startsWith(">"+id))||(lines[i].startsWith(id))) return lines[i];
+    for(var i=0;i<emo_ids.length;i++) {
+        if((emo_ids[i].startsWith(">"+id))||(emo_ids[i].startsWith(id))) return emo_ids[i];
     }
     return false
 }
@@ -366,54 +366,19 @@ function show_result_image() {
     document.getElementById("res_display_div").style.visibility = "visible";
 }
 
-// Database load function adapted to get just page IDs at startup for next/prev switching, etc.
-function load_ids(data) {
-    //clear text-entry box:
-    document.getElementById("idText").innerHTML = "";
-    lines = data.split("\n");
-    for(i in lines) {
-        bits = lines[i].split(/[ ,]+/).filter(Boolean);
-        if (typeof bits[0] !== 'undefined') {
-            var id = "";
-            // chop initial ">" from fasta format
-            if(bits[0].charAt(0)==">") id = bits[0].substring(1);
-            else id = bits[0];
+// Load emo_ids at startup
+function get_emo_ids(){
+    $.ajax({
+        type: "GET",
+        url: "api/emo_ids",
+        success: (emo_ids) => {
+            emo_ids = emo_ids;
+            show_query_panel();
         }
-        else {
-            console.log(i+" lines of data loaded!")
-            document.getElementById("messages").innerHTML = "";
-        }
-        lines[i] = bits[0]; // just get the ids!
-    }
+    });
 }
 
-function get_database_ids(the_db){
-    hide_query_panel();
-    hide_display_panel();
-    if(!the_db) the_db = document.getElementById("maw_data").value;
-    db_name = the_db;
-    console.log("database: "+the_db);
 
-    // TODO(ra) - replace this with a JS solution to load the list of ids
-//    $.ajax({
-//        type: "GET",
-//        //                   url: "get_database.php",
-//        url: "get_emo_ids.php",
-//        data: {database: the_db},
-//        success: function(data) {
-//            load_ids(data);
-//            show_query_panel();
-//        }
-//    });
-    //
-    var data = `A103_1_001_1
-A103_1_002_1
-A103_1_003_0`
-
-
-    load_ids(data);
-    show_query_panel();
-}
 
 /*********** Utility functions: ***********/
 function storageAvailable(type) {
@@ -597,7 +562,7 @@ $(document).ready(function(){
         });
     $('#random_searchButton').click(function ()
         {
-            document.getElementById("idText").value = lines[getRandomIntInclusive(0, lines.length)];
+            document.getElementById("idText").value = emo_ids[getRandomIntInclusive(0, emo_ids.length)];
             query_id = document.getElementById("idText").value;
             do_search(query_id,jaccard,num_res_disp);
         });
@@ -608,12 +573,12 @@ function find_book_id(next) {
     var this_id = document.getElementById("idText").value;
     if(this_id == null) return false;
     else {
-        for(var i=0;i<lines.length;i++) {
-            if((lines[i].startsWith(">"+this_id))||(lines[i].startsWith(this_id))) {
+        for(var i=0;i<emo_ids.length;i++) {
+            if((emo_ids[i].startsWith(">"+this_id))||(emo_ids[i].startsWith(this_id))) {
                 break;
             }
         }
-        if(((i==0)&&(!next))||((i==lines.length)&&(next))) return;
+        if(((i==0)&&(!next))||((i==emo_ids.length)&&(next))) return;
         // now find next/prev item starting with a different id
         var this_book = "";
         var id_segs =  this_id.split("_");
@@ -622,9 +587,9 @@ function find_book_id(next) {
         var new_id = "";
         var new_book = "";
         if(next) {
-            for(;i<lines.length;i++) {
+            for(;i<emo_ids.length;i++) {
                 new_book = "";
-                new_id = lines[i].split(/[ ,]+/).filter(Boolean)[0];
+                new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
                 id_segs =  new_id.split("_");
                 for(j=0;j<id_segs.length-3;j++) new_book+=id_segs[j]+"_";
                 new_book+=id_segs[j];
@@ -638,7 +603,7 @@ function find_book_id(next) {
             for(;i>0;i--) {
                 // FIXME - stand by for messy recursion!!
                 new_book = "";
-                new_id = lines[i].split(/[ ,]+/).filter(Boolean)[0];
+                new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
                 id_segs =  new_id.split("_");
                 for(j=0;j<id_segs.length-3;j++) new_book+=id_segs[j]+"_";
                 new_book+=id_segs[j];
@@ -650,14 +615,14 @@ function find_book_id(next) {
                     this_book = new_book;
                     for(;i>0;i--) {
                         new_book = "";
-                        new_id = lines[i].split(/[ ,]+/).filter(Boolean)[0];
+                        new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
                         id_segs =  new_id.split("_");
                         for(j=0;j<id_segs.length-3;j++) new_book+=id_segs[j]+"_";
                         new_book+=id_segs[j];
                         if(new_book.startsWith(">")) new_book = new_book.substring(1);
                         if(new_book != this_book) {
                             if(i>0) i++; //Don't go to next if at first
-                            new_id = lines[i].split(/[ ,]+/).filter(Boolean)[0];
+                            new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
                             break;
                         }
                     }
@@ -666,7 +631,7 @@ function find_book_id(next) {
             }
         }
     }
-    new_id = lines[i].split(/[ ,]+/).filter(Boolean)[0];
+    new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
     if(new_id.startsWith(">")) new_id = new_id.substring(1);
     document.getElementById("idText").value = new_id;
 
@@ -678,18 +643,18 @@ function find_page_id(next) {
     var this_id = document.getElementById("idText").value;
     if(this_id == null) return false;
     else {
-        for(var i=0;i<lines.length;i++) {
-            if((lines[i].startsWith(">"+this_id))||(lines[i].startsWith(this_id))) {
+        for(var i=0;i<emo_ids.length;i++) {
+            if((emo_ids[i].startsWith(">"+this_id))||(emo_ids[i].startsWith(this_id))) {
                 break;
             }
         }
-        if(((i==0)&&(!next))||((i==lines.length)&&(next))) return;
+        if(((i==0)&&(!next))||((i==emo_ids.length)&&(next))) return;
         var new_id = "";
         if(next) {
-            new_id = lines[i+1].split(/[ ,]+/).filter(Boolean)[0];
+            new_id = emo_ids[i+1].split(/[ ,]+/).filter(Boolean)[0];
         }
         else {
-            new_id = lines[i-1].split(/[ ,]+/).filter(Boolean)[0];
+            new_id = emo_ids[i-1].split(/[ ,]+/).filter(Boolean)[0];
         }
     }
     if(new_id.startsWith(">")) new_id = new_id.substring(1);
@@ -734,10 +699,10 @@ function select_new_trial(){
     //              do_search(new_id,jaccard,num_res_disp);
 }
 
-function initialise() {
-    get_database_ids('maw_4-8_sameline.txt');
+function setup_page() {
+    hide_query_panel();
+    hide_display_panel();
+    get_emo_ids();
+    show_query_panel();
     document.getElementById("rank_toggle").innerHTML = (jaccard)? "Jaccard distance" : "Basic";
-    // hide_upload_panel();
 }
-
-

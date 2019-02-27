@@ -1,17 +1,21 @@
-// DEPENDENCIES
+/*******************************************************************************
+ * Imports 
+ ******************************************************************************/
 const express = require('express');
 const fileUpload = require('express-fileupload');
 const trie_module = require('./static/src/trie.js');
 const fs = require('fs');
 const cp = require('child_process');
 
-const app = express();
-const trie = new trie_module.Trie();
-const ng_trie = new trie_module.Trie();
+/*******************************************************************************
+ * Globals 
+ ******************************************************************************/
 
-// Global variables:
+const MAW_DB = './data/emo_ids_maws.txt';
+
 var trie_loaded = false;
 var ng_trie_loaded = false;
+const EMO_IDS = []
 var lines = [];
 var ng_lines = [];
 var database_data = "";
@@ -23,63 +27,56 @@ var threshold = false; // default until supplied
 var search_str = "";
 var out_array = [];
 
+const app = express();
+const trie = new trie_module.Trie();
+const ng_trie = new trie_module.Trie();
 
-// Server config
-app.use(function(req, res, next) {
-    if (req.headers.origin) {
-        res.header('Access-Control-Allow-Origin', '*')
-//        res.header('Access-Control-Allow-Headers', 'X-Requested-With,Content-Type,Authorization')
-        res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept')
-        res.header('Access-Control-Allow-Methods', 'GET,POST')
-        if ((req.method === 'OPTIONS')||(req.method === 'PUT')||(req.method === 'DELETE')||(req.method === 'PATCH')) return res.send(200)
-    }
-/*        const corsWhitelist = [
-		   'https://www.doc.gold.ac.uk/~mas01tc/EMO_search',
-		   'http://www.doc.gold.ac.uk/~mas01tc/EMO_search',
-		   'http://localhost'
-	    ];
-	    if (corsWhitelist.indexOf(req.headers.origin) !== -1) {
-			res.header('Access-Control-Allow-Origin', req.headers.origin);
-			res.header('Access-Control-Allow-Methods', 'GET,PUT,PATCH,POST,DELETE');
-			res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-	    }
-*/
+/*******************************************************************************
+ * Server config
+ ******************************************************************************/
 
-    next()
-});
+const port = 8000;
+app.listen(
+    port,
+    () => console.log('EMO app listening on port 8000!') // success callback
+)
 
-
-app.use(express.static('static'))
+app.use(express.static('static')) // serve static files out of /static
 
 
 // Handle requests
 app.get('/api', function (req, res) {
-
 	num_res = 20; // Default
 	threshold = false; // Default
 	jaccard = req.query.jaccard;
+
 	if(req.query.num_res) {
 		num_res = req.query.num_res;
 	}
+
 	if(req.query.threshold) {
 		threshold = req.query.threshold;
 	}
+
 	if(req.query.qstring) {
 		search_str = req.query.qstring;
 		console.log(search_str)
 		trieSearchWithString(search_str,jaccard);
-	}
-	else if(req.query.id) {
-			trieSearch(req.query.id,jaccard);
-		}
-		else if(req.query.diat_int_code) {
-			trieSearchWithCode(req.query.diat_int_code,jaccard);
-		}
-//console.log(out_array)	
+	} else if(req.query.id) {
+        trieSearch(req.query.id,jaccard);
+    } else if(req.query.diat_int_code) {
+        trieSearchWithCode(req.query.diat_int_code,jaccard);
+    }
+
+    //console.log(out_array)	
 	res.send(out_array);
 });
 
-app.listen(8000, () => console.log('EMO app listening on port 8000!')) // for Goldsmiths server
+
+app.get('/api/page_ids', function (req, res) {
+    res.send(EMO_IDS);
+});
+
 
 // Code for uploading a photo/image (.jpg), processing/extracting query and searching
 app.use(fileUpload());
@@ -128,31 +125,31 @@ function searchTrieWithCode(str,jaccard) {
 //	res.send(out_array);
 	return out_array;
 }
+
 function trieSearchWithString(str,jaccard) {
-	if(!trie_loaded) {
-		initialise();
-	}
+	if(!trie_loaded) { initialise(); }
+
 	searchTrieWithString(str,jaccard);
 	return out_array;
 }
+
 function trieNgramSearchWithString(str,jaccard) {
-	if(!ng_trie_loaded) {
-		initialise_ngrams();
-	}
+	if(!ng_trie_loaded) { initialise_ngrams(); }
+
 	searchNgramTrieWithString(str,jaccard);
 	return out_array;
 }
+
 function trieSearchWithCode(str,jaccard) {
-	if(!trie_loaded) {
-		initialise();
-	}
+	if(!trie_loaded) { initialise(); }
+
 	searchTrieWithCode(str,jaccard);
 	return out_array;
 }
+
 function trieSearch(id,jaccard) {
-	if(!trie_loaded) {
-		initialise();
-	}
+	if(!trie_loaded) { initialise(); }
+
 	searchTrie(id,jaccard);
 }
 
@@ -182,58 +179,44 @@ function trieSearch(id,jaccard) {
 // 	})
 // }
 
-
-
-function load_full_maws_database() {
-		db_name ="./data/"+"maw_4-8_sameline.txt";
-		console.log("Loading "+db_name);
-		get_and_load_database(db_name);
-}
-
-function get_and_load_database(db_name) {
-		console.log("Actually loading "+db_name);
-	
-	fs.readFile(db_name,'utf8',(err,data) => {
-		if (err) {
-			throw err;
-		}
-		if(!data.length) console.log("No data!!");
+function load_maws() {
+    // The 'db' is a text file, where each line is an EMO page ID,
+    // followed by the MAWs for that page.
+//
+    console.log("Loading " + MAW_DB);
+	fs.readFile(MAW_DB, 'utf8', (err, data) => {
+		if (err) { throw err; }
+		if (!data.length) { console.log("No data!"); }
 		else {
-			console.log("Loading "+data.length+" of MAW data")
-			load_data(data);
+			parse_maws_db(data);
 		}
-	})
-	
+	});
 }
-
 
 // array containing objects holding number of MAWs/ngrams for each id in database
 // for use in normalisation elsewhere
-var word_tot = [];
+var word_total = [];
 
-function load_data(data) {	
-	lines = data.split("\n");
-		console.log(lines.length+" lines of MAWs to read");
-	for(i in lines) {
-		bits = lines[i].split(/[ ,]+/).filter(Boolean);
-		if (typeof bits[0] !== 'undefined') {
-			var id = "";
-			// chop initial ">" from fasta format
-			if(bits[0].charAt(0)==">") id = bits[0].substring(1); 
-			else id = bits[0]; 
-			word_tot[id] = bits.length - 1;
-			for(j=1;j<bits.length;j++) {
-				trie.id_add(bits[j],id);	
-			}
-		}
-		else {
-			console.log("End of MAW data")
-		}
-	}
+function parse_maws_db(data_str) {	
+	lines = data_str.split("\n");
+    console.log(lines.length + " lines of MAWs to read...");
+
+	for (line of lines) {
+        if (line) {
+            chunks = line.split(/[ ,]+/).filter(Boolean);
+            const id = chunks[0];
+            EMO_IDS.push(id);
+            word_total[id] = chunks.length - 1;
+            for (j = 1; j < chunks.length; j++) {
+                trie.id_add(chunks[j], id);	
+            }
+        }
+    }
+
 	trie_loaded = true;
-	console.log(i+" lines of MAW data loaded!");
-	console.log("MAWs initialised");
+	console.log(EMO_IDS.length + " lines of MAW data loaded!");
 }
+
 
 function load_ngram_data(data) {
 	ng_lines = data.split("\n");
@@ -245,7 +228,7 @@ function load_ngram_data(data) {
 			// chop initial ">" from fasta format
 			if(bits[0].charAt(0)==">") id = bits[0].substring(1); 
 			else id = bits[0]; 
-			word_tot[id] = bits.length - 1;
+			word_total[id] = bits.length - 1;
 			for(j=1;j<bits.length;j++) {
 				ng_trie.id_add(bits[j],id);	
 			}
@@ -348,7 +331,7 @@ console.log(wds_in_q+' words in query')
 			scores_pruned[result_num] = {};
 			scores_pruned[result_num].id=score[g].id;
 			scores_pruned[result_num].num=score[g].num;
-			scores_pruned[result_num].num_words= word_tot[scores_pruned[result_num].id];
+			scores_pruned[result_num].num_words= word_total[scores_pruned[result_num].id];
 			scores_pruned[result_num].jaccard = 1-(score[g].num/(scores_pruned[result_num].num_words+wds_in_q-scores_pruned[result_num].num));
 			result_num++;
 		}
@@ -440,7 +423,7 @@ console.log(wds_in_q+' words in query')
 			scores_pruned[result_num] = {};
 			scores_pruned[result_num].id=score[g].id;
 			scores_pruned[result_num].num=score[g].num;
-			scores_pruned[result_num].num_words= word_tot[scores_pruned[result_num].id];
+			scores_pruned[result_num].num_words= word_total[scores_pruned[result_num].id];
 			scores_pruned[result_num].jaccard = 1-(score[g].num/(scores_pruned[result_num].num_words+wds_in_q-scores_pruned[result_num].num));
 			result_num++;
 		}
@@ -532,7 +515,7 @@ function searchTrie(qid,jaccard) {
 			scores_pruned[result_num] = {};
 			scores_pruned[result_num].id=score[g].id;
 			scores_pruned[result_num].num=score[g].num;
-			scores_pruned[result_num].num_words= word_tot[scores_pruned[result_num].id];
+			scores_pruned[result_num].num_words= word_total[scores_pruned[result_num].id];
 			scores_pruned[result_num].jaccard = 1-(score[g].num/(scores_pruned[result_num].num_words+wds_in_q-scores_pruned[result_num].num));
 			result_num++;
 		}
@@ -573,14 +556,12 @@ function get_query_from_id(id) {
 	return false
 }
 
-function initialise_maws() {
-	load_full_maws_database();
-}
 function initialise_ngrams() {
 	load_ngram_database(9);   // Just a magic number that seems to work
 }
+
 function initialise() {
-	initialise_maws();
+	load_maws();
 //	initialise_ngrams();
 }
 

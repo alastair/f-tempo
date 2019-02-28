@@ -5,7 +5,7 @@ module.exports = {
     },
     "extends": "eslint:recommended",
     "rules": {
-        "no-console" : 'off',
+        "space-infix-ops" : 'error',
         "indent": [
             "error",
             4
@@ -14,9 +14,10 @@ module.exports = {
             "error",
             "unix"
         ],
+        "no-console" : 'off',
         "semi": [
             "error",
             "always"
-        ]
+        ],
     }
 };

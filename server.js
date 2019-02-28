@@ -112,15 +112,15 @@ function run_image_query(user_image, ngram_search) {
     let result;
     let qstring;
     if(!ngram_search) {
-        qstring = cp.execSync('./external_scripts/do-absolutely_everything.sh '+ user_image.name +' '+ working_path);
-        result = search_trie_with_string(qstring,jaccard);
+        qstring = cp.execSync('./external_scripts/do-absolutely_everything.sh ' + user_image.name + ' ' + working_path);
+        result = search_trie_with_string(qstring, jaccard);
     }
     else {
-        qstring = cp.execSync('./external_scripts/do-process_for_ngrams.sh '+ user_image.name +' '+ working_path + ' '+'9');
-        result = search_ngram_trie_with_string(qstring,jaccard);
+        qstring = cp.execSync('./external_scripts/do-process_for_ngrams.sh ' + user_image.name + ' ' + working_path + ' ' + '9');
+        result = search_ngram_trie_with_string(qstring, jaccard);
     }
 
-    result.unshift(path_app.basename(working_path)+'/'+user_image.name);
+    result.unshift(path_app.basename(working_path) + '/' + user_image.name);
     console.log(result);
     return result;
 }
@@ -162,12 +162,12 @@ function search_trie_with_string(str, jaccard) {
     const queryArray = x.split(/\s/);
     const query_id = queryArray[0];
 
-    const wds_in_q = queryArray.length-1;
-    console.log(wds_in_q+' words in query');
+    const wds_in_q = queryArray.length - 1;
+    console.log(wds_in_q + ' words in query');
 
     if(wds_in_q < 6) {
         // Need to report this back to browser/user
-        console.log("Not enough data in query "+query_id+". Try again!");
+        console.log("Not enough data in query " + query_id + ". Try again!");
         return;
     }
 
@@ -194,17 +194,17 @@ function search_ngram_trie_with_string(str, jaccard) {
     else {
         var queryArray = x.split(/\s/);
         var id = query_id = queryArray[0];
-        if(id.substring(0,1)==">") query_id = query_id.substring(1);
-        const wds_in_q = queryArray.length-1;
-        console.log(wds_in_q+' words in query');
+        if(id.substring(0, 1) == ">") query_id = query_id.substring(1);
+        const wds_in_q = queryArray.length - 1;
+        console.log(wds_in_q + ' words in query');
         if(wds_in_q < 6) {
             // Need to report this back to browser/user
-            console.log("Not enough data in query "+query_id+". Try again!");
+            console.log("Not enough data in query " + query_id + ". Try again!");
             return;
         }
     }
     var words = [];
-    for(let i=1;i<queryArray.length;i++) {
+    for(let i = 1;i < queryArray.length;i++) {
         if(queryArray[i].length) {
             words.push(queryArray[i]);
         }
@@ -221,8 +221,8 @@ function search_ngram_trie_with_string(str, jaccard) {
 
 function search_trie_with_code(str, jaccard) {
     working_path = cp.execSync('/home/mas01tc/emo_search/web-demo/set_working_path.sh') + '/';
-    var qstring = cp.execSync('/home/mas01tc/emo_search/web-demo/codestring_to_maws.sh '+ str +' '+ working_path);
-    const result = search_trie_with_string(qstring,jaccard);
+    var qstring = cp.execSync('/home/mas01tc/emo_search/web-demo/codestring_to_maws.sh ' + str + ' ' + working_path);
+    const result = search_trie_with_string(qstring, jaccard);
     result.unshift("code query");
     return result;
 }
@@ -292,36 +292,36 @@ function parse_maws_db(data_str) {
  * Helpers
  ******************************************************************************/
 
-function jacc_delta (array,n) {
-    return array[n].jaccard - array[n-1].jaccard;
+function jacc_delta (array, n) {
+    return array[n].jaccard - array[n - 1].jaccard;
 }
 
-function jacc_delta_log (array,n) {
-    return Math.log(array[n].jaccard) - Math.log(array[n-1].jaccard);
+function jacc_delta_log (array, n) {
+    return Math.log(array[n].jaccard) - Math.log(array[n - 1].jaccard);
 }
 
-function console_sample(array,num,str) {
-    console.log("Sampling array "+str+" - "+num+" entries");
-    for(var i=0;i<num;i++) {
+function console_sample(array, num, str) {
+    console.log("Sampling array " + str + " - " + num + " entries");
+    for(var i = 0;i < num;i++) {
         console.log(i + ". " + array[i].id);
     }
 }
 
-function getMedian(array,jaccard){
+function getMedian(array, jaccard){
     var values = [];
-    if(jaccard=="true") {
-        for(let i=0;i<array.length;i++) {
+    if(jaccard == "true") {
+        for(let i = 0;i < array.length;i++) {
             values.push(array[i].jaccard);
         }
     }
     else { 
-        for(let i=0;i<array.length;i++) {
+        for(let i = 0;i < array.length;i++) {
             values.push(array[i].num);
         }
     }
     values.sort((a, b) => a - b);
     let median = (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2;
-    console.log("Median = "+median);
+    console.log("Median = " + median);
     return median;
 }
 
@@ -352,10 +352,10 @@ function get_pruned_and_sorted_scores(scores, wds_in_q, jaccard) {
     for(var g in scores) {
         if(scores[g].num > 1) {
             scores_pruned[result_num] = {};
-            scores_pruned[result_num].id=scores[g].id;
-            scores_pruned[result_num].num=scores[g].num;
-            scores_pruned[result_num].num_words= word_totals[scores_pruned[result_num].id];
-            scores_pruned[result_num].jaccard = 1-(scores[g].num/(scores_pruned[result_num].num_words+wds_in_q-scores_pruned[result_num].num));
+            scores_pruned[result_num].id = scores[g].id;
+            scores_pruned[result_num].num = scores[g].num;
+            scores_pruned[result_num].num_words = word_totals[scores_pruned[result_num].id];
+            scores_pruned[result_num].jaccard = 1 - (scores[g].num / (scores_pruned[result_num].num_words + wds_in_q - scores_pruned[result_num].num));
             result_num++;
         }
     }
@@ -380,16 +380,16 @@ function gate_scores_by_threshold(scores_pruned, threshold, jaccard) {
     if (threshold) {
         const out_array = [];
         out_array[0] = scores_pruned[0];  // the identity match, or at least the best we have
-        for(var p = 1; p<scores_pruned.length; p++) {
+        for(var p = 1; p < scores_pruned.length; p++) {
             var delta = 0;
             if (jaccard) { delta = jacc_delta(scores_pruned, p); }
-            else { delta = scores_pruned[p-1].num - scores_pruned[p].num; }
-            if (threshold=="median") { threshold = 0 + getMedian(scores_pruned,jaccard); }
+            else { delta = scores_pruned[p - 1].num - scores_pruned[p].num; }
+            if (threshold == "median") { threshold = 0 + getMedian(scores_pruned, jaccard); }
             if (delta >= threshold) {
                 out_array[p] = scores_pruned[p];
                 out_array[p].delta = delta;
             } else {
-                num_results = p-1;
+                num_results = p - 1;
                 break;
             }
         }

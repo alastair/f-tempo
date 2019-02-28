@@ -14,12 +14,10 @@ const path_app = require('path');
 const MAWS_DB = './data/emo_ids_maws.txt';
 const EMO_IDS = [];
 const EMO_IDS_MAWS = {};
+const word_totals = []; // total words per id, used for normalization
 
 let query_id;
-var num_results = 20; // default num of results to display
 var threshold = false; // default until supplied
-var search_str = "";
-
 let working_path;
 
 const app = express();
@@ -51,7 +49,7 @@ app.get('/api/emo_ids', function (req, res) { res.send(EMO_IDS); });
 
 // Handle a query
 app.get('/api/query', function (req, res) {
-    num_results = 20; // Default
+    let num_results = 20; // Default
     threshold = false; // Default
 
     let jaccard = false;
@@ -70,15 +68,15 @@ app.get('/api/query', function (req, res) {
     let result;
     if(req.query.qstring) {
         console.log('Querying by string...');
-        search_str = req.query.qstring;
-        result = search_trie_with_string(search_str, jaccard);
+        const query = req.query.qstring;
+        result = search_trie_with_string(query, jaccard, num_results);
     } else if(req.query.id) {
         console.log('Querying by id...');
-        result = search_trie(req.query.id, jaccard);
+        result = search_trie(req.query.id, jaccard, num_results);
 
     } else if(req.query.diat_int_code) {
         console.log('q diat_int_code');
-        result = search_trie_with_code(req.query.diat_int_code, jaccard);
+        result = search_trie_with_code(req.query.diat_int_code, jaccard, num_results);
     }
 
     // console.log(result)  
@@ -109,15 +107,17 @@ app.post('/api/image_query', function(req, res) {
 
 function run_image_query(user_image, ngram_search) {
     const jaccard = true; // TODO(ra) should probably get this setting through the POST request, too...
+    const num_results = 20; // TODO(ra) should probably get this setting through the POST request, too...
+
     let result;
     let qstring;
     if(!ngram_search) {
         qstring = cp.execSync('./external_scripts/do-absolutely_everything.sh ' + user_image.name + ' ' + working_path);
-        result = search_trie_with_string(qstring, jaccard);
+        result = search_trie_with_string(qstring, jaccard, num_results);
     }
     else {
         qstring = cp.execSync('./external_scripts/do-process_for_ngrams.sh ' + user_image.name + ' ' + working_path + ' ' + '9');
-        result = search_ngram_trie_with_string(qstring, jaccard);
+        result = search_ngram_trie_with_string(qstring, jaccard, num_results);
     }
 
     result.unshift(path_app.basename(working_path) + '/' + user_image.name);
@@ -129,7 +129,7 @@ function run_image_query(user_image, ngram_search) {
 /*******************************************************************************
  * Query functions
  ******************************************************************************/
-function search_trie(id, jaccard) {
+function search_trie(id, jaccard, num_results) {
     if (!(id in EMO_IDS_MAWS)) { // TODO: need to report to frontend 
         console.log("ID " + id + " not found in " + MAWS_DB);
         return;
@@ -144,15 +144,15 @@ function search_trie(id, jaccard) {
 
     const scores = get_scores(words, trie);
     const scores_pruned = get_pruned_and_sorted_scores(scores, words.length);
-    const result = gate_scores_by_threshold(scores_pruned, threshold, jaccard);
+    const result = gate_scores_by_threshold(scores_pruned, threshold, jaccard, num_results);
     return result;
 }
 
 
 
 // Code to execute a MAW query in str
-function search_trie_with_string(str, jaccard) {
-    var x = str + '';
+function search_trie_with_string(query, jaccard, num_results) {
+    var x = query + '';
     if(!x) {
         // Need to report this back to browser/user
         console.log("No string provided!");
@@ -180,12 +180,12 @@ function search_trie_with_string(str, jaccard) {
 
     const scores = get_scores(words, trie);
     const scores_pruned = get_pruned_and_sorted_scores(scores, words.length, jaccard);
-    const result = gate_scores_by_threshold(scores_pruned, threshold, jaccard);
+    const result = gate_scores_by_threshold(scores_pruned, threshold, jaccard, num_results);
     return result;
 }
 
-function search_ngram_trie_with_string(str, jaccard) {
-    var x = str + '';
+function search_ngram_trie_with_string(query, jaccard, num_results) {
+    var x = query + '';
     if(!x) {
     // Need to report this back to browser/user
         console.log("No string provided!");
@@ -212,22 +212,96 @@ function search_ngram_trie_with_string(str, jaccard) {
 
     const scores = get_scores(words, ng_trie);
     const scores_pruned = get_pruned_and_sorted_scores(scores, wds_in_q, jaccard);
-    const result = gate_scores_by_threshold(scores_pruned, threshold, jaccard);
+    const result = gate_scores_by_threshold(scores_pruned, threshold, jaccard, num_results);
     return result;
-
 }
 
 
 
-function search_trie_with_code(str, jaccard) {
+function search_trie_with_code(str, jaccard, num_results) {
     working_path = cp.execSync('/home/mas01tc/emo_search/web-demo/set_working_path.sh') + '/';
     var qstring = cp.execSync('/home/mas01tc/emo_search/web-demo/codestring_to_maws.sh ' + str + ' ' + working_path);
-    const result = search_trie_with_string(qstring, jaccard);
+    const result = search_trie_with_string(qstring, jaccard, num_results);
     result.unshift("code query");
     return result;
 }
 
 
+
+function get_scores(words, trie) {
+    var res = false;
+    var scores = [];
+    for(const word of words) {
+        res = trie.getIDs(word);
+        if(res != false) {
+            for(var item of res.values()) {
+                if (!scores[item])  {
+                    scores[item] = {};
+                    scores[item].id = item;
+                    scores[item].num = 0;
+                }
+                scores[item].num++;
+            }
+        }
+    }
+    return scores;
+}
+
+function get_pruned_and_sorted_scores(scores, wds_in_q, jaccard) {
+    var result_num = 0;
+    var scores_pruned = [];
+
+    // Prune
+    for(var g in scores) {
+        if(scores[g].num > 1) {
+            scores_pruned[result_num] = {};
+            scores_pruned[result_num].id = scores[g].id;
+            scores_pruned[result_num].num = scores[g].num;
+            scores_pruned[result_num].num_words = word_totals[scores_pruned[result_num].id];
+            scores_pruned[result_num].jaccard = 1 - (scores[g].num / (scores_pruned[result_num].num_words + wds_in_q - scores_pruned[result_num].num));
+            result_num++;
+        }
+    }
+
+    // Sort
+    if (jaccard) {
+        // Ascending, as 0 is identity match
+        scores_pruned.sort((a, b) => { return a.jaccard - b.jaccard; }); 
+    }
+    else {
+        // Descending
+        scores_pruned.sort((a, b) => { return b.num - a.num; });
+    }
+
+    return scores_pruned;
+}
+
+
+
+function gate_scores_by_threshold(scores_pruned, threshold, jaccard, num_results) {
+    // if threshold is set in URL, stop returning results when delta < threshold
+    if (threshold) {
+        const out_array = [];
+        out_array[0] = scores_pruned[0];  // the identity match, or at least the best we have
+        for(var p = 1; p < scores_pruned.length; p++) {
+            var delta = 0;
+            if (jaccard) { delta = jacc_delta(scores_pruned, p); }
+            else { delta = scores_pruned[p - 1].num - scores_pruned[p].num; }
+            if (threshold == "median") { threshold = 0 + getMedian(scores_pruned, jaccard); }
+            if (delta >= threshold) {
+                out_array[p] = scores_pruned[p];
+                out_array[p].delta = delta;
+            } else {
+                num_results = p - 1;
+                break;
+            }
+        }
+        return out_array;
+    } else {
+        // return the first num_results results
+        return scores_pruned.slice(0, num_results);
+    }
+}
 
 
 /*******************************************************************************
@@ -241,16 +315,15 @@ function load_maws() {
     console.log("Loading " + MAWS_DB);
     fs.readFile(MAWS_DB, 'utf8', (err, data) => {
         if (err) { throw err; }
-        if (!data.length) { console.log("No data!"); }
-        else {
+
+        if (!data.length) {
+            console.log("No data!");
+        } else {
             parse_maws_db(data);
         }
     });
 }
 
-// array containing objects holding number of MAWs/ngrams for each id in database
-// for use in normalisation elsewhere
-var word_totals = [];
 
 function parse_maws_db(data_str) {  
     const lines = data_str.split("\n");
@@ -259,7 +332,7 @@ function parse_maws_db(data_str) {
     const no_maws_ids = [];
     for (const line of lines) {
         if (line) {
-            const [id, maws_str] = line.split(/ (.+)/); // splits on first match of ' '
+            const [id, maws_str] = line.split(/ (.+)/); // splits on first match of whitespace
 
             if (maws_str === undefined) {
                 // TODO(ra): how should we handle these? 
@@ -267,7 +340,7 @@ function parse_maws_db(data_str) {
                 continue;
             }
 
-            const words = maws_str.split(/[ ,]+/).filter(Boolean); // splits rest into chunks
+            const words = maws_str.split(/[ ,]+/).filter(Boolean); // splits rest into words by whitespace
 
             EMO_IDS.push(id);           
             EMO_IDS_MAWS[id] = words; 
@@ -324,82 +397,6 @@ function getMedian(array, jaccard){
     console.log("Median = " + median);
     return median;
 }
-
-function get_scores(words, trie) {
-    var res = false;
-    var scores = [];
-    for(const word of words) {
-        res = trie.getIDs(word);
-        if(res != false) {
-            for(var item of res.values()) {
-                if (!scores[item])  {
-                    scores[item] = {};
-                    scores[item].id = item;
-                    scores[item].num = 0;
-                }
-                scores[item].num++;
-            }
-        }
-    }
-    return scores;
-}
-
-function get_pruned_and_sorted_scores(scores, wds_in_q, jaccard) {
-    var result_num = 0;
-    var scores_pruned = [];
-
-    // Prune
-    for(var g in scores) {
-        if(scores[g].num > 1) {
-            scores_pruned[result_num] = {};
-            scores_pruned[result_num].id = scores[g].id;
-            scores_pruned[result_num].num = scores[g].num;
-            scores_pruned[result_num].num_words = word_totals[scores_pruned[result_num].id];
-            scores_pruned[result_num].jaccard = 1 - (scores[g].num / (scores_pruned[result_num].num_words + wds_in_q - scores_pruned[result_num].num));
-            result_num++;
-        }
-    }
-
-    // Sort
-    if (jaccard) {
-        // Ascending, as 0 is identity match
-        scores_pruned.sort((a, b) => { return a.jaccard - b.jaccard; }); 
-    }
-    else {
-        // Descending
-        scores_pruned.sort((a, b) => { return b.num - a.num; });
-    }
-
-    return scores_pruned;
-}
-
-
-
-function gate_scores_by_threshold(scores_pruned, threshold, jaccard) { 
-    // if threshold is set in URL, stop returning results when delta < threshold
-    if (threshold) {
-        const out_array = [];
-        out_array[0] = scores_pruned[0];  // the identity match, or at least the best we have
-        for(var p = 1; p < scores_pruned.length; p++) {
-            var delta = 0;
-            if (jaccard) { delta = jacc_delta(scores_pruned, p); }
-            else { delta = scores_pruned[p - 1].num - scores_pruned[p].num; }
-            if (threshold == "median") { threshold = 0 + getMedian(scores_pruned, jaccard); }
-            if (delta >= threshold) {
-                out_array[p] = scores_pruned[p];
-                out_array[p].delta = delta;
-            } else {
-                num_results = p - 1;
-                break;
-            }
-        }
-        return out_array;
-    } else {
-        // return the first num_results results
-        return scores_pruned.slice(0, num_results);
-    }
-}
-
 
 
 

@@ -17,7 +17,6 @@ const EMO_IDS_MAWS = {}
 
 var ng_lines = [];
 let query_id;
-var jaccard = "true"; // default
 var num_results = 20; // default num of results to display
 var threshold = false; // default until supplied
 var search_str = "";
@@ -55,33 +54,35 @@ app.get('/api/emo_ids', function (req, res) { res.send(EMO_IDS); });
 app.get('/api/query', function (req, res) {
 	num_results = 20; // Default
 	threshold = false; // Default
-	jaccard = req.query.jaccard;
+
+	let jaccard = false;
+    if (req.query.jaccard == 'true') { jaccard = true; } // TODO(ra): fix this in the request - POST not get...
 
 	if(req.query.num_results) {
-		num_results = req.query.num_results;
+		num_results = parseInt(req.query.num_results);
 	}
 
-	if(req.query.threshold) {
-		threshold = req.query.threshold;
+	if(req.query.threshold !== undefined) {
+        raw_t = req.query.threshold;
+        if (raw_t === 'false') { threshold = false; }
+        else { threshold = parseFloat(raw_t); }
 	}
 
     let result;
 	if(req.query.qstring) {
-		console.log('q string');
-		console.log(search_str);
+		console.log('Querying by string...');
 		search_str = req.query.qstring;
-		result = search_trie_with_string(search_str,jaccard);
+		result = search_trie_with_string(search_str, jaccard);
 	} else if(req.query.id) {
-		console.log('q id');
-		console.log(search_str);
+		console.log('Querying by id...');
         result = search_trie(req.query.id, jaccard);
+
     } else if(req.query.diat_int_code) {
 		console.log('q diat_int_code');
-		console.log(search_str);
         result = search_trie_with_code(req.query.diat_int_code, jaccard);
     }
 
-    console.log(result)	
+    // console.log(result)	
 	res.send(result);
 });
 
@@ -115,7 +116,7 @@ function run_image_query(user_image, ngram_search) {
     }
     else {
         var qstring = cp.execSync('./external_scripts/do-process_for_ngrams.sh '+ user_image.name +' '+ working_path + ' '+'9');
-        result = trieNgramSearchWithString(qstring,jaccard);
+        result = search_ngram_trie_with_string(qstring,jaccard);
     }
 
     result.unshift(path_app.basename(working_path)+'/'+user_image.name);
@@ -128,78 +129,46 @@ function run_image_query(user_image, ngram_search) {
  * Query functions
  ******************************************************************************/
 function search_trie(id, jaccard) {
-    if (!(id in EMO_IDS_MAWS)) {
-        // Need to report this back to browser/user
+    if (!(id in EMO_IDS_MAWS)) { // TODO: need to report to frontend 
         console.log("ID " + id + " not found in " + MAWS_DB);
         return;
     }
 
     const words = EMO_IDS_MAWS[id];
 
-    if(words.length < 6) {
-        // Need to report this back to browser/user
-        console.log("Not enough data in query " + id + ". Try again!");
+    if (words.length < 6) { // TODO: Need to report to frontend
+        console.log("Not enough words in query " + id);
         return;
     }
 
-    const scores = get_scores_from_words(words);
-    const scores_pruned = get_pruned_scores(scores, words.length);
-
-	// Sort scores_pruned appropriately
-	if(jaccard=="true") {
-	//console_sample(scores_pruned,10,"scores_pruned UNSORTED");
-	scores_pruned.sort(function(a, b){return a.jaccard-b.jaccard}); // Ascending, as 0 is identity match
-	}
-	else scores_pruned.sort(function(a, b){return b.num-a.num}); // Descending
-	//console_sample(scores_pruned,10,"scores_pruned SORTED");
-
-    // TODO(ra): don't do this thresholding here, probably...
-
-    let out_array = [];
-	// if threshold is set in URL, stop returning results when delta < threshold
-	if(threshold > 0) {
-		out_array[0] = scores_pruned[0];  // the identity match, or at least the best we have
-		for(var p = 1; p < scores_pruned.length; p++) {
-			var delta = jacc_delta(scores_pruned, p);
-			if( delta >= threshold) {
-				out_array[p] = scores_pruned[p];
-				out_array[p].delta = delta;
-			}
-			else {
-				num_results = p-1;
-				break;
-			}
-		}
-	}
-	else {
-	//  return the first num_results results (as JSON?) to the client
-		out_array = scores_pruned.slice(0,num_results);
-    }
-    return out_array;
+    const scores = get_scores(words, trie);
+    const scores_pruned = get_pruned_and_sorted_scores(scores, words.length);
+    const result = gate_scores_by_threshold(scores_pruned, threshold, jaccard);
+    return result;
 }
 
 
 
 // Code to execute a MAW query in str
-function search_trie_with_string(str,jaccard) {
+function search_trie_with_string(str, jaccard) {
     var x = str + '';
     if(!x) {
-    // Need to report this back to browser/user
+        // Need to report this back to browser/user
         console.log("No string provided!");
         return false;
     }
-    else {
-        var queryArray = x.split(/\s/);
-        var id = query_id = queryArray[0];
-        if(id.substring(0,1)==">") query_id = query_id.substring(1);
-        wds_in_q = queryArray.length-1
-console.log(wds_in_q+' words in query')
-        if(wds_in_q < 6) {
-    // Need to report this back to browser/user
-            console.log("Not enough data in query "+query_id+". Try again!");
-            return;
-        }
+
+    var queryArray = x.split(/\s/);
+    var query_id = queryArray[0];
+    wds_in_q = queryArray.length-1
+    console.log(wds_in_q+' words in query')
+
+    if(wds_in_q < 6) {
+        // Need to report this back to browser/user
+        console.log("Not enough data in query "+query_id+". Try again!");
+        return;
     }
+
     var words = [];
     for(i=1,qa_length=queryArray.length;i<qa_length;i++) {
         if(queryArray[i].length) {
@@ -207,46 +176,13 @@ console.log(wds_in_q+' words in query')
         }
     }
 
-    const scores = get_scores_from_words(words);
-    const scores_pruned = get_pruned_scores(scores, words.length);
+    const scores = get_scores(words, trie);
+    const scores_pruned = get_pruned_and_sorted_scores(scores, words.length, jaccard);
+    const result = gate_scores_by_threshold(scores_pruned, threshold, jaccard);
 
-
-// Sort scores_pruned appropriately
-//console.log("jaccard: "+jaccard);
-	if(jaccard=="true") {
-//console_sample(scores_pruned,10,"scores_pruned UNSORTED");
-	scores_pruned.sort(function(a, b){return a.jaccard-b.jaccard}); // Ascending, as 0 is identity match
-	}
-	else scores_pruned.sort(function(a, b){return b.num-a.num}); // Descending
-//console_sample(scores_pruned,10,"scores_pruned SORTED");
-
-    let out_array = [];
-	// if threshold is set in URL, stop returning results when delta < threshold
-	if(threshold) {
-		out_array[0] = scores_pruned[0];  // the identity match, or at least the best we have
-		for(var p=1;p<scores_pruned.length; p++) {
-			var delta = 0;
-			if(jaccard=="true") delta = jacc_delta(scores_pruned, p);
-			else delta = scores_pruned[p-1].num - scores_pruned[p].num;
-			if(threshold=="median") threshold = 0 + getMedian(scores_pruned,jaccard);
-			if( delta >= threshold) {
-				out_array[p] = scores_pruned[p];
-				out_array[p].delta = delta;
-			}
-			else {
-				num_results = p-1;
-				break;
-			}
-		}
-	}
-	else
-	//  return the first num_results results (as JSON?) to the client
-		out_array = scores_pruned.slice(0, num_results);
-
-	return out_array;
 }
 
-function trieNgramSearchWithString(str, jaccard) {
+function search_ngram_trie_with_string(str, jaccard) {
     var x = str + '';
     if(!x) {
     // Need to report this back to browser/user
@@ -272,62 +208,20 @@ function trieNgramSearchWithString(str, jaccard) {
         }
     }
 
-    const scores = get_scores_from_words(words);
+    const scores = get_scores(words, ng_trie);
+    const scores_pruned = get_pruned_and_sorted_scores(words, wds_in_q, jaccard);
+    const result = gate_scores_by_threshold(scores_pruned, threshold, jaccard);
+    return result;
 
-	var result_num = 0;
-	var scores_pruned = [];
-	for(var g in scores) {
-		if(score[g].num > 1) {
-			scores_pruned[result_num] = {};
-			scores_pruned[result_num].id=scores[g].id;
-			scores_pruned[result_num].num=scores[g].num;
-			scores_pruned[result_num].num_words= word_totals[scores_pruned[result_num].id];
-			scores_pruned[result_num].jaccard = 1-(scores[g].num/(scores_pruned[result_num].num_words+wds_in_q-scores_pruned[result_num].num));
-			result_num++;
-		}
-	}
-	// Sort scores_pruned appropriately
-	if(jaccard=="true") {
-        //console_sample(scores_pruned,10,"scores_pruned UNSORTED");
-        scores_pruned.sort(function(a, b){return a.jaccard-b.jaccard}); // Ascending, as 0 is identity match
-	}
-	else scores_pruned.sort(function(a, b){return b.num-a.num}); // Descending
-	//console_sample(scores_pruned,10,"scores_pruned SORTED");
-
-    const out_array = [];
-	// if threshold is set in URL, stop returning results when delta < threshold
-	if(threshold) {
-		out_array[0]=scores_pruned[0];  // the identity match, or at least the best we have
-		for(var p=1;p<scores_pruned.length; p++) {
-			var delta = 0;
-			if(jaccard=="true") delta = jacc_delta(scores_pruned, p);
-			else delta = scores_pruned[p-1].num - scores_pruned[p].num;
-			if(threshold=="median") threshold = 0 + getMedian(scores_pruned,jaccard);
-			if( delta >= threshold) {
-				out_array[p] = scores_pruned[p];
-				out_array[p].delta = delta;
-			}
-			else {
-				num_results = p-1;
-				break;
-			}
-		}
-	} else {
-		//  return the first num_results results (as JSON?) to the client
-		out_array = scores_pruned.slice(0, num_results);
-	}
-	return out_array;
 }
 
 
 
 function search_trie_with_code(str, jaccard) {
-	// Call set_working_path.sh to get a new directory
 	working_path = cp.execSync('/home/mas01tc/emo_search/web-demo/set_working_path.sh') + '/';
 	var qstring = cp.execSync('/home/mas01tc/emo_search/web-demo/codestring_to_maws.sh '+ str +' '+ working_path);
 	out_array = search_trie_with_string(qstring,jaccard);
 	out_array.unshift("code query");
-	//	res.send(out_array);
 	return out_array;
 }
 
@@ -476,7 +370,7 @@ function getMedian(array,jaccard){
 	return median;
 }
 
-function get_scores_from_words(words) {
+function get_scores(words, trie) {
     var res = false;
     var scores = [];
     for(w in words) {
@@ -495,9 +389,11 @@ function get_scores_from_words(words) {
     return scores;
 }
 
-function get_pruned_scores(scores, wds_in_q) {
+function get_pruned_and_sorted_scores(scores, wds_in_q, jaccard) {
     var result_num = 0;
     var scores_pruned = [];
+
+    // Prune
     for(var g in scores) {
         if(scores[g].num > 1) {
             scores_pruned[result_num] = {};
@@ -508,5 +404,46 @@ function get_pruned_scores(scores, wds_in_q) {
             result_num++;
         }
     }
+
+	// Sort
+	if (jaccard) {
+        // Ascending, as 0 is identity match
+        scores_pruned.sort((a, b) => { return a.jaccard - b.jaccard; }); 
+	}
+	else {
+        // Descending
+        scores_pruned.sort((a, b) => { return b.num - a.num; });
+    }
+
     return scores_pruned;
 }
+
+
+
+function gate_scores_by_threshold(scores_pruned, threshold, jaccard) { 
+    // if threshold is set in URL, stop returning results when delta < threshold
+    if (threshold) {
+        const out_array = [];
+        out_array[0] = scores_pruned[0];  // the identity match, or at least the best we have
+        for(var p = 1; p<scores_pruned.length; p++) {
+            var delta = 0;
+            if (jaccard) { delta = jacc_delta(scores_pruned, p); }
+            else { delta = scores_pruned[p-1].num - scores_pruned[p].num; }
+            if (threshold=="median") { threshold = 0 + getMedian(scores_pruned,jaccard); }
+            if (delta >= threshold) {
+                out_array[p] = scores_pruned[p];
+                out_array[p].delta = delta;
+            } else {
+                num_results = p-1;
+                break;
+            }
+        }
+        return out_array;
+    } else {
+        // return the first num_results results
+        return scores_pruned.slice(0, num_results);
+    }
+
+    return out_array;
+}
+

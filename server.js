@@ -84,7 +84,7 @@ app.get('/api/query', function (req, res) {
 });
 
 // Handle image uploads
-// TODO(ra): ensure correct file format (I think we only handle jpg right now?)
+// TODO(ra): ensure correct file formats
 app.post('/api/image_query', function(req, res) {
     if (!req.files) { return res.status(400).send('No files were uploaded.'); }
 
@@ -112,13 +112,14 @@ function run_image_query(user_image, ngram_search) {
     let result;
     let qstring;
     if(!ngram_search) {
-        qstring = cp.execSync('./external_scripts/do-absolutely_everything.sh ' + user_image.name + ' ' + working_path);
+        qstring = cp.execSync('./callout_scripts/image_to_maws.sh ' + user_image.name + ' ' + working_path);
         result = search_trie_with_string(qstring, jaccard, num_results);
     }
     else {
-        qstring = cp.execSync('./external_scripts/do-process_for_ngrams.sh ' + user_image.name + ' ' + working_path + ' ' + '9');
+        qstring = cp.execSync('./callout_scripts/do-process_for_ngrams.sh ' + user_image.name + ' ' + working_path + ' ' + '9');
         result = search_ngram_trie_with_string(qstring, jaccard, num_results);
     }
+    return []; // NOCOMMIT!!!!
 
     result.unshift(path_app.basename(working_path) + '/' + user_image.name);
     console.log(result);

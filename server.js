@@ -3,7 +3,6 @@
  ******************************************************************************/
 const express = require('express');
 const fileUpload = require('express-fileupload');
-const trie_module = require('./static/src/trie.js');
 const fs = require('fs');
 const cp = require('child_process');
 const path_app = require('path');
@@ -12,9 +11,10 @@ const path_app = require('path');
  * Globals / Inits
  ******************************************************************************/
 const MAWS_DB = './data/emo_ids_maws.txt';
-const EMO_IDS = [];
-const EMO_IDS_MAWS = {};
-const MAWS_to_IDS = {};
+const EMO_IDS = []; // all ids in the system
+const EMO_IDS_MAWS = {}; // keys are ids, values are an array of maws for that id
+const MAWS_to_IDS = {}; // keys are maws, values are an array of all ids for which that maw appears
+const NGRAMS_to_IDS = {}; // keys are ngrams, values are a array of all ids for which that ngram appears
 const word_totals = []; // total words per id, used for normalization
 
 let query_id;
@@ -22,8 +22,6 @@ var threshold = false; // default until supplied
 let working_path;
 
 const app = express();
-const trie = new trie_module.Trie();
-const ng_trie = new trie_module.Trie();
 
 /*******************************************************************************
  * Setup
@@ -70,14 +68,14 @@ app.get('/api/query', function (req, res) {
     if(req.query.qstring) {
         console.log('Querying by string...');
         const query = req.query.qstring;
-        result = search_trie('words', query, jaccard, num_results);
+        result = search('words', query, jaccard, num_results);
     } else if(req.query.id) {
         console.log('Querying by id...');
-        result = search_trie('id', req.query.id, jaccard, num_results);
+        result = search('id', req.query.id, jaccard, num_results);
 
     } else if(req.query.diat_int_code) {
         console.log('q diat_int_code');
-        result = search_trie_with_code(req.query.diat_int_code, jaccard, num_results);
+        result = search_with_code(req.query.diat_int_code, jaccard, num_results);
     }
 
     // console.log(result)  
@@ -116,12 +114,12 @@ function run_image_query(user_image, ngram_search) {
     if(!ngram_search) {
         query_data = cp.execSync('./callout_scripts/temp_image_to_maws.sh ' + user_image.name + ' ' + working_path);
         query = String(query_data); // a string of maws, preceded with an id
-        result = search_trie('words', query, jaccard, num_results);
+        result = search('words', query, jaccard, num_results);
     }
     else {
         query_data = cp.execSync('./callout_scripts/do-process_for_ngrams.sh ' + user_image.name + ' ' + working_path + ' ' + '9');
         query = String(query_data);
-        result = search_trie('words', query, jaccard, num_results, true);
+        result = search('words', query, jaccard, num_results, true);
     }
 
     result.unshift(path_app.basename(working_path) + '/' + user_image.name); // add path/filename to beginning of array
@@ -135,7 +133,7 @@ function run_image_query(user_image, ngram_search) {
 
 // method can be 'id' or 'words'
 // query is a string, either holding the id a id+maws line
-function search_trie(method, query, jaccard, num_results, ngram) {
+function search(method, query, jaccard, num_results, ngram) {
     if (ngram === undefined) { ngram = false; }
 
     if(!query) { // Need to report this back to browser/user
@@ -155,38 +153,40 @@ function search_trie(method, query, jaccard, num_results, ngram) {
         words = parsed_line.words;
     }
 
-    let this_trie;
-    if (ngram) { this_trie = ng_trie; }
-    else { this_trie = trie; }
+    let signature_to_ids_dict;
+    if (ngram) { signature_to_ids_dict = NGRAMS_to_IDS; }
+    else { signature_to_ids_dict = MAWS_to_IDS; }
 
-    return get_result_from_words(words, this_trie, jaccard, num_results);
+    return get_result_from_words(words, signature_to_ids_dict, jaccard, num_results);
 }
 
-function search_trie_with_code(str, jaccard, num_results) {
+function search_with_code(str, jaccard, num_results) {
     working_path = cp.execSync('/home/mas01tc/emo_search/web-demo/set_working_path.sh') + '/';
-    var qstring = cp.execSync('/home/mas01tc/emo_search/web-demo/codestring_to_maws.sh ' + str + ' ' + working_path);
-    const result = search_trie('words', qstring, jaccard, num_results);
+    const query_data = cp.execSync('/home/mas01tc/emo_search/web-demo/codestring_to_maws.sh ' + str + ' ' + working_path);
+    const query_str = String(query_data); // a string of maws, preceded with an id
+
+    const result = search('words', query_str, jaccard, num_results);
     result.unshift("code query");
     return result;
 }
 
-function get_result_from_words(words, trie, jaccard, num_results) {
+function get_result_from_words(words, signature_to_ids_dict, jaccard, num_results) {
     if (words.length < 6) { // TODO: Need to report to frontend
         console.log("Not enough words in query.");
         return [];
     }
-    const scores = get_scores(words, trie);
+    const scores = get_scores(words, signature_to_ids_dict);
     const scores_pruned = get_pruned_and_sorted_scores(scores, words.length);
     const result = gate_scores_by_threshold(scores_pruned, threshold, jaccard, num_results);
     return result;
 }
 
-function get_scores(words, trie) {
+function get_scores(words, signature_to_ids_dict) {
     var res = false;
     var scores = {};
 
     for (const word of words) {
-        const ids = MAWS_to_IDS[word]
+        const ids = signature_to_ids_dict[word]
         if (!ids) { continue; }
 
         for(const id of ids) {
@@ -300,7 +300,6 @@ function parse_maws_db(data_str) {
 
             word_totals[id] = words.length;
             for (const word of words) {
-                trie.id_add(word, id);
                 if (!MAWS_to_IDS[word]) { MAWS_to_IDS[word] = []; }
                 MAWS_to_IDS[word].push(id);
             }

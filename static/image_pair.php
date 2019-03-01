@@ -147,19 +147,22 @@
 <body>
 
 <?php
+    // Set a color based on the get request
 	if(!isset($_GET['colour'])) $colour = "blue";
 	else $colour = $_GET['colour'];
 	
-// $qid is query ID; $mid is match ID
+    // $qid is query ID; $mid is match ID
 	if(!isset($_GET['qid'])) $qid = "K3k19_007_1";
 	else $qid = $_GET['qid'];
 	if(!isset($_GET['mid'])) $mid = "A338d_003_0";
 	else $mid = $_GET['mid'];
-
 	$qjpg_url = "http://doc.gold.ac.uk/~mas01tc/page_dir_50/".$qid.".jpg";
 	$mjpg_url = "http://doc.gold.ac.uk/~mas01tc/page_dir_50/".$mid.".jpg";
 	$qmei_url = "http://doc.gold.ac.uk/~mas01tc/EMO_search/mei_pages/".$qid.".mei";
 	$mmei_url = "http://doc.gold.ac.uk/~mas01tc/EMO_search/mei_pages/".$mid.".mei";
+
+    // id_diat_mel_lookup is a file of ids and codestrings
+    // this finds the line of the query and result pages
 	$grep_cmd = "grep ".$qid." ./id_diat_mel_lookup.txt";
 	$q_diat_str = exec($grep_cmd);
 	$grep_cmd = "grep ".$mid." ./id_diat_mel_lookup.txt";

@@ -117,7 +117,7 @@ function run_image_query(user_image, ngram_search) {
         result = search('words', query, jaccard, num_results);
     }
     else {
-        query_data = cp.execSync('./callout_scripts/do-process_for_ngrams.sh ' + user_image.name + ' ' + working_path + ' ' + '9');
+        query_data = cp.execSync('./callout_scripts/image_to_ngrams.sh ' + user_image.name + ' ' + working_path + ' ' + '9');
         query = String(query_data);
         result = search('words', query, jaccard, num_results, true);
     }
@@ -176,7 +176,7 @@ function get_result_from_words(words, signature_to_ids_dict, jaccard, num_result
         return [];
     }
     const scores = get_scores(words, signature_to_ids_dict);
-    const scores_pruned = get_pruned_and_sorted_scores(scores, words.length);
+    const scores_pruned = get_pruned_and_sorted_scores(scores, words.length, jaccard);
     const result = gate_scores_by_threshold(scores_pruned, threshold, jaccard, num_results);
     return result;
 }

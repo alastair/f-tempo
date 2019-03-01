@@ -23,3 +23,4 @@ node server.js
 ### TODO:
 - Replace all of the PHP scripts with JS
 - Get the Aruspix and maw dependencies better integrated into the project
+- Replace parse_mei_to_diat_int_str.awk with an actual xml parser for the MEI (this is a timebomb!)

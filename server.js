@@ -14,6 +14,7 @@ const path_app = require('path');
 const MAWS_DB = './data/emo_ids_maws.txt';
 const EMO_IDS = [];
 const EMO_IDS_MAWS = {};
+const MAWS_to_IDS = {};
 const word_totals = []; // total words per id, used for normalization
 
 let query_id;
@@ -185,16 +186,18 @@ function get_scores(words, trie) {
     var scores = {};
 
     for (const word of words) {
-        res = trie.getIDs(word);
-        if (res === false) { continue; }
+        const ids = MAWS_to_IDS[word]
+        if (!ids) { continue; }
 
-        for(var id of res.values()) {
+        for(const id of ids) {
             if (!scores[id]) { scores[id] = 0; }
             scores[id]++;
         }
     }
     return scores;
 }
+
+
 
 function get_pruned_and_sorted_scores(scores, wds_in_q, jaccard) {
     var scores_pruned = [];
@@ -294,9 +297,12 @@ function parse_maws_db(data_str) {
 
             EMO_IDS.push(id);           
             EMO_IDS_MAWS[id] = words; 
+
             word_totals[id] = words.length;
             for (const word of words) {
                 trie.id_add(word, id);
+                if (!MAWS_to_IDS[word]) { MAWS_to_IDS[word] = []; }
+                MAWS_to_IDS[word].push(id);
             }
         }
     }

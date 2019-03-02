@@ -225,7 +225,7 @@ function show_results(json) {
 }
 
 function compare(a,b) {
-    var url="../image_pair.php?qid="+a+"&mid="+b;
+    var url="compare?qid="+a+"&mid="+b;
     window.open(url, "Compare pages","comp_win");
 }
 

@@ -2,6 +2,8 @@
  * Imports 
  ******************************************************************************/
 const express = require('express');
+const mustacheExpress = require('mustache-express');
+const request = require('request');
 const fileUpload = require('express-fileupload');
 const fs = require('fs');
 const cp = require('child_process');
@@ -11,8 +13,11 @@ const path_app = require('path');
  * Globals / Inits
  ******************************************************************************/
 const MAWS_DB = './data/emo_ids_maws.txt';
+// const MAWS_DB = './data/dev_emo_ids_maws.txt'; // for dev only! quick rebuilds.
+const DIAT_MEL_DB = './data/id_diat_mel_strs.txt'; // for dev only! quick rebuilds.
 const EMO_IDS = []; // all ids in the system
 const EMO_IDS_MAWS = {}; // keys are ids, values are an array of maws for that id
+const EMO_IDS_DIAT_MELS = {};
 const MAWS_to_IDS = {}; // keys are maws, values are an array of all ids for which that maw appears
 const NGRAMS_to_IDS = {}; // keys are ngrams, values are a array of all ids for which that ngram appears
 const word_totals = []; // total words per id, used for normalization
@@ -27,7 +32,8 @@ const app = express();
  * Setup
  ******************************************************************************/
 
-load_maws(); // load the MAWS db
+load_maws(); // load the MAWS 
+load_diat_mels(); // load the diatonic melodies
 // load_ngram_database(9);   // Just a magic number that seems to work
 
 const port = 8000;
@@ -36,12 +42,67 @@ app.listen(
     () => console.log('EMO app listening on port 8000!') // success callback
 );
 
+app.engine('html', mustacheExpress()); // render html templates using Mustache
+app.set('view engine', 'html'); 
+app.set('views', './templates'); 
+
 app.use(express.static('static')); // serve static files out of /static
 app.use(fileUpload()); // file upload stuff
 
 /*******************************************************************************
  * Request handlers 
  ******************************************************************************/
+
+app.get('/', function (req, res) { 
+    res.render('index');
+});
+
+
+app.get('/compare', function (req, res) { 
+    // console.log(req.query.qid); console.log(req.query.mid);
+
+    // q for 'query', m for 'match'
+    const qid = req.query.qid;
+    const mid = req.query.mid;
+
+    if (!qid || !mid) { return res.status(400).send('qid or mid must be provided!'); }
+
+    const base_img_url = 'http://doc.gold.ac.uk/~mas01tc/page_dir_50/';
+    const img_ext = '.jpg';
+	const q_jpg_url = base_img_url + qid + img_ext;
+	const m_jpg_url = base_img_url + mid + img_ext;
+
+    const base_mei_url = 'http://doc.gold.ac.uk/~mas01tc/EMO_search/mei_pages/';
+    const mei_ext = '.mei';
+	const q_mei_url = base_mei_url + qid + mei_ext;
+	const m_mei_url = base_mei_url + mid + mei_ext;
+
+
+    // id_diat_mel_lookup is a file of ids and codestrings
+    // this finds the line of the query and result pages
+	const q_diat_str = EMO_IDS_DIAT_MELS[qid];
+	const m_diat_str = EMO_IDS_DIAT_MELS[mid];
+
+    request(q_mei_url, function (error, response, q_mei) { if (!error && response.statusCode == 200) {
+    request(m_mei_url, function (error, response, m_mei) { if (!error && response.statusCode == 200) {
+        // console.log(q_mei); console.log(m_mei);
+        const data = {
+            colour: 'blue',
+            qid,
+            mid,
+            q_jpg_url,
+            m_jpg_url,
+            q_mei: q_mei.replace(/(\r\n|\n|\r)/gm,''), // strip newlines
+            m_mei: m_mei.replace(/(\r\n|\n|\r)/gm,''), // strip newlines
+            q_diat_str,
+            m_diat_str,
+        }
+        res.render('compare', data);
+    } else { return res.status(400).send('Could not find the MEI file for qid'); }});
+    } else { return res.status(400).send('Could not find the MEI file for qid'); }});
+
+});
+
 
 // Returns an array of all emo ids
 app.get('/api/emo_ids', function (req, res) { res.send(EMO_IDS); });
@@ -263,21 +324,8 @@ function gate_scores_by_threshold(scores_pruned, threshold, jaccard, num_results
  * Data loading
  ******************************************************************************/
 
-function load_maws() {
-    // The 'db' is a text file, where each line is an EMO page ID,
-    // followed by the MAWs for that page.
-
-    console.log("Loading " + MAWS_DB);
-    fs.readFile(MAWS_DB, 'utf8', (err, data) => {
-        if (err) { throw err; }
-
-        if (!data.length) {
-            console.log("No data!");
-        } else {
-            parse_maws_db(data);
-        }
-    });
-}
+function load_maws() { load_file(MAWS_DB, parse_maws_db); }
+function load_diat_mels() { load_file(DIAT_MEL_DB, parse_diat_mels_db); }
 
 function parse_maws_db(data_str) {  
     const lines = data_str.split("\n");
@@ -312,6 +360,38 @@ function parse_maws_db(data_str) {
     // console.log(EMO_IDS_MAWS);
     console.log(EMO_IDS.length + " lines of MAW data loaded!");
 }
+
+function parse_diat_mels_db(data_str) {
+    const lines = data_str.split("\n");
+    console.log(lines.length + " lines of diatonic melody strings to read...");
+    for (const line of lines) {
+        if (line) {
+            const [id, diat_mels_str] = line.split(/ (.+)/); // splits on first match of whitespace
+            EMO_IDS_DIAT_MELS[id] = diat_mels_str;
+        }
+    }
+    console.log("Diatonic melody strings loaded!");
+}
+
+function load_file(file, data_callback) {
+    // The 'db' is a text file, where each line is an EMO page ID,
+    // followed by the MAWs for that page.
+
+    console.log("Loading " + file);
+    fs.readFile(file, 'utf8', (err, data) => {
+        if (err) { throw err; }
+
+        if (!data.length) {
+            console.log("No data!");
+        } else {
+            data_callback(data);
+        }
+    });
+}
+
+
+
+
 
 /*******************************************************************************
  * Helpers

@@ -145,6 +145,7 @@
 </head>
 
 <body>
+{{ qid }}
 
 <?php
     // Set a color based on the get request
@@ -156,10 +157,11 @@
 	else $qid = $_GET['qid'];
 	if(!isset($_GET['mid'])) $mid = "A338d_003_0";
 	else $mid = $_GET['mid'];
-	$qjpg_url = "http://doc.gold.ac.uk/~mas01tc/page_dir_50/".$qid.".jpg";
-	$mjpg_url = "http://doc.gold.ac.uk/~mas01tc/page_dir_50/".$mid.".jpg";
-	$qmei_url = "http://doc.gold.ac.uk/~mas01tc/EMO_search/mei_pages/".$qid.".mei";
-	$mmei_url = "http://doc.gold.ac.uk/~mas01tc/EMO_search/mei_pages/".$mid.".mei";
+
+	$q_jpg_url = "http://doc.gold.ac.uk/~mas01tc/page_dir_50/".$qid.".jpg";
+	$m_jpg_url = "http://doc.gold.ac.uk/~mas01tc/page_dir_50/".$mid.".jpg";
+	$q_mei_url = "http://doc.gold.ac.uk/~mas01tc/EMO_search/mei_pages/".$qid.".mei";
+	$m_mei_url = "http://doc.gold.ac.uk/~mas01tc/EMO_search/mei_pages/".$mid.".mei";
 
     // id_diat_mel_lookup is a file of ids and codestrings
     // this finds the line of the query and result pages
@@ -172,13 +174,13 @@
 
 <div id="qmei" style="display: none;">
     <?php 
-        $mei = file_get_contents($qmei_url);
+        $mei = file_get_contents($q_mei_url);
         echo htmlspecialchars($mei); /* You have to escape because the result will not be valid HTML otherwise. */
    ?>
 </div>
 <div id="mmei" style="display: none;">
     <?php 
-        $mei = file_get_contents($mmei_url);
+        $mei = file_get_contents($m_mei_url);
         echo htmlspecialchars($mei); /* You have to escape because the result will not be valid HTML otherwise. */
     ?>
 </div>
@@ -187,14 +189,19 @@
 
 <div class="display_row">
 	<div left="0px" width="1050px" id="query_container" class="page_display">
-		<div id="query_page_display">Query:	<span id="query_label" class="label"><?php echo $qid; ?> </span></div>
-		<div><div  id="q_svg_output"></div>
-		<img id="query_image" class="page_image" width="500" src="<?php echo $qjpg_url; ?>"></div>
+        <div id="query_page_display">
+            Query:
+            <span id="query_label" class="label">
+                {{ qid }}
+            </span>
+        </div>
+		<div><div id="q_svg_output"></div>
+		<img id="query_image" class="page_image" width="500" src="<?php echo $q_jpg_url; ?>"></div>
 	</div>
 	<div left="0px" width="1050px" id="match_container" class="page_display">	
 		<div id="match_page_display">Match:	<span id="query_label" class="label"><?php echo $mid; ?> </span></div>
 		<div><div  id="m_svg_output"></div>
-		<img id="match_image" class="page_image" width="500" src="<?php echo $mjpg_url; ?>"></div>
+		<img id="match_image" class="page_image" width="500" src="<?php echo $m_jpg_url; ?>"></div>
 	</div>
 </div>
 

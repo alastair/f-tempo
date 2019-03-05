@@ -5,6 +5,10 @@ module.exports = {
     },
     "extends": "eslint:recommended",
     "rules": {
+        'comma-spacing': [
+            "error", 
+            { "before": false, "after": true }
+        ],
         "space-infix-ops" : 'error',
         "indent": [
             "error",

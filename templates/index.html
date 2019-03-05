@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
-  <head>
+
+<head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,127 +12,125 @@
     <link rel="stylesheet" type="text/css" href="css/styles.css">
 
     <script src='src/setup.js'></script>
-  </head>
+</head>
 
-  <body onload="setup_page();">
+<body onload="setup_page();">
 
-    <script>
-      document.onkeydown = checkKey;
-    </script>
+    <script>document.onkeydown = checkKey;</script>
     <hr>
 
     <div id="query_panel" class="query_panel">
-      <table id="query_table">
-        <tr>
-          <td class="search_panel">
-            <span>
-              <b>Search: &nbsp;&#160;&#160;</b>
-              <span class="tooltip">
-                <img class="prev_book zoom arrow" onclick="find_book_id(false);do_search(query_id,jaccard,num_res_disp);"
-                     src="img/prev_book.png">
-			    <span class="tooltiptext">Go to prev book and search</span>
-              </span>
-              <span class="tooltip">
-                <img class="prev_page zoom arrow" onclick="find_page_id(false);do_search(query_id,jaccard,num_res_disp);"
-                     src="img/prev_page.png">
-              <span class="tooltiptext">Search for prev page</span>
-              </span>
-              <textArea onchange="show_query_display();" id="idText"></textArea>
-              <span class="tooltip">
-                <button class="zoom" id="id_searchButton">Go</button>
-                <span class="tooltiptext">Search for current page</span>
-              </span>
-              <span class="tooltip">
-                <img class="next_page zoom arrow" onclick="find_page_id(true);do_search(query_id,jaccard,num_res_disp);"
-                     src="img/next_page.png">
-			    <span class="tooltiptext">Search for next page</span>
-              </span>
-              <span class="tooltip">
-                <img class="next_book zoom arrow" onclick="find_book_id(true);do_search(query_id,jaccard,num_res_disp);"
-                     src="img/next_book.png">
-			    <span class="tooltiptext">Go to next book and search</span>
-              </span>
-            </span>
-            &nbsp;&#160;&#160;
-          </td>
-          
-          <td id="trial_panel">
-          	<select id="trial_select" name="trial" onchange="select_new_trial();">
-          		<option></option>
-          		<option>K2h7_092_1</option>
-          		<option>A360a_005_0</option>
-          		<option>K3k19_012_1</option>
-          		<option>K3k19_014_0</option>
-          		<option>K4c11_030_1</option>
-          		<option>A324c_048_1</option>
-          		<option>K3k12_010_0</option>
-          		<option>K2a4_072_1</option>
-          		<option>B270b_049_1</option>
-          		<option>A569c_013_1</option>
-          		<option>A19_004_0</option>
-          		<option>K3d9_057_0</option>
-          		<option>K3e1_082_0</option>
-          		<option>K3e1_061_1</option>
-          		<option>K3d5_072_1</option>
-          		<option>K3d10_002_1</option>
-          		
-          	</select>
-          </td>
+        <table id="query_table">
+            <tr>
+                <td class="search_panel">
+                    <span>
+                        <b>Search: &nbsp;&#160;&#160;</b>
+                        <span class="tooltip">
+                            <img class="prev_book zoom arrow" onclick="find_book_id(false);do_search(query_id,jaccard,num_res_disp);"
+                                                              src="img/prev_book.png">
+                            <span class="tooltiptext">Go to prev book and search</span>
+                        </span>
+                        <span class="tooltip">
+                            <img class="prev_page zoom arrow" onclick="find_page_id(false);do_search(query_id,jaccard,num_res_disp);"
+                                                              src="img/prev_page.png">
+                            <span class="tooltiptext">Search for prev page</span>
+                        </span>
+                        <textArea onchange="show_query_display();" id="idText"></textArea>
+                        <span class="tooltip">
+                            <button class="zoom" id="id_searchButton">Go</button>
+                            <span class="tooltiptext">Search for current page</span>
+                        </span>
+                        <span class="tooltip">
+                            <img class="next_page zoom arrow" onclick="find_page_id(true);do_search(query_id,jaccard,num_res_disp);"
+                                                              src="img/next_page.png">
+                            <span class="tooltiptext">Search for next page</span>
+                        </span>
+                        <span class="tooltip">
+                            <img class="next_book zoom arrow" onclick="find_book_id(true);do_search(query_id,jaccard,num_res_disp);"
+                                                              src="img/next_book.png">
+                            <span class="tooltiptext">Go to next book and search</span>
+                        </span>
+                    </span>
+                    &nbsp;&#160;&#160;
+                </td>
 
-          <td class="random_panel">
-            <span>
-              &nbsp;&#160;&#160;
-              <button id="random_searchButton" >Random Search</button>
-              &nbsp;&#160;&#160;
-            </span>
-          </td>
+                <td id="trial_panel">
+                    <select id="trial_select" name="trial" onchange="select_new_trial();">
+                        <option></option>
+                        <option>K2h7_092_1</option>
+                        <option>A360a_005_0</option>
+                        <option>K3k19_012_1</option>
+                        <option>K3k19_014_0</option>
+                        <option>K4c11_030_1</option>
+                        <option>A324c_048_1</option>
+                        <option>K3k12_010_0</option>
+                        <option>K2a4_072_1</option>
+                        <option>B270b_049_1</option>
+                        <option>A569c_013_1</option>
+                        <option>A19_004_0</option>
+                        <option>K3d9_057_0</option>
+                        <option>K3e1_082_0</option>
+                        <option>K3e1_061_1</option>
+                        <option>K3d5_072_1</option>
+                        <option>K3d10_002_1</option>
 
-          <td class="messages_panel">
-            <span id="messages"></span>
-          </td>
+                    </select>
+                </td>
 
-          <td class="ranking_panel">
-            <span>
-              &nbsp;&nbsp;Result ranking:
-              <span id='rank_toggle'></span>
-              &nbsp;
-              <button id='rank_toggle_button'
-                      onclick='switch_rank();'>Change</button>
-            </span>
-          </td>
+                <td class="random_panel">
+                    <span>
+                        &nbsp;&#160;&#160;
+                        <button id="random_searchButton" >Random Search</button>
+                        &nbsp;&#160;&#160;
+                    </span>
+                </td>
 
-          <td class="res_num_panel">
-            <span>
-              Results to display
-              <select class="drop_downs" id="res_disp_select"
-                      name="num_to_disp"
-                      onchange="change_num_res();">
-                <option>Best</option>
-                <option>5</option>
-                <option selected>10</option>
-                <option>15</option>
-                <option>20</option>
-                <option>25</option>
-                <option>30</option>
-              </select>
-            </span>
-          </td>
-          <td class='upload_panel' id='upload_panel'>
-			<form 
-				id='uploadForm' 
-				method='post' 
-				action='https://www.doc.gold.ac.uk/usr/265/'
-				encType="multipart/form-data">
-					<input type="file" id="file-id" name="sampleFile" /><br>
-					<input type='submit'
-					 value='Upload and Search!'
-					 />
-			</form> 
-          </td>
+                <td class="messages_panel">
+                    <span id="messages"></span>
+                </td>
 
-<script src='src/upload.js'></script>
+                <td class="ranking_panel">
+                    <span>
+                        &nbsp;&nbsp;Result ranking:
+                        <span id='rank_toggle'></span>
+                        &nbsp;
+                        <button id='rank_toggle_button'
+                    onclick='switch_rank();'>Change</button>
+                    </span>
+                </td>
 
-			                <!-- Progress Bar -->
+                <td class="res_num_panel">
+                    <span>
+                        Results to display
+                        <select class="drop_downs" id="res_disp_select"
+                                                   name="num_to_disp"
+                                                   onchange="change_num_res();">
+                            <option>Best</option>
+                            <option>5</option>
+                            <option selected>10</option>
+                            <option>15</option>
+                            <option>20</option>
+                            <option>25</option>
+                            <option>30</option>
+                        </select>
+                    </span>
+                </td>
+                <td class='upload_panel' id='upload_panel'>
+                    <form 
+                                                   id='uploadForm' 
+                                                   method='post' 
+                                                   action='https://www.doc.gold.ac.uk/usr/265/'
+                                                   encType="multipart/form-data">
+                        <input type="file" id="file-id" name="sampleFile" /><br>
+                        <input type='submit'
+                                                        value='Upload and Search!'
+                                                        />
+                    </form> 
+                </td>
+
+                <script src='src/upload.js'></script>
+
+                <!-- Progress Bar -->
                 <div class="row">
                     <div class="col-md-12">
                         <div class="progress">
@@ -142,52 +141,54 @@
                     </div>
                 </div>	<!-- End of Progress Bar -->
 
-          </td>
-        </tr>
-      </table>
+                </td>
+            </tr>
+        </table>
     </div>
 
     <hr>
 
     <div id="display_panel">
-      <div>
-        <div id="query_display">
-          <span class="tooltip">
-            <img onclick="find_book_id(false);"
-                  class="prev_book arrow" src="img/prev_book.png">
-            <span class="tooltiptext">Show first page of prev book</span>
-          </span>
-          <span class="tooltip">
-            <img onclick="find_page_id(false);"
-                  class="prev_page arrow" src="img/prev_page.png">
-            <span class="tooltiptext">Show prev page</span>
-          </span>
-          <span style="color:green" id="q_page_display"></span>
-          <span class="tooltip">
-            <img onclick="find_page_id(true);"
-                  class="next_page arrow" src="img/next_page.png">
-            <span class="tooltiptext">Show next page</span>
-          </span>
-          <span class="tooltip">
-            <img onclick="find_book_id(true);"
-                  class="next_book arrow" src="img/next_book.png">
-            <span class="tooltiptext">Show first page of next book</span>
-          </span>
+        <div>
+            <div id="query_display">
+                <span class="tooltip">
+                    <img onclick="find_book_id(false);"
+                         class="prev_book arrow" src="img/prev_book.png">
+                    <span class="tooltiptext">Show first page of prev book</span>
+                </span>
+                <span class="tooltip">
+                    <img onclick="find_page_id(false);"
+                         class="prev_page arrow" src="img/prev_page.png">
+                    <span class="tooltiptext">Show prev page</span>
+                </span>
+                <span style="color:green" id="q_page_display"></span>
+                <span class="tooltip">
+                    <img onclick="find_page_id(true);"
+                         class="next_page arrow" src="img/next_page.png">
+                    <span class="tooltiptext">Show next page</span>
+                </span>
+                <span class="tooltip">
+                    <img onclick="find_book_id(true);"
+                         class="next_book arrow" src="img/next_book.png">
+                    <span class="tooltiptext">Show first page of next book</span>
+                </span>
+            </div>
+            <div id="img_display"></div>
+            <div id="q_text_display"></div>
         </div>
-        <div id="img_display"></div>
-        <div id="q_text_display"></div>
-      </div>
-      &nbsp;&#160;&#160;
-      <div>
-        <span id="res_table_label"></span>
-        <div id="res_table_div"></div>
-      </div>
-      &nbsp;&#160;&#160;
-      <div id="res_display_div">
-        <div id="result_id_msg"></div>
-        <div id="result_img_display"></div>
-        <div id="t_text_display"></div>
-      </div>
+        &nbsp;&#160;&#160;
+        <div>
+            <span id="res_table_label"></span>
+            <div id="res_table_div"></div>
+        </div>
+        &nbsp;&#160;&#160;
+        <div id="res_display_div">
+            <div id="result_id_msg"></div>
+            <div id="result_img_display"></div>
+            <div id="t_text_display"></div>
+        </div>
     </div>
-  </body>
+
+</body>
+
 </html>

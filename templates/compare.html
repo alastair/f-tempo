@@ -59,7 +59,7 @@
         <div id="query_page_display">
             Query:
             <span id="query_label" class="label">
-                {{ qid }}
+                {{ q_id }}
             </span>
         </div>
 		<div><div id="q_svg_output"></div>
@@ -69,7 +69,7 @@
 	</div>
 	<div left="0px" width="1050px" id="match_container" class="page_display">	
 		<div id="match_page_display">Match:	<span id="query_label" class="label">
-            {{ mid }}
+            {{ m_id }}
         </span></div>
 		<div><div  id="m_svg_output"></div>
 		<img id="match_image" class="page_image" width="500" src="
@@ -83,12 +83,13 @@
 <script>
 setup_page({
     overlay_colour: '{{ colour }}',
-    qid: '{{ qid }}',
-    mid: '{{ mid }}',
-    q_mel_str: '{{ q_diat_str }}',
-    m_mel_str: '{{ m_diat_str }}',
+    q_id: '{{ q_id }}',
+    m_id: '{{ m_id }}',
 	qmei_txt: '{{& q_mei }}',
 	mmei_txt: '{{& m_mei }}',
+	ngr_len: {{ ngr_len }},
+    q_common_ngram_locations: [{{ q_common_ngram_locations }}],
+    m_common_ngram_locations: [{{ m_common_ngram_locations }}],
 });
 </script>
 

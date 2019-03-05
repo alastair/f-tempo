@@ -62,44 +62,71 @@ app.get('/compare', function (req, res) {
     // console.log(req.query.qid); console.log(req.query.mid);
 
     // q for 'query', m for 'match'
-    const qid = req.query.qid;
-    const mid = req.query.mid;
+    const q_id = req.query.qid;
+    const m_id = req.query.mid;
 
-    if (!qid || !mid) { return res.status(400).send('qid or mid must be provided!'); }
+    if (!q_id || !m_id) { return res.status(400).send('q_id or m_id must be provided!'); }
 
     const base_img_url = 'http://doc.gold.ac.uk/~mas01tc/page_dir_50/';
     const img_ext = '.jpg';
-	const q_jpg_url = base_img_url + qid + img_ext;
-	const m_jpg_url = base_img_url + mid + img_ext;
+	const q_jpg_url = base_img_url + q_id + img_ext;
+	const m_jpg_url = base_img_url + m_id + img_ext;
 
     const base_mei_url = 'http://doc.gold.ac.uk/~mas01tc/EMO_search/mei_pages/';
     const mei_ext = '.mei';
-	const q_mei_url = base_mei_url + qid + mei_ext;
-	const m_mei_url = base_mei_url + mid + mei_ext;
+	const q_mei_url = base_mei_url + q_id + mei_ext;
+	const m_mei_url = base_mei_url + m_id + mei_ext;
 
 
     // id_diat_mel_lookup is a file of ids and codestrings
     // this finds the line of the query and result pages
-	const q_diat_str = EMO_IDS_DIAT_MELS[qid];
-	const m_diat_str = EMO_IDS_DIAT_MELS[mid];
+	const q_diat_str = EMO_IDS_DIAT_MELS[q_id];
+	const m_diat_str = EMO_IDS_DIAT_MELS[m_id];
+
+    const ngr_len = 5;
+
+    if(!q_diat_str.length) return false;
+
+    q_ngrams = [];
+    if(q_diat_str.length < ngr_len) {
+        q_ngrams.push(q_diat_str + "%");
+    } else if (q_diat_str.length == ngr_len) {
+        q_ngrams.push(q_diat_str);
+    } else {  
+        for(i = 0; i + ngr_len <= q_diat_str.length; i++) {
+            q_ngrams.push(q_diat_str.substr(i, ngr_len));
+        }
+    }
+
+    var q_common_ngram_locations = [];
+    var m_common_ngram_locations = [];
+
+    for(i = 0; i <= q_ngrams.length; i++) {
+        var loc = m_diat_str.indexOf(q_ngrams[i]);
+        if(loc >= 0) {
+            q_common_ngram_locations.push(i);
+            m_common_ngram_locations.push(loc);
+        }
+    }
 
     request(q_mei_url, function (error, response, q_mei) { if (!error && response.statusCode == 200) {
     request(m_mei_url, function (error, response, m_mei) { if (!error && response.statusCode == 200) {
         // console.log(q_mei); console.log(m_mei);
         const data = {
             colour: 'blue',
-            qid,
-            mid,
+            q_id,
+            m_id,
             q_jpg_url,
             m_jpg_url,
             q_mei: q_mei.replace(/(\r\n|\n|\r)/gm,''), // strip newlines
             m_mei: m_mei.replace(/(\r\n|\n|\r)/gm,''), // strip newlines
-            q_diat_str,
-            m_diat_str,
+            ngr_len,
+            q_common_ngram_locations,
+            m_common_ngram_locations,
         }
         res.render('compare', data);
-    } else { return res.status(400).send('Could not find the MEI file for qid'); }});
-    } else { return res.status(400).send('Could not find the MEI file for qid'); }});
+    } else { return res.status(400).send('Could not find the MEI file for m_id'); }});
+    } else { return res.status(400).send('Could not find the MEI file for q_id'); }});
 
 });
 

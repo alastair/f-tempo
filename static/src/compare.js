@@ -14,171 +14,77 @@ function resizeSVG(choice){
     mySVG.setAttributeNS(null, "height", (targetWidth / aspectRatio) + "px");
 }
 
-// Longest increasing subsequence code from https://rosettacode.org/wiki/Longest_increasing_subsequence#JavaScript
-function findIndex(input){
-    var len = input.length;
-    var maxSeqEndingHere = _.range(len).map(function(){return 1;});
-    for(var i = 0; i < len; i++)
-        for(var j = i - 1;j >= 0;j--)
-            if(input[i] > input[j] && maxSeqEndingHere[j] >= maxSeqEndingHere[i])
-                maxSeqEndingHere[i] = maxSeqEndingHere[j] + 1;
-    return maxSeqEndingHere;
+
+function set_verovio_options(vrvToolkit, image_height, image_width) {
+    var zoom = 100;
+    let pageHeight = image_height * 100 / zoom;
+    let pageWidth = image_width * 100 / zoom;
+
+    options = {
+        pageHeight: pageHeight,
+        pageWidth: pageWidth,
+        scale: zoom,
+        noLayout: 1
+    };
+    vrvToolkit.setOptions(options);
 }
 
-function findSequence(input, result){
-    var maxValue = Math.max.apply(null, result);
-    var maxIndex = result.indexOf(Math.max.apply(Math, result));
-    var output = [];
-    output.push(input[maxIndex]);
-    for(var i = maxIndex; i >= 0; i--){
-        if(maxValue == 0)break;
-        if(input[maxIndex] > input[i]  && result[i] == maxValue - 1){
-            output.push(input[i]);
-            maxValue--;
+
+function colour_notes(notes, match_locations, ngr_len, match_colour, normal_colour) {
+    let remaining_matched_notes;
+    for (let i = 0; i < notes.length; i++) {
+        if (match_locations.indexOf(i) > -1) {
+            // when we find a new start location
+            // we reset remaining_matched_notes
+            remaining_matched_notes = ngr_len;
         }
-    }
-    output.reverse();
-    return output;
-}
 
-function lis(str) {
-    return findSequence(str, findIndex(str));
-}
-
-var ngr_len = 5;
-function ngram_string(q_str, n) {
-    if(!q_str.length) return false;
-    queries = [];
-    if(q_str.length < n) {
-        queries.push(q_str + "%");
-    }
-    else if (q_str.length == n) {
-        queries.push(q_str);
-    }
-    else {  
-        for(i = 0; i + n <= q_str.length; i++) {
-            queries.push(q_str.substr(i, n));
-        }
-    }
-    return queries;
-}
-
-var q_com_ng_loc = [];
-var m_com_ng_loc = [];
-function ngrams_in_common(q_str, m_str, n) {
-    q_ngrams = ngram_string(q_str, n);
-
-    for(i = 0;i <= q_ngrams.length;i++) {
-        var loc = m_str.indexOf(q_ngrams[i]);
-        if(loc >= 0) {
-            q_com_ng_loc.push(i);
-            m_com_ng_loc.push(loc);
+        if(remaining_matched_notes) {
+            $(notes[i]).attr("fill", match_colour).attr("stroke", match_colour);
+            remaining_matched_notes--;
+        } else {
+            $(notes[i]).attr("fill", normal_colour).attr("stroke", normal_colour);
         }
     }
 }
+
 
 function setup_page({
     overlay_colour,
-    qid,
-    mid,
+    q_id,
+    m_id,
     q_mel_str,
     m_mel_str,
     qmei_txt,
     mmei_txt,
+    ngr_len,
+    q_common_ngram_locations,
+    m_common_ngram_locations,
 }) {
+    console.log("q_id: " + q_id); 
+    console.log("m_id: " + m_id); 
+    console.log("query locs: " + q_common_ngram_locations);
+    console.log("match locs: " + m_common_ngram_locations);
 
-
-    // Verovio code:    
-    ///////////////////////////
-    /* Create the vrvToolkit */
-    ///////////////////////////
+    // Setup Verovio toolkit
     var vrvToolkit = new verovio.toolkit();
-    var zoom = 100;
-    var pageHeight = 1485;
-    var pageWidth = 1050;
-    var q_options;
 
-    function set_query_Options() {
-        pageHeight = document.getElementById("query_image").height * 100 / zoom;
-        pageWidth = document.getElementById("query_image").width * 100 / zoom;
-        options = {
-            pageHeight: pageHeight,
-            pageWidth: pageWidth,
-            scale: zoom,
-            noLayout: 1
-        };
-        vrvToolkit.setOptions(options);
-    }
 
-    var m_options;
-    function set_match_Options() {
-        pageHeight = document.getElementById("match_image").height * 100 / zoom;
-        pageWidth = document.getElementById("match_image").width * 100 / zoom;
-
-        options = {
-            pageHeight: pageHeight,
-            pageWidth: pageWidth,
-            scale: zoom,
-            noLayout: 1
-        };
-        vrvToolkit.setOptions(options);
-    }
-
-    console.log("qid: " + qid); 
-    console.log("mid: " + mid); 
-
-    ngrams_in_common(q_mel_str, m_mel_str, ngr_len);
-
-    /*
-    var q_lis = lis(q_com_ng_loc)
-    var m_lis = lis(m_com_ng_loc)
-*/
-
-    var q_lis = q_com_ng_loc;
-    var m_lis = m_com_ng_loc;
-    console.log("query locs: " + q_lis);
-    console.log("match locs: " + m_lis);
-
-    set_query_Options();
-
-    var q_v_svg = vrvToolkit.renderData(qmei_txt);
-    $("#q_svg_output").html(q_v_svg);
+    const query_image_height = document.getElementById("query_image").height;
+    const query_image_width = document.getElementById("query_image").width;
+    set_verovio_options(vrvToolkit, query_image_height, query_image_width);
+    var q_verovio_svg = vrvToolkit.renderData(qmei_txt);
+    $("#q_svg_output").html(q_verovio_svg);
     resizeSVG("query");
+    const query_notes = $("#q_svg_output g.note");
+    colour_notes(query_notes, q_common_ngram_locations, ngr_len, 'red', 'blue');
 
-    var q_n = 0;
-    $("#q_svg_output g.note").each (function (i){
-        if (q_lis.indexOf(i) >= 0) { q_n = ngr_len; }
-        if(q_n >= 0) {
-            var attr = vrvToolkit.getElementAttr($(this).attr("id"));
-            $(this).attr("fill", "red").attr("stroke", "red");
-            q_n--;
-        }
-        else {
-            var attr = vrvToolkit.getElementAttr($(this).attr("id"));
-            $(this).attr("fill", "blue").attr("stroke", overlay_colour);
-        }
-    });
-
-    set_match_Options();
+    const match_image_height = document.getElementById("match_image").height;
+    const match_image_width = document.getElementById("match_image").width;
+    set_verovio_options(vrvToolkit, match_image_height, match_image_width);
     var m_v_svg = vrvToolkit.renderData(mmei_txt);
     $("#m_svg_output").html(m_v_svg);
     resizeSVG("match");
-
-    var m_n = 0;
-    $("#m_svg_output g.note").each (function (j){
-        if (m_lis.indexOf(j) >= 0) {
-            m_n = ngr_len;
-        }
-        console.log("j m_n " + j + " " + m_n);
-        if(m_n >= 0) {
-            var attr = vrvToolkit.getElementAttr($(this).attr("id"));
-            console.log("match note " + j); 
-            $(this).attr("fill", "red").attr("stroke", "red");
-            m_n--;
-        }
-        else {
-            var attr = vrvToolkit.getElementAttr($(this).attr("id"));
-            $(this).attr("fill", "blue").attr("stroke", overlay_colour);
-        }
-    });
+    const match_notes = $("#m_svg_output g.note");
+    colour_notes(match_notes, m_common_ngram_locations, ngr_len, 'red', 'blue');
 }

@@ -30,45 +30,30 @@ function set_verovio_options(vrvToolkit, image_height, image_width) {
 }
 
 
-function colour_notes(notes, match_locations, ngr_len, match_colour, normal_colour) {
+function colour_notes(notes, index_to_colour) {
     let remaining_matched_notes;
     for (let i = 0; i < notes.length; i++) {
-        if (match_locations.indexOf(i) > -1) {
-            // when we find a new start location
-            // we reset remaining_matched_notes
-            remaining_matched_notes = ngr_len;
-        }
-
-        if(remaining_matched_notes) {
-            $(notes[i]).attr("fill", match_colour).attr("stroke", match_colour);
-            remaining_matched_notes--;
-        } else {
-            $(notes[i]).attr("fill", normal_colour).attr("stroke", normal_colour);
-        }
+        const colour = index_to_colour[i];
+        $(notes[i]).attr("fill", colour).attr("stroke", colour);
     }
 }
 
-
 function setup_page({
-    overlay_colour,
     q_id,
     m_id,
-    q_mel_str,
-    m_mel_str,
     qmei_txt,
     mmei_txt,
-    ngr_len,
-    q_common_ngram_locations,
-    m_common_ngram_locations,
+    q_index_to_colour,
+    m_index_to_colour,
 }) {
     console.log("q_id: " + q_id); 
     console.log("m_id: " + m_id); 
-    console.log("query locs: " + q_common_ngram_locations);
-    console.log("match locs: " + m_common_ngram_locations);
+
+    console.log("query colour map: " + q_index_to_colour);
+    console.log("match colour map: " + m_index_to_colour);
 
     // Setup Verovio toolkit
     var vrvToolkit = new verovio.toolkit();
-
 
     const query_image_height = document.getElementById("query_image").height;
     const query_image_width = document.getElementById("query_image").width;
@@ -77,7 +62,7 @@ function setup_page({
     $("#q_svg_output").html(q_verovio_svg);
     resizeSVG("query");
     const query_notes = $("#q_svg_output g.note");
-    colour_notes(query_notes, q_common_ngram_locations, ngr_len, 'red', 'blue');
+    colour_notes(query_notes, q_index_to_colour);
 
     const match_image_height = document.getElementById("match_image").height;
     const match_image_width = document.getElementById("match_image").width;
@@ -86,5 +71,5 @@ function setup_page({
     $("#m_svg_output").html(m_v_svg);
     resizeSVG("match");
     const match_notes = $("#m_svg_output g.note");
-    colour_notes(match_notes, m_common_ngram_locations, ngr_len, 'red', 'blue');
+    colour_notes(match_notes, m_index_to_colour);
 }

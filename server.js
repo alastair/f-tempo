@@ -83,9 +83,9 @@ app.get('/compare', function (req, res) {
 	const q_diat_str = EMO_IDS_DIAT_MELS[q_id];
 	const m_diat_str = EMO_IDS_DIAT_MELS[m_id];
 
-    const ngr_len = 5;
+    if (!q_diat_str) { return res.status(400).send('Could not find melody string for this q_id'); }
 
-    if(!q_diat_str.length) return false;
+    const ngr_len = 5;
 
     q_ngrams = [];
     if(q_diat_str.length < ngr_len) {
@@ -109,20 +109,41 @@ app.get('/compare', function (req, res) {
         }
     }
 
+    function create_colour_index(diat_mel_str, match_locations, ngr_len, match_colour, normal_colour) {
+        let remaining_matched_notes;
+        const output_array = [];
+        for (let i = 0; i < diat_mel_str.length; i++) {
+            if (match_locations.indexOf(i) > -1) {
+                // when we find a new start location
+                // we reset remaining_matched_notes
+                remaining_matched_notes = ngr_len;
+            }
+            if(remaining_matched_notes) {
+                output_array.push(match_colour);
+                remaining_matched_notes--;
+            } else {
+                output_array.push(normal_colour);
+            }
+        }
+        return output_array;
+    }
+
+    const q_index_to_colour = create_colour_index(q_diat_str, q_common_ngram_locations, ngr_len, 'red', 'blue');
+
+    const m_index_to_colour = create_colour_index(m_diat_str, m_common_ngram_locations, ngr_len, 'green', 'yellow');
+
     request(q_mei_url, function (error, response, q_mei) { if (!error && response.statusCode == 200) {
     request(m_mei_url, function (error, response, m_mei) { if (!error && response.statusCode == 200) {
         // console.log(q_mei); console.log(m_mei);
         const data = {
-            colour: 'blue',
             q_id,
             m_id,
             q_jpg_url,
             m_jpg_url,
             q_mei: q_mei.replace(/(\r\n|\n|\r)/gm,''), // strip newlines
             m_mei: m_mei.replace(/(\r\n|\n|\r)/gm,''), // strip newlines
-            ngr_len,
-            q_common_ngram_locations,
-            m_common_ngram_locations,
+            q_index_to_colour: JSON.stringify(q_index_to_colour),
+            m_index_to_colour: JSON.stringify(m_index_to_colour),
         }
         res.render('compare', data);
     } else { return res.status(400).send('Could not find the MEI file for m_id'); }});

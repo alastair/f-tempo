@@ -82,14 +82,12 @@
 
 <script>
 setup_page({
-    overlay_colour: '{{ colour }}',
     q_id: '{{ q_id }}',
     m_id: '{{ m_id }}',
 	qmei_txt: '{{& q_mei }}',
 	mmei_txt: '{{& m_mei }}',
-	ngr_len: {{ ngr_len }},
-    q_common_ngram_locations: [{{ q_common_ngram_locations }}],
-    m_common_ngram_locations: [{{ m_common_ngram_locations }}],
+    q_index_to_colour: {{& q_index_to_colour }},
+    m_index_to_colour: {{& m_index_to_colour }},
 });
 </script>
 

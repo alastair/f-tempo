@@ -4,6 +4,7 @@
 const express = require('express');
 const mustacheExpress = require('mustache-express');
 const request = require('request');
+const Color = require('color');
 const fileUpload = require('express-fileupload');
 const fs = require('fs');
 const cp = require('child_process');
@@ -85,123 +86,195 @@ app.get('/compare', function (req, res) {
 
     if (!q_diat_str) { return res.status(400).send('Could not find melody string for this q_id'); }
 
-    const q_ngrams = [];
-    const min_ngram_len = 5;
-    for (let ngram_len = q_diat_str.length;
-             ngram_len >= min_ngram_len;
-             ngram_len--) {
-        for(let i = 0; i + ngram_len <= q_diat_str.length; i++) {
-            ngram_dict = {
-                ngram: q_diat_str.substr(i, ngram_len),
-                len: ngram_len,
-                pos: i
-            };
-            q_ngrams.push(ngram_dict);
-        }
-    }
+    let q_index_to_colour = [];
+    let m_index_to_colour = [];
 
+    // const show_top_ngrams = req.query.show_top_ngrams == 'true' ? true : false;
+    const show_top_ngrams = true;
 
-
-
-    function get_all_substr_positions(str, substr) {
-        const positions = [];
-        let position = str.indexOf(substr);
-        while (position !== -1) {
-            positions.push(position);
-            position = str.indexOf(substr, position + 1);
-        }
-        return positions;
-    }
-
-    const q_matches = [];
-    const m_matches = [];
-    for (i = 0; i < q_diat_str.length; i++) {
-        q_matches.push(-1);
-    }
-    for (i = 0; i < m_diat_str.length; i++) {
-        m_matches.push(-1);
-    }
-
-    let match_idx = 0;
-    for (const ngram_dict of q_ngrams) {
-        const match_length = ngram_dict.len;
-        const q_pos = ngram_dict.pos;
-        const ngram_match_positions = get_all_substr_positions(m_diat_str, ngram_dict.ngram);
-        if (ngram_match_positions.length) {
-            for (pos of ngram_match_positions) {
-                for (i = q_pos; i < q_pos + match_length; i++) {
-                    if (q_matches[i] == -1) {
-                        q_matches[i] = match_idx;
-                    }
-                }
-                for (i = pos; i < pos + match_length; i++) {
-                    if (m_matches[i] == -1) {
-                        m_matches[i] = match_idx;
-                    }
-                }
-                match_idx++;
-                console.log(ngram_dict);
-                console.log(ngram_match_positions);
+    if (show_top_ngrams) {
+        const q_ngrams = [];
+        const min_ngram_len = 3; // expose this as a tunable parameter to the frontend?
+        for (let ngram_len = q_diat_str.length;
+            ngram_len >= min_ngram_len;
+            ngram_len--) {
+            for(let i = 0; i + ngram_len <= q_diat_str.length; i++) {
+                ngram_dict = {
+                    ngram: q_diat_str.substr(i, ngram_len),
+                    len: ngram_len,
+                    pos: i
+                };
+                q_ngrams.push(ngram_dict);
             }
         }
-    }
 
-    // TODO(ra): use filter / includes probably
-    for (i = 0; i < q_matches.length; i++) {
-        if (m_matches.indexOf(q_matches[i]) < 0) {
-            q_matches[i] = -1;
+        function get_all_substr_positions(str, substr) {
+            const positions = [];
+            let position = str.indexOf(substr);
+            while (position !== -1) {
+                positions.push(position);
+                position = str.indexOf(substr, position + 1);
+            }
+            return positions;
         }
-    }
 
-    for (i = 0; i < m_matches.length; i++) {
-        if (q_matches.indexOf(m_matches[i]) < 0) {
-            m_matches[i] = -1;
+        const q_matches = [];
+        const m_matches = [];
+
+        for (i = 0; i < q_diat_str.length; i++) {
+            q_matches.push(-1);
         }
-    }
-
-    console.log(q_matches);
-    console.log(m_matches);
-
-    const distinct_matches = new Set(q_matches);
-    console.log(distinct_matches);
-
-    const colours = [
-        'fuchsia',
-        'purple',
-        'olive',
-        'lime',
-        'teal',
-        'aqua',
-        'maroon',
-        'blue',
-        'orange',
-        'green',
-        'yellow',
-        'red',
-    ]
-
-    const colour_map = {};
-    for (el of distinct_matches) {
-        if (el > -1 && colours.length) {
-            colour_map[el] = colours.pop();
-        } else {
-            colour_map[el] = 'grey';
+        for (i = 0; i < m_diat_str.length; i++) {
+            m_matches.push(-1);
         }
-    }
 
-    console.log(colour_map);
 
-    // TODO(ra): use filter / includes probably
-    const q_index_to_colour = [];
-    for (i = 0; i < q_matches.length; i++) {
-        const match_idx = q_matches[i];
-        q_index_to_colour.push(colour_map[match_idx]);
-    }
+        // This isn't great -- ideally we want some kind of mix of short and long
+        // ngrams that gives maximum coverage over both spaces with the minimal number
+        // of ngrams...
+        let match_idx = 0;
+        for (const ngram_dict of q_ngrams) {
+            const match_length = ngram_dict.len;
+            const q_pos = ngram_dict.pos;
+            const ngram_match_positions = get_all_substr_positions(m_diat_str, ngram_dict.ngram);
+            if (ngram_match_positions.length) {
+                for (pos of ngram_match_positions) {
 
-    const m_index_to_colour = [];
-    for (i = 0; i < m_matches.length; i++) {
-        const match_idx = m_matches[i];
-        m_index_to_colour.push(colour_map[match_idx]);
+                    let clean_match = true;
+                    for (i = q_pos; i < q_pos + match_length; i++) {
+                        if (q_matches[i] != -1) {
+                            clean_match = false;
+                            break;
+                        }
+                    }
+                    for (i = pos; i < pos + match_length; i++) {
+                        if (m_matches[i] != -1) {
+                            clean_match = false;
+                            break;
+                        }
+                    }
+
+                    if (clean_match) {
+                        for (i = q_pos; i < q_pos + match_length; i++) {
+                            q_matches[i] = match_idx;
+                        }
+                        for (i = pos; i < pos + match_length; i++) {
+                            m_matches[i] = match_idx;
+                        }
+                        match_idx++;
+                    }
+
+                    // console.log(ngram_dict);
+                    // console.log(ngram_match_positions);
+                }
+            }
+        }
+
+        // console.log(q_matches);
+        // console.log(m_matches);
+
+        function produce_colour(i) {
+            const colours = [
+                'red',
+                'orange',
+                'yellow',
+                'lime',
+                'teal',
+                'green',
+                'blue',
+                'aqua',
+                'purple',
+            ]
+
+
+            if (i < colours.length) {
+                const base_colour = colours[i];
+                const modified_colour = Color(base_colour);
+                return modified_colour.hex();
+            }
+
+            else if (i < colours.length * 2) {
+                // TODO(ra): make these colors better / more distinct...
+                // probably ideally we want to prorammatically
+                const base_colour = colours[i % colours.length];
+                const modified_colour = Color(base_colour).saturate(.25).darken(.25);
+                return modified_colour.hex();
+            }
+
+            else { return 'grey'; }
+        }
+
+
+        let num_colours = 0;
+        const colour_map = {};
+        for (i = -1; i < match_idx; i++) {
+            if (i === -1) { colour_map[i] = 'grey'; }
+            else {
+                colour_map[i] = produce_colour(num_colours);
+                num_colours++;
+            }
+        }
+
+        // console.log(colour_map);
+
+        // TODO(ra): use filter / includes probably
+        for (i = 0; i < q_matches.length; i++) {
+            const match_idx = q_matches[i];
+            q_index_to_colour.push(colour_map[match_idx]);
+        }
+
+        for (i = 0; i < m_matches.length; i++) {
+            const match_idx = m_matches[i];
+            m_index_to_colour.push(colour_map[match_idx]);
+        }
+
+    } else {
+
+        const ngr_len = 5;
+
+        q_ngrams = [];
+        if(q_diat_str.length < ngr_len) {
+            q_ngrams.push(q_diat_str + "%");
+        } else if (q_diat_str.length == ngr_len) {
+            q_ngrams.push(q_diat_str);
+        } else {  
+            for(i = 0; i + ngr_len <= q_diat_str.length; i++) {
+                q_ngrams.push(q_diat_str.substr(i, ngr_len));
+            }
+        }
+
+        var q_common_ngram_locations = [];
+        var m_common_ngram_locations = [];
+
+        for(i = 0; i <= q_ngrams.length; i++) {
+            var loc = m_diat_str.indexOf(q_ngrams[i]);
+            if(loc >= 0) {
+                q_common_ngram_locations.push(i);
+                m_common_ngram_locations.push(loc);
+            }
+        }
+
+        function create_colour_index(diat_mel_str, match_locations, ngr_len, match_colour, normal_colour) {
+            let remaining_matched_notes;
+            const output_array = [];
+            for (let i = 0; i < diat_mel_str.length; i++) {
+                if (match_locations.indexOf(i) > -1) {
+                    // when we find a new start location
+                    // we reset remaining_matched_notes
+                    remaining_matched_notes = ngr_len;
+                }
+                if(remaining_matched_notes) {
+                    output_array.push(match_colour);
+                    remaining_matched_notes--;
+                } else {
+                    output_array.push(normal_colour);
+                }
+            }
+            return output_array;
+        }
+
+        q_index_to_colour = create_colour_index(q_diat_str, q_common_ngram_locations, ngr_len, 'red', 'grey');
+        m_index_to_colour = create_colour_index(m_diat_str, m_common_ngram_locations, ngr_len, 'red', 'grey');
     }
 
     request(q_mei_url, function (error, response, q_mei) { if (!error && response.statusCode == 200) {

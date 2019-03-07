@@ -2,7 +2,6 @@
 
 # takes a command line argument of the filename to process
 
-
 IMG_FILE=$1
 WORKINGPATH=$2;
 
@@ -10,20 +9,20 @@ cd $WORKINGPATH
 echo "New working directory: "$WORKINGPATH >> log
 echo $IMG_FILE >> log
 
-page=$(basename $IMG_FILE)
-cp $IMG_FILE ./$page
+# page=$(basename $IMG_FILE)
+# cp $IMG_FILE ./$page
 
 convert $IMG_FILE -alpha off page.tiff 2>> log
 echo "Converted to tiff OK" >> log
 
-aruspix-cmdline -m ../run/ page.tiff 2>> log
+aruspix-cmdline -m ../data/aruspix_models page.tiff 2>> log
 echo "Passed through Aruspix OK" >> log
 
 unzip -q page.axz page.mei 2>> log
 echo "Extracted MEI OK" >> log
 
 echo ">"$IMG_FILE > page.txt
-gawk -f ./parse_mei_to_diat_int_str.awk page.mei >> page.txt
+gawk -f ../callout_scripts/parse_mei_to_diat_int_str.awk page.mei >> page.txt
 
 echo -n "Diat interval string (fasta): " >> log; 
 cat page.txt >> log; 

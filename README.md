@@ -1,12 +1,13 @@
 # EMO_search
 
 
-## Dependencies
+### Dependencies
 ```
 Node.js
 aruspix command line tools - https://github.com/DDMAL/aruspix/wiki/03-%E2%80%93-Aruspix-Command-line
 imagemagick - https://www.imagemagick.org/
-maw
+maw - https://github.com/ryaanahmed/maw
+gawk - https://www.gnu.org/software/gawk/
 ```
 
 To install, first

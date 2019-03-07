@@ -444,26 +444,30 @@ function log_user_choice(query_id,target_id,result_num,database) {
     var the_time = getFormattedDate();
     var sim_id="sim"+result_num;
     var sim_choice = document.getElementById(sim_id).value;
-    var reportString = the_time+"\t";
+    var log_entry = the_time+"\t";
     if(can_store_UID) {
-        reportString += localStorage.getItem("userID");
+        log_entry += localStorage.getItem("userID");
     }
     else {
-        reportString += UID;
+        log_entry += UID;
     }
-    reportString += "\t"
+    log_entry += "\t"
         +query_id + "\t"
         +target_id + "\t"
         +sim_choice + "\t"
         + database + "\t"
         + 'rank: ' + result_num + ": " + document.getElementById('rank_toggle_button').value;
+
     $.ajax({
         type: "POST",
-        url: "log_user_interaction.php",
-        data: {reportString: reportString},
+        url: "api/log",
+        data: {
+            log_entry: log_entry,
+            log: 'user_choice.log'
+        },
         dataType:'TEXT',
         success: function(response){
-            console.log("PHP received: "+response);
+            console.log(response);
         }
     });
 }
@@ -471,22 +475,24 @@ function log_user_choice(query_id,target_id,result_num,database) {
 // Server-side - user need never be aware of this; log needs to be on remote server - see log_search_problem.php
 function log_search_problem(query_id,message,database) {
     var the_time = getFormattedDate();
-    var reportString = the_time+"\t";
+    var log_entry = the_time+"\t";
     if(can_store_UID) {
-        reportString += localStorage.getItem("userID");
+        log_entry += localStorage.getItem("userID");
     }
     else {
-        reportString += UID;
+        log_entry += UID;
     }
-    reportString += "\t" +query_id+"\t" + database+"\t" + message;
+    log_entry += "\t" +query_id+"\t" + database+"\t" + message;
     $.ajax({
         type: "POST",
-        url: "log_search_problem.php",
-        data: {reportString: reportString},
+        url: "api/log",
+        data: {
+            log_entry: log_entry,
+            log: 'search_problems.log'
+        },
         dataType:'TEXT',
         success: function(response){
-            console.log("PHP received: "+response);
-            // put on console what server sent back...
+            console.log(response);
         }
     });
 }

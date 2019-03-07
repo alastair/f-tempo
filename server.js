@@ -2,6 +2,7 @@
  * Imports 
  ******************************************************************************/
 const express = require('express');
+const bodyParser = require('body-parser');
 const mustacheExpress = require('mustache-express');
 const request = require('request');
 const Color = require('color');
@@ -49,6 +50,8 @@ app.set('views', './templates');
 
 app.use(express.static('static')); // serve static files out of /static
 app.use(fileUpload()); // file upload stuff
+app.use(bodyParser.json()); // for parsing application/json
+app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 
 /*******************************************************************************
  * Request handlers 
@@ -173,28 +176,23 @@ app.post('/api/image_query', function(req, res) {
     });
 });
 
-function run_image_query(user_image, ngram_search) {
-    const jaccard = true; // TODO(ra) should probably get this setting through the POST request, too...
-    const num_results = 20; // TODO(ra) should probably get this setting through the POST request, too...
 
-    let query_data;
-    let query;
-    let result;
-    if(!ngram_search) {
-        query_data = cp.execSync('./shell_scripts/image_to_maws.sh ' + user_image.name + ' ' + working_path);
-        query = String(query_data); // a string of maws, preceded with an id
-        result = search('words', query, jaccard, num_results);
-    }
-    else {
-        query_data = cp.execSync('./shell_scripts/image_to_ngrams.sh ' + user_image.name + ' ' + working_path + ' ' + '9');
-        query = String(query_data);
-        result = search('words', query, jaccard, num_results, true);
-    }
+app.post('/api/log', function(req, res) {
+    const log_entry = req.body.log_entry;
+    const log = req.body.log;
+    if (!log_entry) { return res.status(400).send('No report was provided.'); }
+    if (!log) { return res.status(400).send('No log was specified.'); }
 
-    result.unshift(path_app.basename(working_path) + '/' + user_image.name); // add path/filename to beginning of array
-    return result;
-}
+    fs.appendFileSync('./logs/' + log, log_entry)
 
+    res.send(
+
+`Successfully logged:
+    ${log_entry}
+to log ${log}.`
+
+    );
+});
 
 /*******************************************************************************
  * Query functions
@@ -229,6 +227,7 @@ function search(method, query, jaccard, num_results, ngram) {
     return get_result_from_words(words, signature_to_ids_dict, jaccard, num_results);
 }
 
+
 function search_with_code(str, jaccard, num_results) {
     working_path = cp.execSync('/home/mas01tc/emo_search/web-demo/set_working_path.sh') + '/';
     const query_data = cp.execSync('/home/mas01tc/emo_search/web-demo/codestring_to_maws.sh ' + str + ' ' + working_path);
@@ -238,6 +237,30 @@ function search_with_code(str, jaccard, num_results) {
     result.unshift("code query");
     return result;
 }
+
+
+function run_image_query(user_image, ngram_search) {
+    const jaccard = true; // TODO(ra) should probably get this setting through the POST request, too...
+    const num_results = 20; // TODO(ra) should probably get this setting through the POST request, too...
+
+    let query_data;
+    let query;
+    let result;
+    if(!ngram_search) {
+        query_data = cp.execSync('./shell_scripts/image_to_maws.sh ' + user_image.name + ' ' + working_path);
+        query = String(query_data); // a string of maws, preceded with an id
+        result = search('words', query, jaccard, num_results);
+    }
+    else {
+        query_data = cp.execSync('./shell_scripts/image_to_ngrams.sh ' + user_image.name + ' ' + working_path + ' ' + '9');
+        query = String(query_data);
+        result = search('words', query, jaccard, num_results, true);
+    }
+
+    result.unshift(path_app.basename(working_path) + '/' + user_image.name); // add path/filename to beginning of array
+    return result;
+}
+
 
 function get_result_from_words(words, signature_to_ids_dict, jaccard, num_results) {
     if (words.length < 6) { // TODO: Need to report to frontend

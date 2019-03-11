@@ -277,7 +277,7 @@ function load_result_image(id, rank, percent) {
 
     if (query_id != id) {
         document.getElementById("result_id_msg").innerHTML =
-            matched_words[rank]+"/"+words_in_page[rank]+" words in page match the query)"; }
+            matched_words[rank]+"/"+words_in_page[rank]+" words in page match the query"; }
 
     else document.getElementById("result_id_msg").innerHTML = "Query: "+id;
     document.getElementById("result_img_display").innerHTML = "<img width = '400px' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' />";

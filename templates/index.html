@@ -131,10 +131,10 @@
         <div class="form-group form-check">
             <input type="checkbox" class="form-check-input" id="provide_judgements">
             <label class="form-check-label" for="provide_judgements">Provide judgements to help improve the system</label>
-      </div>
+        </div>
 
+        <button class="btn btn-primary btn-block" id="search_button">Search for Similar Pages</button>
 
-        <button class="btn btn-primary" id="search_button">Search for Similar Pages</button>
     </div>
 </div>
 
@@ -158,6 +158,7 @@
         </div>
     </div>
     -->
+
 </div>
 
 
@@ -175,11 +176,8 @@
 </div> <!-- right col -->
 
 
+<textArea onchange="show_query_display();" id="query_id" hidden/> <!-- we hide this but use its value for searches -->
 
-
--->
-
-<textArea onchange="show_query_display();" id="query_id" hidden/>
 </div> <!-- outermost row -->
 </div> <!-- container fluid -->
 </body>

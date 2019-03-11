@@ -11,109 +11,151 @@
     <script src='ext/jquery.zoom.js'></script>
     <link rel="stylesheet" type="text/css" href="css/styles.css">
 
+    <!-- bootstrap css and js -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+
     <script src='src/setup.js'></script>
 </head>
 
 <body onload="setup_page();">
+<script>document.onkeydown = checkKey;</script>
 
-    <script>document.onkeydown = checkKey;</script>
-    <hr>
 
-    <div id="query_panel" class="query_panel">
-        <table id="query_table">
-            <tr>
-                <td class="search_panel">
-                    <span>
-                        <b>Search: &nbsp;&#160;&#160;</b>
-                        <span class="tooltip">
-                            <img class="prev_book zoom arrow" onclick="find_book_id(false);do_search(query_id,jaccard,num_res_disp);"
-                                                              src="img/prev_book.png">
-                            <span class="tooltiptext">Go to prev book and search</span>
-                        </span>
-                        <span class="tooltip">
-                            <img class="prev_page zoom arrow" onclick="find_page_id(false);do_search(query_id,jaccard,num_res_disp);"
-                                                              src="img/prev_page.png">
-                            <span class="tooltiptext">Search for prev page</span>
-                        </span>
-                        <textArea onchange="show_query_display();" id="idText"></textArea>
-                        <span class="tooltip">
-                            <button class="zoom" id="id_searchButton">Go</button>
-                            <span class="tooltiptext">Search for current page</span>
-                        </span>
-                        <span class="tooltip">
-                            <img class="next_page zoom arrow" onclick="find_page_id(true);do_search(query_id,jaccard,num_res_disp);"
-                                                              src="img/next_page.png">
-                            <span class="tooltiptext">Search for next page</span>
-                        </span>
-                        <span class="tooltip">
-                            <img class="next_book zoom arrow" onclick="find_book_id(true);do_search(query_id,jaccard,num_res_disp);"
-                                                              src="img/next_book.png">
-                            <span class="tooltiptext">Go to next book and search</span>
-                        </span>
-                    </span>
-                    &nbsp;&#160;&#160;
-                </td>
+<!-- navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <a class="navbar-brand" href="#">Early Music Online Search</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navbarNav">
+    <ul class="navbar-nav">
+      <li class="nav-item active">
+          <a class="nav-link" href="/">Search within Corpus</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/image">Search with Image Upload</a>
+      </li>
+    </ul>
+  </div>
+</nav>
 
-                <td id="trial_panel">
-                    <select id="trial_select" name="trial" onchange="select_new_trial();">
-                        <option></option>
-                        <option>K2h7_092_1</option>
-                        <option>A360a_005_0</option>
-                        <option>K3k19_012_1</option>
-                        <option>K3k19_014_0</option>
-                        <option>K4c11_030_1</option>
-                        <option>A324c_048_1</option>
-                        <option>K3k12_010_0</option>
-                        <option>K2a4_072_1</option>
-                        <option>B270b_049_1</option>
-                        <option>A569c_013_1</option>
-                        <option>A19_004_0</option>
-                        <option>K3d9_057_0</option>
-                        <option>K3e1_082_0</option>
-                        <option>K3e1_061_1</option>
-                        <option>K3d5_072_1</option>
-                        <option>K3d10_002_1</option>
-                    </select>
-                </td>
 
-                <td class="random_panel">
-                    <span>
-                        &nbsp;&#160;&#160;
-                        <button id="random_searchButton" >Random Search</button>
-                        &nbsp;&#160;&#160;
-                    </span>
-                </td>
+<div class='container-fluid text-center mt-4'><div class='row'>
 
-                <td class="messages_panel">
-                    <span id="messages"></span>
-                </td>
+<div class='col card text-center' id='emo_browser'>
 
-                <td class="ranking_panel">
-                    <span>
-                        &nbsp;&nbsp;Result ranking:
-                        <span id='rank_toggle'></span>
-                        &nbsp;
-                        <button id='rank_toggle_button'
-                    onclick='switch_rank();'>Change</button>
-                    </span>
-                </td>
+    <span id="q_page_display"></span>
+    <div id="img_display"></div>
+    <div id="q_text_display"></div>
 
-                <td class="res_num_panel">
-                    <span>
-                        Results to display
-                        <select class="drop_downs" id="res_disp_select"
-                                                   name="num_to_disp"
-                                                   onchange="change_num_res();">
-                            <option>Best</option>
-                            <option>5</option>
-                            <option selected>10</option>
-                            <option>15</option>
-                            <option>20</option>
-                            <option>25</option>
-                            <option>30</option>
-                        </select>
-                    </span>
-                </td>
+    <div class='btn-group d-inline'>
+        <button class="btn btn-outline-secondary btn-sm"
+                id='show_prev_book'
+                onclick="find_book_id(false)"
+                title="Show previous book">
+            Previous Book
+        </button>
+        <button class="btn btn-outline-secondary btn-sm"
+                id='show_prev_page'
+                onclick='find_page_id(false);'
+                title='Show previous page'>
+            Previous Page
+        </button>
+        <button class="btn btn-outline-secondary btn-sm"
+                     id='show_next_page'
+                     onclick="find_page_id(true)"
+                     src="img/next_page.png"
+                     title='Search for next page'>
+                    Next Page
+        </button>
+
+        <button class="btn btn-outline-secondary btn-sm"
+                id='show_next_book'
+                onclick="find_book_id(true)"
+                title='Go to next book and search'>
+            Next Book
+        </button>
+    </div>
+
+    <div class='form-row mt-1 d-inline'>
+            <button class='btn btn-secondary btn-sm'
+                    id="random_page_button" >Show a Random Page</button>
+
+            <label for='trial_select'>Select a Page</label>
+            <select class='form-control-sm'
+                    id="trial_select" name="trial" onchange="select_new_trial();">
+                <option>K2h7_092_1</option>
+                <option>A360a_005_0</option>
+                <option>K3k19_012_1</option>
+                <option>K3k19_014_0</option>
+                <option>K4c11_030_1</option>
+                <option>A324c_048_1</option>
+                <option>K3k12_010_0</option>
+                <option>K2a4_072_1</option>
+                <option>B270b_049_1</option>
+                <option>A569c_013_1</option>
+                <option>A19_004_0</option>
+                <option>K3d9_057_0</option>
+                <option>K3e1_082_0</option>
+                <option>K3e1_061_1</option>
+                <option>K3d5_072_1</option>
+                <option>K3d10_002_1</option>
+            </select>
+    </div>
+
+    <div class='mt-4 form-row d-inline'>
+        <div class='form-group my-0'>
+            <label for='ranking_select'>Result Ranking</label>
+            <select id="ranking_select" name="num_to_disp" onchange="change_ranking_method();">
+                <option value=0>Jaccard Distance</option>
+                <option value=1>Basic</option>
+            </select>
+        </div>
+
+        <div class='form-group'>
+            <label for='res_dis_select'>Results to display</label>
+            <select id="res_disp_select" name="num_to_disp" onchange="change_num_res();">
+                <option>Best</option>
+                <option>5</option>
+                <option selected>10</option>
+                <option>15</option>
+                <option>20</option>
+                <option>25</option>
+                <option>30</option>
+            </select>
+        </div>
+
+
+        <div class="form-group form-check">
+            <input type="checkbox" class="form-check-input" id="provide_judgements">
+            <label class="form-check-label" for="provide_judgements">Provide judgements to help improve the system</label>
+      </div>
+
+
+
+        <button class="btn btn-primary" id="search_button">Search for Similar Pages</button>
+    </div>
+</div>
+
+
+<div class='col card' id='results_table_col'>
+    <table id="results_table" text-align="center"></table>
+    <div class="messages_panel">
+        <span id="messages"></span>
+    </div>
+</div> <!-- middle col -->
+
+<div class='col card' id="res_display_div">
+    <div id="result_id_msg"></div>
+    <div id="result_img_display"></div>
+    <div id="t_text_display"></div>
+</div> <!-- right col -->
+
+
+
+<!-- upload panel stuff
+
                 <td class='upload_panel' id='upload_panel'>
                     <form 
                                                    id='uploadForm' 
@@ -129,7 +171,6 @@
 
                 <script src='src/upload.js'></script>
 
-                <!-- Progress Bar -->
                 <div class="row">
                     <div class="col-md-12">
                         <div class="progress">
@@ -138,56 +179,12 @@
                             </div>
                         </div>
                     </div>
-                </div>	<!-- End of Progress Bar -->
+                </div>
+-->
 
-                </td>
-            </tr>
-        </table>
-    </div>
-
-    <hr>
-
-    <div id="display_panel">
-        <div>
-            <div id="query_display">
-                <span class="tooltip">
-                    <img onclick="find_book_id(false);"
-                         class="prev_book arrow" src="img/prev_book.png">
-                    <span class="tooltiptext">Show first page of prev book</span>
-                </span>
-                <span class="tooltip">
-                    <img onclick="find_page_id(false);"
-                         class="prev_page arrow" src="img/prev_page.png">
-                    <span class="tooltiptext">Show prev page</span>
-                </span>
-                <span style="color:green" id="q_page_display"></span>
-                <span class="tooltip">
-                    <img onclick="find_page_id(true);"
-                         class="next_page arrow" src="img/next_page.png">
-                    <span class="tooltiptext">Show next page</span>
-                </span>
-                <span class="tooltip">
-                    <img onclick="find_book_id(true);"
-                         class="next_book arrow" src="img/next_book.png">
-                    <span class="tooltiptext">Show first page of next book</span>
-                </span>
-            </div>
-            <div id="img_display"></div>
-            <div id="q_text_display"></div>
-        </div>
-        &nbsp;&#160;&#160;
-        <div>
-            <span id="res_table_label"></span>
-            <div id="res_table_div"></div>
-        </div>
-        &nbsp;&#160;&#160;
-        <div id="res_display_div">
-            <div id="result_id_msg"></div>
-            <div id="result_img_display"></div>
-            <div id="t_text_display"></div>
-        </div>
-    </div>
-
+<textArea onchange="show_query_display();" id="query_id" hidden/>
+</div> <!-- outermost row -->
+</div> <!-- container fluid -->
 </body>
 
 </html>

@@ -7,8 +7,6 @@ var db_name ="";
 var highlighted_result_row = 0;
 var jaccard = true;
 
-var selected_image = false;
-
 //Arrays for displaying match stats in result list
 var matched_words = [];
 var words_in_page = [];
@@ -34,43 +32,22 @@ else {
     UID = uniqueID();
 }
 console.log("UID is "+UID);
-/*
-    // Gets ngram length from user for opening arbitrary database
-            function get_ng_len() {
-                var txt;
-                var ng_len = prompt("Enter ngram length:", "6");
-                if($.isNumeric(ng_len)) {
-                    if ((ng_len != null) && (ng_len != "")) {
-                        txt = "You asked for ngrams " + ng_len + " long!";
-                        if((parseInt(ng_len)>2)&&(parseInt(ng_len)<16)) {
-                          document.getElementById("messages").innerHTML = txt;
-                          return ng_len;
-                        }
-                        else alert("Too short!");
-                    }
-                }
-                else alert("Not a number!");
-                return false;
-            }
-            */
+
+
 
 function load_page_query(id) {
     image= id + ".jpg";
-    document.getElementById("q_page_display").innerHTML = "  Query page: "+image;
-    //               document.getElementById("img_display").innerHTML = "<img id='query_image' src='http://doc.gold.ac.uk/~mas01tc/page_dir/"+image+"' role=\"presentation\"/>";
+    document.getElementById("q_page_display").innerHTML =
+        "Query page: " + id;
     document.getElementById("img_display").innerHTML = "<img id='query_image' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' role=\"presentation\"/>";
     $('#img_display').zoom();
     //                load_lyrics(id, true);
-    show_display_panel();
-    show_query_display();
 }
 
 function load_page_query_image(image) {
     hide_result_image();
     document.getElementById("q_page_display").innerHTML = "  Query page: "+image.name;
     $('#img_display').zoom();
-    show_display_panel();
-    show_query_display();
 }
 
 function get_query_from_id(id) {
@@ -128,7 +105,7 @@ function do_search(id,jaccard,num_res_disp) {
     search(id,jaccard,num_res_disp);
     var t1 = performance.now();
     var report_string = 'Search '+id+' took ' + (t1 - t0).toFixed(4) + ' ms ';
-    report_string += document.getElementById('rank_toggle').innerText;
+    report_string += (jaccard ? 'Jaccard distance' : 'Basic');
     console.log(report_string);
 }
 
@@ -150,22 +127,31 @@ function show_results(json) {
     load_page_query(query_id);
     var result_num = 0;
     var scores_pruned = json;
+    const provide_judgements = $('#provide_judgements').is(':checked');
+    console.log(provide_judgements);
+
     console.log(json);
     if(json.length < 2) {
         console.log("No results for "+query_id+"!")
         return false;
     }
-    show_result_table();
-    var table_html = "";
+    show_results_table();
     num_res_disp = scores_pruned.length;
-    table_html = "<thead><tr><th colspan='2'><small>"+num_res_disp+" best</small></th> <th><small>Relation to query</small></th> </tr></thead>";
-    table_html += "<tbody class='table_body'>";
+
+    let table_html = "<thead><tr><th colspan=3>" + num_res_disp + " results - "
+                 + scores_pruned[0].num_words + " words in query</th></tr>"
+                 + "<tr><th>ID</th>"
+                 + "<th>Match Score</th></tr></thead>"
+                 + "<tbody class='table_body'>";
+
     last_res_disp = 0;
-    for(q=0;q<=num_res_disp;q++) if(q<scores_pruned.length) {
-        // for Jaccard distance
-        if(jaccard) var rank_factor = 1 - scores_pruned[q].jaccard;
-        // for basic search
-        else var rank_factor = scores_pruned[q].num / scores_pruned[0].num_words;
+
+    for(q=0; q<=num_res_disp; q++) if(q<scores_pruned.length) {
+
+        let rank_factor;
+        if (jaccard) { rank_factor = 1 - scores_pruned[q].jaccard; }
+        else { rank_factor = scores_pruned[q].num / scores_pruned[0].num_words };
+
         matched_words[q] = scores_pruned[q].num;
         words_in_page[q] = scores_pruned[q].num_words;
         var result_row_id = "result_row"+q;
@@ -174,52 +160,67 @@ function show_results(json) {
         var sim_id = "sim"+q;
         //               imageSrcs.push("http://doc.gold.ac.uk/~mas01tc/page_dir/"+scores_pruned[q].id+".jpg");
         imageSrcs.push("http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+scores_pruned[q].id+".jpg");
+
+        const rank_percentage = (rank_factor * 100).toFixed(2);
+
         if(scores_pruned[q].id == query_id)   {
-            document.getElementById("messages").innerHTML = words_in_page[q] + " words in query";
             table_html +=
                 "<tr class='id_list_name' id='"+result_row_id
                 +"' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
                 +"<td text-align='center' style='color:blue'><small>" +target_id+"</small></td>"
-                +"<td style='border-left:"+(rank_factor*100).toFixed(2)+"px solid red'  ></td>"
-                +"<td width='160px' id='"+sim_choice_id+"'>"
-                +"<select class='drop_downs' "
-                +"onchange='log_user_choice(\""+query_id+"\",\""
-                +target_id+"\","
-                +q+", \""
-                +db_name+"\");'"
-                +" id='"+sim_id+"'>"
-                +"<option selected' value='0'></option>"
-                +"<option value='notm'>Not music!</option>"
-                +"</select>"
-                +"</td>"+"</tr>";
-        }
-        else {
+
+                + "<td onclick='compare(\""+query_id+"\",\""+scores_pruned[q].id+"\");'>"
+                + '<div class="progress">'
+                + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
+                + "</td>";
+            if (provide_judgements) {
+                table_html += "<td id='"+sim_choice_id+"'>"
+                    +"<select class='drop_downs' "
+                    +"onchange='log_user_choice(\""+query_id+"\",\""
+                    +target_id+"\","
+                    +q+", \""
+                    +db_name+"\");'"
+                    +" id='"+sim_id+"'>"
+                    +"<option selected' value='0'></option>"
+                    +"<option value='notm'>Not music!</option>"
+                    +"</select>"
+                    +"</td>"
+            }
+            table_html += "</tr>";
+
+        } else {
             table_html +=
                 "<tr class='id_list_name' id='"+result_row_id
-                +"' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
-                +"<td text-align='center' style='color:blue'><small>" +target_id+"</small></td>"
-                +"<td onclick='compare(\""+query_id+"\",\""+scores_pruned[q].id+"\");' style='border-left:"+(rank_factor*100).toFixed(2)+"px solid red' ></td>"
-            //      +"<td><img id='compare"+q+"' src='magn_glass.png' height='16px' /> </td>"
-                + "<td id='"+sim_choice_id+"'>"
-                +"<select  class='drop_downs'"
-                +"onchange='log_user_choice(\""+query_id+"\",\""
-                +target_id+"\","
-                +q+", "
-                +"\""+db_name+"\");'"
-                +" id='"+sim_id+"'>"
-                +"<option selected' value='0'></option>"
-                +"<option value='dupl'>Duplicate page</option>"
-                +"<option value='same'>Same music</option>"
-                +"<option value='relv'>Related music</option>"
-                +"<option value='notm'>Not music!</option>"
-                +"</select>"
-                +"</td>"+"</tr>";
+                + "' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
+                + "<td text-align='center' style='color:blue'><small>" +target_id+"</small></td>"
+                + "<td onclick='compare(\""+query_id+"\",\""+scores_pruned[q].id+"\");'>"
+                + '<div class="progress">'
+                + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
+                + "</td>"
+            if (provide_judgements) {
+                table_html += "<td id='"+sim_choice_id+"'>"
+                    + "<select  class='drop_downs'"
+                    + "onchange='log_user_choice(\""+query_id+"\",\""
+                    + target_id+"\","
+                    + q+", "
+                    + "\""+db_name+"\");'"
+                    + " id='"+sim_id+"'>"
+                    + "<option selected' value='0'></option>"
+                    + "<option value='dupl'>Duplicate page</option>"
+                    + "<option value='same'>Same music</option>"
+                    + "<option value='relv'>Related music</option>"
+                    + "<option value='notm'>Not music!</option>"
+                    + "</select>"
+                    + "</td>";
+            }
+            table_html += "</tr>";
             last_res_disp++;
         }
     }
     preloadImages(imageSrcs);
     table_html += "</tbody>";
-    document.getElementById('result_table').innerHTML = table_html;
+
+    $('#results_table').html(table_html);
     load_result_image(query_id, 0, 100);
     show_result_image();
 }
@@ -230,68 +231,6 @@ function compare(a,b) {
 }
 
 
-function show_post_results(json) {
-    var result_num = 0;
-    var query_filename = basename(json[0]);
-    json.shift();
-    var scores_pruned = json;
-    console.log(json);
-    if(json.length < 1) {
-        console.log("No results for "+query_filename+"!");
-        document.getElementById("result_img_display").innerHTML = "No results for "+basename(query_filename)+"!";
-        document.getElementById("result_id_msg").innerHTML = "";
-        show_result_image();
-        return false;
-    }
-    else document.getElementById("result_img_display").innerHTML = "";
-    show_result_table();
-    num_res_disp = scores_pruned.length;
-    var table_html = "";
-    table_html = "<thead><tr><th colspan='2'><small>"+num_res_disp+" best</small></th> <th><small>Relation to query</small></th> </tr></thead>";
-    table_html += "<tbody class='table_body'>";
-    last_res_disp = 0;
-    for(q=0;q<=num_res_disp;q++) if(q<scores_pruned.length) {
-        // for Jaccard distance
-        if(jaccard) var rank_factor = 1 - scores_pruned[q].jaccard;
-        // for basic search
-        else var rank_factor = scores_pruned[q].num / scores_pruned[0].num_words;
-        matched_words[q] = scores_pruned[q].num;
-        words_in_page[q] = scores_pruned[q].num_words;
-        var result_row_id = "result_row"+q;
-        var target_id = scores_pruned[q].id;
-        var sim_choice_id = "sim_choice"+q;
-        var sim_id = "sim"+q;
-        //               imageSrcs.push("http://doc.gold.ac.uk/~mas01tc/page_dir/"+scores_pruned[q].id+".jpg");
-        imageSrcs.push("http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+scores_pruned[q].id+".jpg");
-        table_html +=
-            "<tr class='id_list_name' id='"+result_row_id
-            +"' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
-            +"<td text-align='center' style='color:blue'><small>" +target_id+"</small></td>"
-            +"<td style='border-left:"+(rank_factor*100).toFixed(2)+"px solid red' ></td>"
-            + "<td id='"+sim_choice_id+"'>"
-            +"<select  class='drop_downs'"
-            +"onchange='log_user_choice(\""+query_id+"\",\""
-            +target_id+"\","
-            +q+", "
-            +"\""+db_name+"\");'"
-            +" id='"+sim_id+"'>"
-            +"<option selected' value='0'></option>"
-            +"<option value='dupl'>Duplicate page</option>"
-            +"<option value='same'>Same music</option>"
-            +"<option value='relv'>Related music</option>"
-            +"<option value='notm'>Not music!</option>"
-            +"</select>"
-            +"</td>"+"</tr>";
-        if(q) last_res_disp++;
-    }
-    preloadImages(imageSrcs);
-    table_html += "</tbody>";
-    document.getElementById('result_table').innerHTML = table_html;
-    highlight_result_row(0);
-    load_result_image(scores_pruned[0].id, 0, 100);
-    show_result_image();
-}
-
 // UI functions
 function show_database_panel() {
     document.getElementById("database_panel").style.visibility = "visible";
@@ -299,40 +238,20 @@ function show_database_panel() {
 function hide_database_panel() {
     document.getElementById("database_panel").style.visibility = "hidden";
 }
-function show_query_panel() {
-    document.getElementById("query_panel").style.visibility = "visible";
-}
-function hide_query_panel() {
-    document.getElementById("query_panel").style.visibility = "hidden";
-}
-function show_display_panel() {
-    document.getElementById("display_panel").style.visibility = "visible";
-}
-function hide_display_panel() {
-    document.getElementById("display_panel").style.visibility = "hidden";
-}
-function show_upload_panel() {
-    document.getElementById("upload_panel").style.visibility = "visible";
-}
-function hide_upload_panel() {
-    document.getElementById("upload_panel").style.visibility = "hidden";
-}
-function show_query_display() {
-    document.getElementById("query_display").style.visibility = "visible";
-}
+
 function hide_query_display() {
     document.getElementById("query_display").style.visibility = "hidden";
 }
-function show_result_table() {
-    document.getElementById("res_table_label").innerHTML = "Results";
-    document.getElementById("res_table_div").innerHTML = '<table id="result_table" text-align="center" width="200" border="1px"></table>';
-    document.getElementById("res_table_label").style.visibility = "visible";
-    document.getElementById("res_table_div").style.visibility = "visible";
+
+function show_results_table() {
+    document.getElementById("results_table_col").style.visibility = "visible";
 }
-function hide_result_table() {
-    document.getElementById("res_table_label").style.visibility = "hidden";
-    document.getElementById("res_table_div").style.visibility = "hidden";
+
+function hide_results_table() {
+    document.getElementById("results_table_col").style.visibility = "hidden";
 }
+
+
 function highlight_result_row(rank) {
     var rowID = "";
     for(var i=0;i<=last_res_disp;i++) {
@@ -346,6 +265,8 @@ function highlight_result_row(rank) {
     document.getElementById(rowID).style.backgroundColor = "LightPink";
     highlighted_result_row = rank;
 }
+
+
 function load_result_image(id, rank, percent) {
     if(!id) {
         document.getElementById("result_id_msg").innerHTML = "";
@@ -353,15 +274,20 @@ function load_result_image(id, rank, percent) {
         return false;
     }
     image= id + ".jpg";
-    if(query_id != id) document.getElementById("result_id_msg").innerHTML = "Rank: "+rank+" ("+percent+"%) "+id+" ("+matched_words[rank]+"/"+words_in_page[rank]+" words in page match the query)";
+
+    if (query_id != id) {
+        document.getElementById("result_id_msg").innerHTML =
+            matched_words[rank]+"/"+words_in_page[rank]+" words in page match the query)"; }
+
     else document.getElementById("result_id_msg").innerHTML = "Query: "+id;
-    //              document.getElementById("result_img_display").innerHTML = "<img width = '400px' src='http://doc.gold.ac.uk/~mas01tc/page_dir/"+image+"' />";
     document.getElementById("result_img_display").innerHTML = "<img width = '400px' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' />";
     highlight_result_row(rank);
     $('#result_img_display').zoom();
-    document.getElementById("idText").value = id;
+    document.getElementById("query_id").value = id;
     //                load_lyrics(id, false);
 }
+
+
 function hide_result_image() {
     document.getElementById("res_display_div").style.visibility = "hidden";
 }
@@ -377,7 +303,6 @@ function get_emo_ids(){
         success: (db_emo_ids) => {
             emo_ids = db_emo_ids;
             console.log(emo_ids);
-            show_query_panel();
         }
     });
 }
@@ -456,7 +381,7 @@ function log_user_choice(query_id,target_id,result_num,database) {
         +target_id + "\t"
         +sim_choice + "\t"
         + database + "\t"
-        + 'rank: ' + result_num + ": " + document.getElementById('rank_toggle_button').value;
+        + 'rank: ' + result_num + ": " + (jaccard ? 'Jaccard distance' : 'Basic');
 
     $.ajax({
         type: "POST",
@@ -518,23 +443,13 @@ function checkKey(e) {
         }
         document.getElementById(targetID).click();
     }
-    /*
-                else if (e.keyCode == '37') {    // left arrow - repeat last search
-                    if(last_query_id.length) {
-                        document.getElementById("idText").value = last_query_id;
-                        document.getElementById("id_searchButton").click();
-                    }
-                }
-                */
     else if (e.keyCode == '37') {    // left arrow - Search previous page
         find_page_id(false);
-        query_id = document.getElementById("idText").value;
-        do_search(query_id,jaccard,num_res_disp);
+        query_id = document.getElementById("query_id").value;
     }
     else if (e.keyCode == '39') {    // right arrow - Search next page
         find_page_id(true);
-        query_id = document.getElementById("idText").value;
-        do_search(query_id,jaccard,num_res_disp);
+        query_id = document.getElementById("query_id").value;
     }
 }
 
@@ -555,27 +470,23 @@ function PreviewText() {
 $(document).ready(function(){
     $('#img_display').zoom();
     $('#result_img_display').zoom();
-    $('#searchButton').click(function ()
-        {
-            query_id = document.getElementById("idText").value;
-            do_search(query_id,jaccard,num_res_disp);
-        });
-    $('#id_searchButton').click(function ()
-        {
-            query_id = document.getElementById("idText").value;
-            do_search(query_id,jaccard,num_res_disp);
-        });
-    $('#random_searchButton').click(function ()
-        {
-            document.getElementById("idText").value = emo_ids[getRandomIntInclusive(0, emo_ids.length)];
-            query_id = document.getElementById("idText").value;
-            do_search(query_id,jaccard,num_res_disp);
-        });
+
+    $('#search_button').click(function() {
+        query_id = document.getElementById("query_id").value;
+        do_search(query_id,jaccard,num_res_disp);
+    });
+
+    $('#random_page_button').click(function () {
+        document.getElementById("query_id").value = emo_ids[getRandomIntInclusive(0, emo_ids.length)];
+        query_id = document.getElementById("query_id").value;
+        load_page_query(query_id);
+    });
+
 });
 
 // Client-side, though this needs to interact with server, as book data will be on server, not client
 function find_book_id(next) {
-    var this_id = document.getElementById("idText").value;
+    var this_id = document.getElementById("query_id").value;
     if(this_id == null) return false;
     else {
         for(var i=0;i<emo_ids.length;i++) {
@@ -638,14 +549,15 @@ function find_book_id(next) {
     }
     new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
     if(new_id.startsWith(">")) new_id = new_id.substring(1);
-    document.getElementById("idText").value = new_id;
+    document.getElementById("query_id").value = new_id;
 
     query_id = new_id;
     load_page_query(new_id);
 }
 
+
 function find_page_id(next) {
-    var this_id = document.getElementById("idText").value;
+    var this_id = document.getElementById("query_id").value;
     if(this_id == null) return false;
     else {
         for(var i=0;i<emo_ids.length;i++) {
@@ -663,14 +575,17 @@ function find_page_id(next) {
         }
     }
     if(new_id.startsWith(">")) new_id = new_id.substring(1);
-    document.getElementById("idText").value = new_id;
+    document.getElementById("query_id").value = new_id;
 
     query_id = new_id;
     load_page_query(new_id)
 }
+
+
 function basename(path) {
     return path.replace(/\\/g,'/').replace(/.*\//, '');
 }
+
 var threshold = false;
 var search_threshold = 0.05; //default
 function change_num_res() {
@@ -681,33 +596,27 @@ function change_num_res() {
         num_res_disp = document.getElementById("res_disp_select").value;
         threshold = false;
     }
-    do_search(query_id,jaccard,num_res_disp);
 }
 
-function switch_rank() {
-    if(jaccard) {
-        document.getElementById("rank_toggle").innerHTML = "Basic";
-        jaccard = false;
-    }
-    else {
-        document.getElementById("rank_toggle").innerHTML = "Jaccard distance";
-        jaccard = true;
-    }
-    do_search(query_id,jaccard,num_res_disp);
+function change_ranking_method() {
+    const ranking_select = document.getElementById('ranking_select');
+    const v = ranking_select.options[ranking_select.selectedIndex].value;
+    if (v == 0) { jaccard = true; }
+    else { jaccard = false; }
 }
 
 function select_new_trial(){
-    var new_id = document.getElementById("idText").value = document.getElementById("trial_select").value;
+    var new_id = document.getElementById("query_id").value = document.getElementById("trial_select").value;
     console.log("["+new_id+"]");
     load_page_query_image(new_id+".jpg");
     load_page_query(new_id);
-    //              do_search(new_id,jaccard,num_res_disp);
 }
 
+
 function setup_page() {
-    hide_query_panel();
-    hide_display_panel();
     get_emo_ids();
-    show_query_panel();
-    document.getElementById("rank_toggle").innerHTML = (jaccard)? "Jaccard distance" : "Basic";
+    const initial_page_id = 'K2h7_092_1'
+    document.getElementById("query_id").value = initial_page_id;
+    load_page_query(initial_page_id);
 }
+

@@ -613,6 +613,22 @@ function select_new_trial(){
 }
 
 
+function corpus_search_mode() {
+    console.log('search with corpus');
+    $('#emo_browser_col').removeClass('d-none');
+    $('#image_upload_col').addClass('d-none');
+    $('#corpus_search_link').addClass('active');
+    $('#image_search_link').removeClass('active');
+}
+
+function image_search_mode() {
+    console.log('search with images!');
+    $('#emo_browser_col').addClass('d-none');
+    $('#image_upload_col').removeClass('d-none');
+    $('#corpus_search_link').removeClass('active');
+    $('#image_search_link').addClass('active');
+}
+
 function setup_page() {
     get_emo_ids();
     const initial_page_id = 'K2h7_092_1'

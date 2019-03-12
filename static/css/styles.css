@@ -2,7 +2,6 @@
 .zoom img { display: block; }
 .zoom img::selection { background-color: transparent; }
 
-#query_image {
+#query_image, #user_image{
     width: 400px;
 }
-

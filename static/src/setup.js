@@ -15,23 +15,27 @@ var words_in_page = [];
 let emo_ids;
 
 //    UID for identifying user to logs, etc.
-var UID = "";
+
+
+var UID;
 var can_store_UID = false;
-if (storageAvailable('localStorage')) {
-    console.log("Local Storage available!")
-    if(!localStorage.getItem("userID")) {
-        console.log("Setting new UID!")
-        localStorage.setItem("userID",uniqueID());
+function get_or_set_UID() {
+    if (storageAvailable('localStorage')) {
+        // console.log("Local Storage available!")
         UID = localStorage.getItem("userID");
+        can_store_UID = true;
+
+        if(!UID) {
+            console.log("Setting new UID!")
+            UID = uniqueID();
+            localStorage.setItem("userID", UID);
+        }
+    } else {
+        console.log("No Local Storage available! Setting new temporary UID")
+        UID = uniqueID();
     }
-    else UID = localStorage.getItem("userID");
-    can_store_UID = true;
+    console.log("UID is " + UID);
 }
-else {
-    console.log("No Local Storage available! Setting new unique ID")
-    UID = uniqueID();
-}
-console.log("UID is "+UID);
 
 
 
@@ -39,15 +43,15 @@ function load_page_query(id) {
     image= id + ".jpg";
     document.getElementById("q_page_display").innerHTML =
         "Query page: " + id;
-    document.getElementById("img_display").innerHTML = "<img id='query_image' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' role=\"presentation\"/>";
-    $('#img_display').zoom();
+    document.getElementById("emo_image_display").innerHTML = "<img id='query_image' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' role=\"presentation\"/>";
+    $('#emo_image_display').zoom();
+
     //                load_lyrics(id, true);
 }
 
 function load_page_query_image(image) {
-    hide_result_image();
     document.getElementById("q_page_display").innerHTML = "  Query page: "+image.name;
-    $('#img_display').zoom();
+    $('#emo_image_display').zoom();
 }
 
 function get_query_from_id(id) {
@@ -58,12 +62,13 @@ function get_query_from_id(id) {
 }
 
 // Basic remote search function.
-function search(id,jaccard,num_res_disp) {
+function search(id, jaccard, num_res_disp) {
+
     // TODO(ra): this should be a POST request probably...
     fetch('api/query/?id=' + id
            + "&jaccard=" + jaccard
-           + "&num_results=" +num_res_disp
-           + "&threshold="+threshold,
+           + "&num_results=" + num_res_disp
+           + "&threshold=" + threshold,
         {
             method:"GET",
             headers: {
@@ -71,42 +76,22 @@ function search(id,jaccard,num_res_disp) {
                 "Content-Type": "application/json"
             }
         })
-        .then(function(response) {
-            return response.json();
-        })
-        .then(function(myJson) {
-            show_results(myJson);
-        })
-        .catch(function (error) {
-            console.log('Request failed', error);
-        });
+        .then(response => response.json())
+        .then(myJson => show_results(myJson))
+        .catch(error => console.log('Request failed', error))
 }
-
-// Unused? 
-function string_search(str,jaccard,num_res_disp) {
-    document.getElementById("result_img_display").innerHTML = "Searching ...";
-    fetch( 'api/?jaccard='+jaccard+'&num_res='+num_res_disp+'&threshold='+threshold+'&qstring='+str)
-        .then(function(response) {
-            console.log(response)
-            return response.json();
-        })
-        .then(function(myJson) {
-            show_results(myJson);
-        })
-        .catch(function (error) {
-            console.log('Request failed', error);
-        });
-}
-
 
 
 function do_search(id,jaccard,num_res_disp) {
+
     var t0 = performance.now();
     search(id,jaccard,num_res_disp);
+
     var t1 = performance.now();
     var report_string = 'Search '+id+' took ' + (t1 - t0).toFixed(4) + ' ms ';
     report_string += (jaccard ? 'Jaccard distance' : 'Basic');
     console.log(report_string);
+
 }
 
 function preloadImages(srcs) {
@@ -222,7 +207,6 @@ function show_results(json) {
 
     $('#results_table').html(table_html);
     load_result_image(query_id, 0, 100);
-    show_result_image();
 }
 
 function compare(a,b) {
@@ -268,32 +252,25 @@ function highlight_result_row(rank) {
 
 
 function load_result_image(id, rank, percent) {
-    if(!id) {
+    if (!id) {
         document.getElementById("result_id_msg").innerHTML = "";
-        document.getElementById("result_img_display").innerHTML = "";
+        document.getElementById("result_image_display").innerHTML = "";
         return false;
     }
-    image= id + ".jpg";
+    image = id + ".jpg";
 
     if (query_id != id) {
         document.getElementById("result_id_msg").innerHTML =
             matched_words[rank]+"/"+words_in_page[rank]+" words in page match the query"; }
 
     else document.getElementById("result_id_msg").innerHTML = "Query: "+id;
-    document.getElementById("result_img_display").innerHTML = "<img width = '400px' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' />";
+    document.getElementById("result_image_display").innerHTML = "<img width = '400px' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' />";
     highlight_result_row(rank);
-    $('#result_img_display').zoom();
+    $('#result_image_display').zoom();
     document.getElementById("query_id").value = id;
     //                load_lyrics(id, false);
 }
 
-
-function hide_result_image() {
-    document.getElementById("res_display_div").style.visibility = "hidden";
-}
-function show_result_image() {
-    document.getElementById("res_display_div").style.visibility = "visible";
-}
 
 // Load emo_ids at startup
 function get_emo_ids(){
@@ -466,23 +443,7 @@ function PreviewText() {
     };
 };
 
-// Client-side
-$(document).ready(function(){
-    $('#img_display').zoom();
-    $('#result_img_display').zoom();
 
-    $('#search_button').click(function() {
-        query_id = document.getElementById("query_id").value;
-        do_search(query_id,jaccard,num_res_disp);
-    });
-
-    $('#random_page_button').click(function () {
-        document.getElementById("query_id").value = emo_ids[getRandomIntInclusive(0, emo_ids.length)];
-        query_id = document.getElementById("query_id").value;
-        load_page_query(query_id);
-    });
-
-});
 
 // Client-side, though this needs to interact with server, as book data will be on server, not client
 function find_book_id(next) {
@@ -586,13 +547,101 @@ function basename(path) {
     return path.replace(/\\/g,'/').replace(/.*\//, '');
 }
 
+
+
+
+/*******************************************************************************
+ * Browsing EMO
+ ******************************************************************************/
+
+function select_new_trial(){
+    var new_id = document.getElementById("query_id").value = document.getElementById("trial_select").value;
+    console.log("["+new_id+"]");
+    load_page_query_image(new_id+".jpg");
+    load_page_query(new_id);
+}
+
+
+
+
+/*******************************************************************************
+ * Image upload
+ ******************************************************************************/
+
+
+function validate_file_upload() {
+    const files = $('#user_image_file')[0].files;
+
+    if (files.length === 0) {
+        alert('Select a file to upload.');
+        return;
+    } else if (files.length > 1) {
+        alert('You can only upload 1 file.');
+        return;
+    }
+
+    const user_image_file = files[0];
+    
+    // TODO(ra) more validation - filetype etc.
+
+    return user_image_file;
+}
+
+
+function show_user_image(user_image_file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+        const user_image = $('<img>', { id: 'user_image', src: reader.result });
+        $('#user_image_display').empty();
+        $('#user_image_display').prepend(user_image);
+        $('#user_image_display').zoom();
+    };
+    reader.readAsDataURL(user_image_file);
+}
+
+
+function submit_upload_form(user_image_file) {
+    const formData = new FormData();
+    formData.append('user_image_file', user_image_file, user_image_file.name);
+
+    // $("#user_image_messages").text("Searching ...");
+
+    $.ajax({
+        url: 'api/image_query',
+        method: 'post',
+        data: formData,
+        processData: false,
+        contentType: false,
+    }).done(handleSuccess)
+      .fail((xhr, status) => alert(status));
+}
+/**
+ * Handle the upload response data from server and display them.
+ *
+ * @param data
+ */
+function handleSuccess(data) {
+    console.log("Returned: " + data)
+    $("#user_image_messages").clear();
+    show_post_results(data);
+}
+
+
+
+
+
+
+
+/*******************************************************************************
+ * Search settings
+ ******************************************************************************/
+
 var threshold = false;
 var search_threshold = 0.05; //default
 function change_num_res() {
-    if(document.getElementById("res_disp_select").value == "Best") {
+    if (document.getElementById("res_disp_select").value == "Best") {
         threshold = search_threshold;
-    }
-    else {
+    } else {
         num_res_disp = document.getElementById("res_disp_select").value;
         threshold = false;
     }
@@ -604,14 +653,6 @@ function change_ranking_method() {
     if (v == 0) { jaccard = true; }
     else { jaccard = false; }
 }
-
-function select_new_trial(){
-    var new_id = document.getElementById("query_id").value = document.getElementById("trial_select").value;
-    console.log("["+new_id+"]");
-    load_page_query_image(new_id+".jpg");
-    load_page_query(new_id);
-}
-
 
 function corpus_search_mode() {
     console.log('search with corpus');
@@ -629,10 +670,40 @@ function image_search_mode() {
     $('#image_search_link').addClass('active');
 }
 
-function setup_page() {
+
+
+/*******************************************************************************
+ * Start 
+ ******************************************************************************/
+
+$(document).ready(() => {
+    get_or_set_UID();
+
+    $('#image_display').zoom();
+    $('#result_image_display').zoom();
+
+    $('#search_button').click(() => {
+        query_id = document.getElementById("query_id").value;
+        do_search(query_id,jaccard,num_res_disp);
+    });
+
+    $('#random_page_button').click(() => {
+        document.getElementById("query_id").value = emo_ids[getRandomIntInclusive(0, emo_ids.length)];
+        query_id = document.getElementById("query_id").value;
+        load_page_query(query_id);
+    });
+
+    $('#uploadForm').on('submit', (event) => {
+        event.preventDefault();
+        const user_image_file = validate_file_upload();
+        if (user_image_file) {
+            show_user_image(user_image_file);
+            submit_upload_form(user_image_file);
+        }
+    });
+
     get_emo_ids();
     const initial_page_id = 'K2h7_092_1'
     document.getElementById("query_id").value = initial_page_id;
     load_page_query(initial_page_id);
-}
-
+});

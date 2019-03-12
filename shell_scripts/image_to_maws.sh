@@ -8,6 +8,7 @@ WORKINGPATH=$2;
 cd $WORKINGPATH
 echo "New working directory: "$WORKINGPATH >> log
 echo $IMG_FILE >> log
+set -e # stop if anything errors
 
 convert $IMG_FILE -alpha off page.tiff 2>> log
 echo "Converted to tiff OK" >> log

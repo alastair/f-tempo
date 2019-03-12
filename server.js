@@ -249,13 +249,17 @@ function run_image_query(user_image_filename, ngram_search) {
     let result;
 
     if(!ngram_search) {
-        query_data = cp.execSync('./shell_scripts/image_to_maws.sh ' + user_image_filename + ' ' + working_path);
-        query = String(query_data); // a string of maws, preceded with an id
-        if (query) { result = search('words', query, jaccard, num_results); }
+        try {
+            query_data = cp.execSync('./shell_scripts/image_to_maws.sh ' + user_image_filename + ' ' + working_path);
+            query = String(query_data); // a string of maws, preceded with an id
+        } catch (err) { return; }
+        result = search('words', query, jaccard, num_results);
     }
     else {
-        query_data = cp.execSync('./shell_scripts/image_to_ngrams.sh ' + user_image_filename + ' ' + working_path + ' ' + '9');
-        query = String(query_data);
+        try {
+            query_data = cp.execSync('./shell_scripts/image_to_ngrams.sh ' + user_image_filename + ' ' + working_path + ' ' + '9');
+            query = String(query_data);
+        } catch (err) { return; }
         if (query) { result = search('words', query, jaccard, num_results, true); }
     }
 

@@ -591,24 +591,18 @@ function submit_upload_form(user_image_file) {
     const formData = new FormData();
     formData.append('user_image_file', user_image_file, user_image_file.name);
 
-    // $("#user_image_messages").text("Searching ...");
-
     $.ajax({
         url: 'api/image_query',
         method: 'post',
         data: formData,
         processData: false,
         contentType: false,
-    }).done(handleSuccess)
+    }).done(upload_form_callback)
       .fail((xhr, status) => alert(status));
 }
-/**
- * Handle the upload response data from server and display them.
- *
- * @param data
- */
-function handleSuccess(data) {
-    // console.log("Returned: " + data)
+
+function upload_form_callback(data) {
+    console.log("Returned: " + data)
     show_results(data);
 }
 
@@ -685,6 +679,7 @@ $(document).ready(() => {
 
     $('#uploadForm').on('submit', (event) => {
         event.preventDefault();
+        clear_result_divs();
         const user_image_file = validate_file_upload();
         if (user_image_file) {
             show_user_image(user_image_file);

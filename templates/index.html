@@ -31,10 +31,10 @@
   <div class="collapse navbar-collapse" id="navbarNav">
     <ul class="navbar-nav">
       <li id='corpus_search_link' class="nav-item active">
-          <a class="nav-link" href='#' onclick="corpus_search_mode()" >Search within Corpus</a>
+          <a class="nav-link" href='#' onclick="set_corpus_search_mode()" >Search within Corpus</a>
       </li>
       <li id='image_search_link' class="nav-item">
-          <a class="nav-link" href='#' onclick="image_search_mode()" >Search with Image Upload</a>
+          <a class="nav-link" href='#' onclick="set_image_search_mode()" >Search with Image Upload</a>
       </li>
     </ul>
   </div>
@@ -144,11 +144,10 @@
         <button class="btn btn-primary btn-block" id="search_button">Search for Similar Pages</button>
 
     </div>
-</div>
+</div> <!-- left col in search within corpus mode -->
 
 
 <div class='col card text-center d-none' id='image_upload_col'>
-
     <div id="user_image_display"></div>
     <div id="user_image_messages"></div>
 
@@ -158,9 +157,7 @@
             <input type='submit' class='form-control btn-primary' value='Upload and Search!'/>
         </form> 
     </div>
-
-
-</div>
+</div> <!-- left col in search with image upload mode -->
 
 
 <div class='col card' id='results_table_col'>
@@ -173,7 +170,6 @@
 <div class='col card' id="res_display_div">
     <div id="result_image_display"></div>
     <div id="result_id_msg"></div>
-    <div id="t_text_display"></div>
 </div> <!-- right col -->
 
 

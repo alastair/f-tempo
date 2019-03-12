@@ -14,8 +14,8 @@ const path_app = require('path');
 /*******************************************************************************
  * Globals / Inits
  ******************************************************************************/
-// const MAWS_DB = './data/emo_ids_maws.txt';
-const MAWS_DB = './data/dev_emo_ids_maws.txt'; // for dev only! quick rebuilds.
+const MAWS_DB = './data/emo_ids_maws.txt';
+// const MAWS_DB = './data/dev_emo_ids_maws.txt'; // for dev only! quick rebuilds.
 const DIAT_MEL_DB = './data/id_diat_mel_strs.txt'; 
 const EMO_IDS = []; // all ids in the system
 const EMO_IDS_MAWS = {}; // keys are ids, values are an array of maws for that id
@@ -159,8 +159,8 @@ app.get('/api/query', function (req, res) {
 app.post('/api/image_query', function(req, res) {
     if (!req.files) { return res.status(400).send('No files were uploaded.'); }
 
-    // The name of the input field is used to retrieve the uploaded file
-    let user_image = req.files.user_image;
+    // this needs to stay in sync with the name given to the FormData object in the front end
+    let user_image = req.files.user_image_file;
 
     working_path = './run/';
 
@@ -232,7 +232,6 @@ function search_with_code(str, jaccard, num_results) {
     working_path = cp.execSync('/home/mas01tc/emo_search/web-demo/set_working_path.sh') + '/';
     const query_data = cp.execSync('/home/mas01tc/emo_search/web-demo/codestring_to_maws.sh ' + str + ' ' + working_path);
     const query_str = String(query_data); // a string of maws, preceded with an id
-
     const result = search('words', query_str, jaccard, num_results);
     result.unshift("code query");
     return result;
@@ -246,8 +245,9 @@ function run_image_query(user_image, ngram_search) {
     let query_data;
     let query;
     let result;
+
     if(!ngram_search) {
-        query_data = cp.execSync('./shell_scripts/image_to_maws.sh ' + user_image.name + ' ' + working_path);
+        query_data = cp.execSync('./shell_scripts/dev_image_to_maws.sh ' + user_image.name + ' ' + working_path);
         query = String(query_data); // a string of maws, preceded with an id
         result = search('words', query, jaccard, num_results);
     }
@@ -257,7 +257,6 @@ function run_image_query(user_image, ngram_search) {
         result = search('words', query, jaccard, num_results, true);
     }
 
-    result.unshift(path_app.basename(working_path) + '/' + user_image.name); // add path/filename to beginning of array
     return result;
 }
 

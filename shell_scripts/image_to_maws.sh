@@ -9,9 +9,6 @@ cd $WORKINGPATH
 echo "New working directory: "$WORKINGPATH >> log
 echo $IMG_FILE >> log
 
-# page=$(basename $IMG_FILE)
-# cp $IMG_FILE ./$page
-
 convert $IMG_FILE -alpha off page.tiff 2>> log
 echo "Converted to tiff OK" >> log
 
@@ -34,6 +31,8 @@ echo $timestamp": Generating MAWs for "$IMG_FILE":" >> log
 maw -a 'PROT' -i page.txt -o $basename".maw" -k 4 -K 8 2>> log
 awk '{printf("%s ",$0)}' $basename".maw" > $basename"_oneline.maw" 
 cat $basename"_oneline.maw"
+
+rm -r *
 
 echo >> log
 echo

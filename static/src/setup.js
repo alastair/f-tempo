@@ -395,7 +395,7 @@ function checkKey(e) {
         }
     }
     else if (e.keyCode == '40') {    // down arrow
-        if (highlighted_result_row < num_res_dis) {
+        if (highlighted_result_row < num_res_disp) {
             var targetID="result_row"+(highlighted_result_row+1);
         }
         else {

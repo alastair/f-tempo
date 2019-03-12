@@ -247,7 +247,7 @@ function run_image_query(user_image, ngram_search) {
     let result;
 
     if(!ngram_search) {
-        query_data = cp.execSync('./shell_scripts/dev_image_to_maws.sh ' + user_image.name + ' ' + working_path);
+        query_data = cp.execSync('./shell_scripts/image_to_maws.sh ' + user_image.name + ' ' + working_path);
         query = String(query_data); // a string of maws, preceded with an id
         result = search('words', query, jaccard, num_results);
     }

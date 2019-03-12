@@ -19,7 +19,7 @@ unzip -q page.axz page.mei 2>> log
 echo "Extracted MEI OK" >> log
 
 echo ">"$IMG_FILE > page.txt
-gawk -f ../callout_scripts/parse_mei_to_diat_int_str.awk page.mei >> page.txt
+gawk -f ../shell_scripts/parse_mei_to_diat_int_str.awk page.mei >> page.txt
 
 echo -n "Diat interval string (fasta): " >> log; 
 cat page.txt >> log; 

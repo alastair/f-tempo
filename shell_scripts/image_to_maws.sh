@@ -34,6 +34,3 @@ awk '{printf("%s ",$0)}' $basename".maw" > $basename"_oneline.maw"
 cat $basename"_oneline.maw"
 
 rm -r ../run/*
-
-echo >> log
-echo

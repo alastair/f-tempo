@@ -138,15 +138,15 @@ app.get('/api/query', function (req, res) {
 
     let result;
     if(req.query.qstring) {
-        console.log('Querying by string...');
+        // console.log('Querying by string...');
         const query = req.query.qstring;
         result = search('words', query, jaccard, num_results);
     } else if(req.query.id) {
-        console.log('Querying by id...');
+        // console.log('Querying by id...');
         result = search('id', req.query.id, jaccard, num_results);
 
     } else if(req.query.diat_int_code) {
-        console.log('q diat_int_code');
+        // console.log('q diat_int_code');
         result = search_with_code(req.query.diat_int_code, jaccard, num_results);
     }
 
@@ -169,7 +169,7 @@ app.post('/api/image_query', function(req, res) {
     user_image.mv(working_path + new_filename, (err) => {
         if (err) { return res.status(500).send(err); }
         else {
-            console.log("Uploaded file saved as " + working_path + new_filename);
+            // console.log("Uploaded file saved as " + working_path + new_filename);
             const ngram_search = false; // TODO(ra): make this work!
             const result = run_image_query(new_filename, ngram_search);
             if (result) { res.send(result); }
@@ -213,7 +213,7 @@ function search(method, query, jaccard, num_results, ngram) {
     let words;
     if (method === 'id') {
         if (!(query in EMO_IDS_MAWS)) { // TODO: need to report to frontend 
-            console.log("ID " + query + " not found in " + MAWS_DB);
+            // console.log("ID " + query + " not found in " + MAWS_DB);
             return;
         }
         words = EMO_IDS_MAWS[query];
@@ -269,7 +269,7 @@ function run_image_query(user_image_filename, ngram_search) {
 
 function get_result_from_words(words, signature_to_ids_dict, jaccard, num_results) {
     if (words.length < 6) { // TODO: Need to report to frontend
-        console.log("Not enough words in query.");
+        // console.log("Not enough words in query.");
         return [];
     }
     const scores = get_scores(words, signature_to_ids_dict);

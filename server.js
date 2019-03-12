@@ -172,7 +172,8 @@ app.post('/api/image_query', function(req, res) {
             console.log("Uploaded file saved as " + working_path + new_filename);
             const ngram_search = false; // TODO(ra): make this work!
             const result = run_image_query(new_filename, ngram_search);
-            res.send(result);
+            if (result) { res.send(result); }
+            else { return res.status(422).send('Could not process this file.'); }
         }
     });
 });
@@ -250,12 +251,12 @@ function run_image_query(user_image_filename, ngram_search) {
     if(!ngram_search) {
         query_data = cp.execSync('./shell_scripts/image_to_maws.sh ' + user_image_filename + ' ' + working_path);
         query = String(query_data); // a string of maws, preceded with an id
-        result = search('words', query, jaccard, num_results);
+        if (query) { result = search('words', query, jaccard, num_results); }
     }
     else {
         query_data = cp.execSync('./shell_scripts/image_to_ngrams.sh ' + user_image_filename + ' ' + working_path + ' ' + '9');
         query = String(query_data);
-        result = search('words', query, jaccard, num_results, true);
+        if (query) { result = search('words', query, jaccard, num_results, true); }
     }
 
     return result;

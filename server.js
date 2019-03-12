@@ -165,12 +165,11 @@ app.post('/api/image_query', function(req, res) {
     working_path = './run/';
     const new_filename = user_image.name.replace(/ /g, '_');
 
-
     // Use the mv() method to save the file there
     user_image.mv(working_path + new_filename, (err) => {
         if (err) { return res.status(500).send(err); }
         else {
-            console.log("Uploaded file saved as " + working_path + user_image.name);
+            console.log("Uploaded file saved as " + working_path + new_filename);
             const ngram_search = false; // TODO(ra): make this work!
             const result = run_image_query(new_filename, ngram_search);
             res.send(result);

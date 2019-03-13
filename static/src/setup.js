@@ -1,41 +1,32 @@
 // Global variables
-var num_res_disp = 15; // default
-var last_res_disp = 0; // last result to be displayed  NB FIXME - doesn't always work!!
-var query_id = "";
-var last_query_id = ""; // the last query, to return to NB FIXME (should be an array of queries)
-var db_name ="";
-var highlighted_result_row = 0;
-var jaccard = true;
+let num_results = 15; // default
+let query_id = "";
+let db_name ="";
+let highlighted_result_row = 0;
+let jaccard = true;
 let corpus_search_mode = true; // false when image search mode
+let matched_words = []; // Arrays for displaying match stats in result list
+let words_in_page = []; // ''
+let emo_ids; // Array of page IDs loaded from database on initialisatiom
+let user_id; // for identifying user to logs, etc.
+let can_store_user_id = false;
 
-//Arrays for displaying match stats in result list
-var matched_words = [];
-var words_in_page = [];
-
-// Array of page IDs loaded from database on initialisatiom
-let emo_ids;
-
-//    UID for identifying user to logs, etc.
-
-
-var UID;
-var can_store_UID = false;
-function get_or_set_UID() {
+function get_or_set_user_id() {
     if (storageAvailable('localStorage')) {
         // console.log("Local Storage available!")
-        UID = localStorage.getItem("userID");
-        can_store_UID = true;
+        user_id = localStorage.getItem("userID");
+        can_store_user_id = true;
 
-        if(!UID) {
-            console.log("Setting new UID!")
-            UID = uniqueID();
-            localStorage.setItem("userID", UID);
+        if(!user_id) {
+            console.log("Setting new user_id!")
+            user_id = uniqueID();
+            localStorage.setItem("userID", user_id);
         }
     } else {
-        console.log("No Local Storage available! Setting new temporary UID")
-        UID = uniqueID();
+        console.log("No Local Storage available! Setting new temporary user_id")
+        user_id = uniqueID();
     }
-    console.log("UID is " + UID);
+    console.log("user_id is " + user_id);
 }
 
 
@@ -63,37 +54,18 @@ function get_query_from_id(id) {
 }
 
 // Basic remote search function.
-function search(id, jaccard, num_res_disp) {
-
-    // TODO(ra): this should be a POST request probably...
-    fetch('api/query/?id=' + id
-           + "&jaccard=" + jaccard
-           + "&num_results=" + num_res_disp
-           + "&threshold=" + threshold,
-        {
-            method:"GET",
-            headers: {
-                "Access-Control-Allow-Origin": "*",
-                "Content-Type": "application/json"
-            }
-        })
-        .then(response => response.json())
-        .then(myJson => show_results(myJson))
-        .catch(error => console.log('Request failed', error))
+function search(id, jaccard, num_results) {
+    search_data = JSON.stringify({ id, jaccard, num_results, threshold });
+    
+    $.ajax({
+        url: 'api/query',
+        method: 'POST',
+        data: search_data,
+        contentType: 'application/json',
+    }).done(show_results)
+      .fail((xhr, status) => alert(status)); // TODO: real error handling!
 }
 
-
-function do_search(id,jaccard,num_res_disp) {
-
-    var t0 = performance.now();
-    search(id,jaccard,num_res_disp);
-
-    var t1 = performance.now();
-    var report_string = 'Search '+id+' took ' + (t1 - t0).toFixed(4) + ' ms ';
-    report_string += (jaccard ? 'Jaccard distance' : 'Basic');
-    console.log(report_string);
-
-}
 
 function preloadImages(srcs) {
     if (!preloadImages.cache) {
@@ -120,9 +92,9 @@ function show_results(json) {
         return false;
     }
 
-    num_res_disp = results.length;
+    num_results = results.length;
 
-    let table_html = "<thead><tr><th colspan=3>" + num_res_disp + " results - "
+    let table_html = "<thead><tr><th colspan=3>" + num_results + " results - "
                  + results[0].num_words + " words in query</th></tr>"
                  + "<tr><th>ID</th>"
                  + "<th>Match Score</th></tr></thead>"
@@ -224,7 +196,7 @@ function compare(a,b) {
 
 function highlight_result_row(rank) {
     let rowID;
-    for(var i=0; i < num_res_disp; i++) {
+    for(var i=0; i < num_results; i++) {
         rowID = "result_row" + i;
         if (document.getElementById(rowID).style != null) {
             document.getElementById(rowID).style.backgroundColor = "White";
@@ -308,11 +280,13 @@ function getFormattedDate() {
     var str = date.getFullYear() + "-" + month + "-" + day + "_" +  hour + ":" + min + ":" + sec;
     return str;
 }
+
 function getRandomIntInclusive(min, max) {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
 // From: https://gist.github.com/gordonbrander/2230317
 function uniqueID(){
     function chr4(){
@@ -330,11 +304,11 @@ function log_user_choice(query_id,target_id,result_num,database) {
     var sim_id="sim"+result_num;
     var sim_choice = document.getElementById(sim_id).value;
     var log_entry = the_time+"\t";
-    if(can_store_UID) {
+    if(can_store_user_id) {
         log_entry += localStorage.getItem("userID");
     }
     else {
-        log_entry += UID;
+        log_entry += user_id;
     }
     log_entry += "\t"
         +query_id + "\t"
@@ -361,11 +335,11 @@ function log_user_choice(query_id,target_id,result_num,database) {
 function log_search_problem(query_id,message,database) {
     var the_time = getFormattedDate();
     var log_entry = the_time+"\t";
-    if(can_store_UID) {
+    if(can_store_user_id) {
         log_entry += localStorage.getItem("userID");
     }
     else {
-        log_entry += UID;
+        log_entry += user_id;
     }
     log_entry += "\t" +query_id+"\t" + database+"\t" + message;
     $.ajax({
@@ -395,7 +369,7 @@ function checkKey(e) {
         }
     }
     else if (e.keyCode == '40') {    // down arrow
-        if (highlighted_result_row < num_res_disp) {
+        if (highlighted_result_row < num_results) {
             var targetID="result_row"+(highlighted_result_row+1);
         }
         else {
@@ -590,26 +564,16 @@ function show_user_image(user_image_file) {
 function submit_upload_form(user_image_file) {
     const formData = new FormData();
     formData.append('user_image_file', user_image_file, user_image_file.name);
-
+    formData.append('user_id', user_id);
     $.ajax({
         url: 'api/image_query',
-        method: 'post',
+        method: 'POST',
         data: formData,
         processData: false,
         contentType: false,
-    }).done(upload_form_callback)
+    }).done(show_results)
       .fail((xhr, status) => alert(status));
 }
-
-function upload_form_callback(data) {
-    console.log("Returned: " + data)
-    show_results(data);
-}
-
-
-
-
-
 
 
 /*******************************************************************************
@@ -622,7 +586,7 @@ function change_num_res() {
     if (document.getElementById("res_disp_select").value == "Best") {
         threshold = search_threshold;
     } else {
-        num_res_disp = document.getElementById("res_disp_select").value;
+        num_results = document.getElementById("res_disp_select").value;
         threshold = false;
     }
 }
@@ -661,14 +625,14 @@ function set_image_search_mode() {
  ******************************************************************************/
 
 $(document).ready(() => {
-    get_or_set_UID();
+    get_or_set_user_id();
 
     $('#image_display').zoom();
     $('#result_image_display').zoom();
 
     $('#search_button').click(() => {
         query_id = document.getElementById("query_id").value;
-        do_search(query_id,jaccard,num_res_disp);
+        search(query_id,jaccard,num_results);
     });
 
     $('#random_page_button').click(() => {

@@ -14,8 +14,8 @@ const path_app = require('path');
 /*******************************************************************************
  * Globals / Inits
  ******************************************************************************/
-const MAWS_DB = './data/emo_ids_maws.txt';
-// const MAWS_DB = './data/dev_emo_ids_maws.txt'; // for dev only! quick rebuilds.
+// const MAWS_DB = './data/emo_ids_maws.txt';
+const MAWS_DB = './data/dev_emo_ids_maws.txt'; // for dev only! quick rebuilds.
 const DIAT_MEL_DB = './data/id_diat_mel_strs.txt'; 
 const EMO_IDS = []; // all ids in the system
 const EMO_IDS_MAWS = {}; // keys are ids, values are an array of maws for that id
@@ -25,8 +25,7 @@ const NGRAMS_to_IDS = {}; // keys are ngrams, values are a array of all ids for 
 const word_totals = []; // total words per id, used for normalization
 
 let query_id;
-var threshold = false; // default until supplied
-let working_path;
+let threshold = false; // default until supplied
 
 const app = express();
 
@@ -91,7 +90,7 @@ app.get('/compare', function (req, res) {
     if (!m_diat_str) { return res.status(400).send('Could not find melody string for this m_id'); }
 
     // TODO(ra) probably expose this in the frontend like this...
-    // const show_top_ngrams = req.query.show_top_ngrams == 'true' ? true : false;
+    // const show_top_ngrams = req.body.show_top_ngrams;
     const show_top_ngrams = true;
     const [q_index_to_colour, m_index_to_colour] = generate_index_to_colour_maps(q_diat_str, m_diat_str, show_top_ngrams);
 
@@ -119,51 +118,53 @@ app.get('/compare', function (req, res) {
 app.get('/api/emo_ids', function (req, res) { res.send(EMO_IDS); });
 
 // Handle a query
-app.get('/api/query', function (req, res) {
-    let num_results = 20; // Default
-    threshold = false; // Default
+app.post('/api/query', function (req, res) {
+    // Defaults
+    let num_results = 20;
+    let jaccard = true;
+    let threshold = false;
 
-    let jaccard = false;
-    if (req.query.jaccard == 'true') { jaccard = true; } // TODO(ra): fix this in the request - POST not get...
-
-    if(req.query.num_results) {
-        num_results = parseInt(req.query.num_results);
-    }
-
-    if(req.query.threshold !== undefined) {
-        const raw_t = req.query.threshold;
-        if (raw_t === 'false') { threshold = false; }
-        else { threshold = parseFloat(raw_t); }
-    }
+    // Set values if given in query
+    if (req.body.jaccard !== undefined) { jaccard = req.body.jaccard; }
+    if (req.body.num_results !== undefined) { num_results = req.body.num_results; }
+    if (req.body.threshold !== undefined) { threshold = req.body.threshold; }
+    console.log(jaccard, num_results, threshold);
 
     let result;
-    if(req.query.qstring) {
+    if(req.body.qstring) {
         // console.log('Querying by string...');
-        const query = req.query.qstring;
-        result = search('words', query, jaccard, num_results);
-    } else if(req.query.id) {
+        const query = req.body.qstring;
+        result = search('words', query, jaccard, num_results, threshold);
+    } else if(req.body.id) {
         // console.log('Querying by id...');
-        result = search('id', req.query.id, jaccard, num_results);
+        result = search('id', req.body.id, jaccard, num_results, threshold);
 
-    } else if(req.query.diat_int_code) {
+    } else if(req.body.diat_int_code) {
         // console.log('q diat_int_code');
-        result = search_with_code(req.query.diat_int_code, jaccard, num_results);
+        result = search_with_code(req.body.diat_int_code, jaccard, num_results, threshold);
     }
+    console.log(result);
 
     // console.log(result)  
     res.send(result);
 });
 
 // Handle image uploads
-// TODO(ra): validate supported file formats
 app.post('/api/image_query', function(req, res) {
     if (!req.files) { return res.status(400).send('No files were uploaded.'); }
 
     // this needs to stay in sync with the name given to the FormData object in the front end
     let user_image = req.files.user_image_file;
-
-    working_path = './run/';
+    const user_id = req.body.user_id;
     const new_filename = user_image.name.replace(/ /g, '_');
+
+    // TODO: this probably breaks silently if the user uploads two files with the 
+    // same name -- they'll end up in the working directory, which may cause
+    // problems for Aruspix 
+    const user_path = './run/' + user_id + '/';
+    if (!fs.existsSync(user_path)){ fs.mkdirSync(user_path); }
+    const working_path = user_path + new_filename + '/';
+    if (!fs.existsSync(working_path)){ fs.mkdirSync(working_path); }
 
     // Use the mv() method to save the file there
     user_image.mv(working_path + new_filename, (err) => {
@@ -171,7 +172,7 @@ app.post('/api/image_query', function(req, res) {
         else {
             // console.log("Uploaded file saved as " + working_path + new_filename);
             const ngram_search = false; // TODO(ra): make this work!
-            const result = run_image_query(new_filename, ngram_search);
+            const result = run_image_query(user_id, new_filename, working_path, ngram_search);
             if (result) { res.send(result); }
             else { return res.status(422).send('Could not process this file.'); }
         }
@@ -202,7 +203,7 @@ to log ${log}.`
 
 // method can be 'id' or 'words'
 // query is a string, either holding the id a id+maws line
-function search(method, query, jaccard, num_results, ngram) {
+function search(method, query, jaccard, num_results, threshold, ngram) {
     if (ngram === undefined) { ngram = false; }
 
     if(!query) { // Need to report this back to browser/user
@@ -226,48 +227,48 @@ function search(method, query, jaccard, num_results, ngram) {
     if (ngram) { signature_to_ids_dict = NGRAMS_to_IDS; }
     else { signature_to_ids_dict = MAWS_to_IDS; }
 
-    return get_result_from_words(words, signature_to_ids_dict, jaccard, num_results);
+    return get_result_from_words(words, signature_to_ids_dict, jaccard, num_results, threshold);
 }
 
 
-function search_with_code(str, jaccard, num_results) {
-    working_path = cp.execSync('/home/mas01tc/emo_search/web-demo/set_working_path.sh') + '/';
-    const query_data = cp.execSync('/home/mas01tc/emo_search/web-demo/codestring_to_maws.sh ' + str + ' ' + working_path);
+function search_with_code(str, jaccard, num_results, threshold) {
+    const query_data = cp.execSync('./shell_scripts/codestring_to_maws.sh ' + str + ' ' + working_path);
     const query_str = String(query_data); // a string of maws, preceded with an id
-    const result = search('words', query_str, jaccard, num_results);
+    const result = search('words', query_str, jaccard, threshold, num_results);
     result.unshift("code query");
     return result;
 }
 
 
-function run_image_query(user_image_filename, ngram_search) {
+function run_image_query(user_id, user_image_filename, working_path, ngram_search) {
     const jaccard = true; // TODO(ra) should probably get this setting through the POST request, too...
     const num_results = 20; // TODO(ra) should probably get this setting through the POST request, too...
+    const threshold = false; // TODO(ra) should probably get this setting through the POST request, too...
 
     let query_data;
     let query;
     let result;
-
     if(!ngram_search) {
         try {
-            query_data = cp.execSync('./shell_scripts/image_to_maws.sh ' + user_image_filename + ' ' + working_path);
+            query_data = cp.execSync('./shell_scripts/image_to_maws.sh ' // script takes 2 command line params
+                                     + user_image_filename + ' ' + working_path);
             query = String(query_data); // a string of maws, preceded with an id
-        } catch (err) { return; }
-        result = search('words', query, jaccard, num_results);
+        } catch (err) { return; } // something broke in the shell script...
+        result = search('words', query, jaccard, num_results, threshold);
     }
     else {
         try {
             query_data = cp.execSync('./shell_scripts/image_to_ngrams.sh ' + user_image_filename + ' ' + working_path + ' ' + '9');
             query = String(query_data);
-        } catch (err) { return; }
-        if (query) { result = search('words', query, jaccard, num_results, true); }
+        } catch (err) { return; } // something broke in the shell script...
+        if (query) { result = search('words', query, jaccard, num_results, threshold, true); }
     }
 
     return result;
 }
 
 
-function get_result_from_words(words, signature_to_ids_dict, jaccard, num_results) {
+function get_result_from_words(words, signature_to_ids_dict, jaccard, num_results, threshold) {
     if (words.length < 6) { // TODO: Need to report to frontend
         // console.log("Not enough words in query.");
         return [];
@@ -597,7 +598,6 @@ function generate_index_to_colour_maps(q_diat_str, m_diat_str, show_top_ngrams) 
 
             // else if (i < colours.length * 2) {
             //     // TODO(ra): make these colors better / more distinct...
-            //     // probably ideally we want to prorammatically
             //     const base_colour = colours[i % colours.length];
             //     const modified_colour = Color(base_colour).saturate(.25).darken(.25);
             //     return modified_colour.hex();

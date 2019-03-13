@@ -19,6 +19,7 @@
 </head>
 
 <body>
+
 <script>document.onkeydown = checkKey;</script>
 
 
@@ -41,7 +42,31 @@
 </nav>
 
 
-<div class='container-fluid text-center mt-4'><div class='row'>
+<div class='container-fluid px-0'>
+
+
+<!-- examples -->
+<div id='examples_container'>
+<div id='row'><div id='col'>
+  <div class="card">
+    <div class="card-header py-0 py-0" id="examples_header">
+        <button class="btn btn-link" 
+                data-toggle="collapse"
+                data-target="#examples_div"
+                aria-expanded="false"
+                aria-controls="examples_div">Show Examples</button>
+    </div>
+
+    <div id="examples_div" class="collapse" aria-labelledby="examples_header">
+      <div class="card-body">
+        <table id='examples_table' class='table table-striped'></table>
+      </div>
+    </div>
+  </div>
+</div></div>
+</div>
+
+<div class='row'><!-- main interface is in one row, 3 cols -->
 
 <div class='col card text-center' id='emo_browser_col'>
 
@@ -49,100 +74,41 @@
     <div id="emo_image_display"></div>
     <div id="q_text_display"></div>
 
-    <div class='btn-group d-inline'>
-        <button class="btn btn-outline-secondary btn-sm"
-                id='show_prev_book'
-                onclick="find_book_id(false)"
-                title="Show previous book">
-            Previous Book
-        </button>
-        <button class="btn btn-outline-secondary btn-sm"
-                id='show_prev_page'
-                onclick='find_page_id(false);'
-                title='Show previous page'>
-            Previous Page
-        </button>
-        <button class="btn btn-outline-secondary btn-sm"
-                     id='show_next_page'
-                     onclick="find_page_id(true)"
-                     src="img/next_page.png"
-                     title='Search for next page'>
-                    Next Page
-        </button>
+    <div id='emo_browser_buttons'>
+        <div class='btn-group d-inline'>
+            <button class="btn btn-outline-secondary btn-sm"
+                    id='show_prev_book'
+                    onclick="find_book_id(false)"
+                    title="Show previous book">
+                Previous Book
+            </button>
+            <button class="btn btn-outline-secondary btn-sm"
+                    id='show_prev_page'
+                    onclick='find_page_id(false);'
+                    title='Show previous page'>
+                Previous Page
+            </button>
 
-        <button class="btn btn-outline-secondary btn-sm"
-                id='show_next_book'
-                onclick="find_book_id(true)"
-                title='Go to next book and search'>
-            Next Book
-        </button>
-    </div>
+            <button class='btn btn-secondary btn-sm' id="random_page_button" >Show a Random Page</button>
 
-    <div class='form-row mt-1 d-inline'>
-            <button class='btn btn-secondary btn-sm'
-                    id="random_page_button" >Show a Random Page</button>
+            <button class="btn btn-outline-secondary btn-sm"
+                         id='show_next_page'
+                         onclick="find_page_id(true)"
+                         src="img/next_page.png"
+                         title='Search for next page'>
+                        Next Page
+            </button>
 
-            <label for='trial_select'>Select a Page</label>
-            <select class='form-control-sm'
-                    id="trial_select" name="trial" onchange="select_new_trial();">
-                <option>K2h7_092_1</option>
-                <option>A360a_005_0</option>
-                <option>K3k19_012_1</option>
-                <option>K3k19_014_0</option>
-                <option>K4c11_030_1</option>
-                <option>A324c_048_1</option>
-                <option>K3k12_010_0</option>
-                <option>K2a4_072_1</option>
-                <option>B270b_049_1</option>
-                <option>A569c_013_1</option>
-                <option>A19_004_0</option>
-                <option>K3d9_057_0</option>
-                <option>K3e1_082_0</option>
-                <option>K3e1_061_1</option>
-                <option>K3d5_072_1</option>
-                <option>K3d10_002_1</option>
-            </select>
-    </div>
+            <button class="btn btn-outline-secondary btn-sm"
+                    id='show_next_book'
+                    onclick="find_book_id(true)"
+                    title='Go to next book and search'>
+                Next Book
+            </button>
 
-    <div class='mt-4 form-row d-inline'>
 
-        <div class='form-group my-0'>
-            <label for='search_select'>Search Type</label>
-            <select id="search_select" name="search_select" onchange="change_search_method();">
-                <option value=0 selected>Minimum Absent Words</option>
-                <option value=1>5-grams</option>
-            </select>
+
         </div>
-
-        <div class='form-group my-0'>
-            <label for='ranking_select'>Result Ranking</label>
-            <select id="ranking_select" name="num_to_disp" onchange="change_ranking_method();">
-                <option value=0 selected>Jaccard Distance</option>
-                <option value=1>Basic</option>
-            </select>
-        </div>
-
-        <div class='form-group'>
-            <label for='res_dis_select'>Results to display</label>
-            <select id="res_disp_select" name="num_to_disp" onchange="change_num_res();">
-                <option>Best</option>
-                <option>5</option>
-                <option selected>10</option>
-                <option>15</option>
-                <option>20</option>
-                <option>25</option>
-                <option>30</option>
-            </select>
-        </div>
-
-
-        <div class="form-group form-check">
-            <input type="checkbox" class="form-check-input" id="provide_judgements">
-            <label class="form-check-label" for="provide_judgements">Provide judgements to help improve the system</label>
-        </div>
-
-        <button class="btn btn-primary btn-block" id="search_button">Search for Similar Pages</button>
-
     </div>
 </div> <!-- left col in search within corpus mode -->
 
@@ -160,11 +126,54 @@
 </div> <!-- left col in search with image upload mode -->
 
 
-<div class='col card' id='results_table_col'>
+<div class='col card' style='max-width: 400px' id='results_table_col'>
     <table id="results_table" text-align="center"></table>
-    <div class="messages_panel">
-        <span id="messages"></span>
-    </div>
+
+    <div id='search_controls'>
+
+        <div class='mt-4 form-row d-inline'>
+            <textArea onchange="show_query_display();" id="query_id" hidden></textArea> <!-- we hide this but use its value for searches -->
+
+            <button class="btn btn-primary btn-block" id="search_button">Search for Similar Pages</button>
+
+            <!--
+            <div class='form-group mt-2 mb-0'>
+                <label for='search_select'>Search Type</label>
+                <select id="search_select" name="search_select" onchange="change_search_method();">
+                    <option value=0 selected>Minimum Absent Words</option>
+                    <option value=1>5-grams</option>
+                </select>
+            </div>
+            -->
+
+            <div class='form-group mt-2 mb-0'>
+                <label for='ranking_select'>Result Ranking</label>
+                <select id="ranking_select" name="num_to_disp" onchange="change_ranking_method();">
+                    <option value=0 selected>Jaccard Distance</option>
+                    <option value=1>Basic</option>
+                </select>
+            </div>
+
+            <div class='form-group'>
+                <label for='res_dis_select'>Results to display</label>
+                <select id="res_disp_select" name="num_to_disp" onchange="change_num_res();">
+                    <option>Best</option>
+                    <option>5</option>
+                    <option selected>10</option>
+                    <option>15</option>
+                    <option>20</option>
+                    <option>25</option>
+                    <option>30</option>
+                </select>
+            </div>
+
+
+            <div class="form-group form-check">
+                <input type="checkbox" class="form-check-input" id="provide_judgements">
+                <label class="form-check-label" for="provide_judgements">Provide judgements to help improve the system</label>
+            </div>
+        </div>
+    </div> <!-- end search controls -->
 </div> <!-- middle col -->
 
 <div class='col card' id="res_display_div">
@@ -172,11 +181,12 @@
     <div id="result_id_msg"></div>
 </div> <!-- right col -->
 
-
-<textArea onchange="show_query_display();" id="query_id" hidden/> <!-- we hide this but use its value for searches -->
-
 </div> <!-- outermost row -->
+
+
 </div> <!-- container fluid -->
+
+
 </body>
 
 </html>

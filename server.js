@@ -1,18 +1,18 @@
 /*******************************************************************************
  * Imports 
  ******************************************************************************/
-const express = require('express');
 const bodyParser = require('body-parser');
-const mustacheExpress = require('mustache-express');
-const request = require('request');
 const Color = require('color');
+const cp = require('child_process');
+const express = require('express');
 const fileUpload = require('express-fileupload');
 const fs = require('fs');
-const cp = require('child_process');
+const mustacheExpress = require('mustache-express');
 const path_app = require('path');
+const request = require('request');
 
 /*******************************************************************************
- * Globals / Inits
+ * Globals / init
  ******************************************************************************/
 const MAWS_DB = './data/emo_ids_maws.txt';
 // const MAWS_DB = './data/dev_emo_ids_maws.txt'; // for dev only! smaller dataset for quick startup
@@ -23,9 +23,6 @@ const EMO_IDS_DIAT_MELS = {};
 const MAWS_to_IDS = {}; // keys are maws, values are an array of all ids for which that maw appears
 const NGRAMS_to_IDS = {}; // keys are ngrams, values are a array of all ids for which that ngram appears
 const word_totals = []; // total words per id, used for normalization
-
-let query_id;
-let threshold = false; // default until supplied
 
 const app = express();
 
@@ -128,7 +125,6 @@ app.post('/api/query', function (req, res) {
     if (req.body.jaccard !== undefined) { jaccard = req.body.jaccard; }
     if (req.body.num_results !== undefined) { num_results = req.body.num_results; }
     if (req.body.threshold !== undefined) { threshold = req.body.threshold; }
-    console.log(jaccard, num_results, threshold);
 
     let result;
     if(req.body.qstring) {
@@ -143,7 +139,6 @@ app.post('/api/query', function (req, res) {
         // console.log('q diat_int_code');
         result = search_with_code(req.body.diat_int_code, jaccard, num_results, threshold);
     }
-    console.log(result);
 
     // console.log(result)  
     res.send(result);

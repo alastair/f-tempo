@@ -26,24 +26,22 @@ function get_or_set_user_id() {
         console.log("No Local Storage available! Setting new temporary user_id")
         user_id = uniqueID();
     }
-    console.log("user_id is " + user_id);
+    // console.log("user_id is " + user_id);
 }
-
-
 
 function load_page_query(id) {
-    image= id + ".jpg";
-    document.getElementById("q_page_display").innerHTML =
-        "Query page: " + id;
-    document.getElementById("emo_image_display").innerHTML = "<img id='query_image' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' role=\"presentation\"/>";
+    // $('#search_controls').addClass('d-none');
+    // $('#emo_browser_buttons').addClass('d-none');
+    clear_result_divs();
+
+    document.getElementById("query_id").value = id;
+    image = id + ".jpg";
+    document.getElementById("q_page_display").innerHTML = "Query page: " + id;
+    document.getElementById("emo_image_display").innerHTML = "<img class='img-fluid' id='query_image' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' role=\"presentation\"/>";
     $('#emo_image_display').zoom();
 
-    //                load_lyrics(id, true);
-}
-
-function load_page_query_image(image) {
-    document.getElementById("q_page_display").innerHTML = "  Query page: "+image.name;
-    $('#emo_image_display').zoom();
+    // $('#search_controls').removeClass('d-none');
+    // $('#emo_browser_buttons').removeClass('d-none');
 }
 
 function get_query_from_id(id) {
@@ -96,7 +94,7 @@ function show_results(json) {
 
     let table_html = "<thead><tr><th colspan=3>" + num_results + " results - "
                  + results[0].num_words + " words in query</th></tr>"
-                 + "<tr><th>ID</th>"
+                 + "<tr><th>Page ID</th>"
                  + "<th>Match Score</th></tr></thead>"
                  + "<tbody class='table_body'>";
 
@@ -220,8 +218,11 @@ function load_result_image(id, rank, percent) {
         document.getElementById("result_id_msg").innerHTML =
             matched_words[rank]+"/"+words_in_page[rank]+" words in page match the query"; }
 
-    else document.getElementById("result_id_msg").innerHTML = "Query: "+id;
-    document.getElementById("result_image_display").innerHTML = "<img width = '400px' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' />";
+    else {
+        document.getElementById("result_id_msg").innerHTML = "Query: "+id;
+    }
+
+    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' />";
     highlight_result_row(rank);
     $('#result_image_display').zoom();
     document.getElementById("query_id").value = id;
@@ -359,31 +360,41 @@ function log_search_problem(query_id,message,database) {
 // Client-side UI stuff
 function checkKey(e) {
     e = e || window.event;
-    if([37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+
+    if([13, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
         e.preventDefault();
     }
-    if (e.keyCode == '38') {    // up arrow
-        if(highlighted_result_row > 0) {
-            var targetID="result_row"+(highlighted_result_row-1);
-            document.getElementById(targetID).click();
+
+    if (e.keyCode == '38' || e.keyCode == '40') {
+        // highlighting stuff
+        let result_row = "result_row";
+
+        if (e.keyCode == '38') {    // up arrow
+            if(highlighted_result_row > 0) {
+                result_row += highlighted_result_row - 1;
+            } else {
+                result_row += num_results - 1;
+            }
+        } else if (e.keyCode == '40') {    // down arrow
+            if (highlighted_result_row < num_results - 1) {
+                result_row += highlighted_result_row + 1;
+            } else {
+                result_row += 0;
+            }
         }
+        document.getElementById(result_row).click();
+        return;
     }
-    else if (e.keyCode == '40') {    // down arrow
-        if (highlighted_result_row < num_results) {
-            var targetID="result_row"+(highlighted_result_row+1);
-        }
-        else {
-            var targetID="result_row0";
-        }
-        document.getElementById(targetID).click();
-    }
-    else if (e.keyCode == '37') {    // left arrow - Search previous page
+    
+    if (e.keyCode == '37') {    // left arrow - Search previous page
         find_page_id(false);
         query_id = document.getElementById("query_id").value;
-    }
-    else if (e.keyCode == '39') {    // right arrow - Search next page
+    } else if (e.keyCode == '39') {    // right arrow - Search next page
         find_page_id(true);
         query_id = document.getElementById("query_id").value;
+    } else if (e.keyCode == '13') { // enter to search
+        query_id = document.getElementById("query_id").value;
+        search(query_id, jaccard, num_results);
     }
 }
 
@@ -506,7 +517,7 @@ function basename(path) {
 
 
 function clear_result_divs() {
-    const result_div_ids = ['results_table', 'messages', 'result_image_display', 'result_id_msg'];
+    const result_div_ids = ['results_table', 'result_image_display', 'result_id_msg'];
     for (const id of result_div_ids) { $('#' + id).empty(); }
 }
 
@@ -515,14 +526,11 @@ function clear_result_divs() {
  * Browsing EMO
  ******************************************************************************/
 
-function select_new_trial(){
-    var new_id = document.getElementById("query_id").value = document.getElementById("trial_select").value;
-    // console.log("["+new_id+"]");
-    load_page_query_image(new_id+".jpg");
-    load_page_query(new_id);
+function show_example(example_id){
+    load_page_query(example_id);
+    search(example_id, jaccard, num_results);
+    $('#examples_div').collapse('hide');
 }
-
-
 
 
 /*******************************************************************************
@@ -589,6 +597,11 @@ function change_num_res() {
         num_results = document.getElementById("res_disp_select").value;
         threshold = false;
     }
+
+    if (!$('#results_table').is(':empty')) {
+        query_id = document.getElementById("query_id").value;
+        search(query_id,jaccard,num_results);
+    }
 }
 
 function change_ranking_method() {
@@ -596,6 +609,11 @@ function change_ranking_method() {
     const v = ranking_select.options[ranking_select.selectedIndex].value;
     if (v == 0) { jaccard = true; }
     else { jaccard = false; }
+
+    if (!$('#results_table').is(':empty')) {
+        query_id = document.getElementById("query_id").value;
+        search(query_id,jaccard,num_results);
+    }
 }
 
 function set_corpus_search_mode() {
@@ -603,8 +621,10 @@ function set_corpus_search_mode() {
     clear_result_divs();
     $('#emo_browser_col').removeClass('d-none');
     $('#image_upload_col').addClass('d-none');
+    $('#search_controls').removeClass('d-none');
     $('#corpus_search_link').addClass('active');
     $('#image_search_link').removeClass('active');
+    $('#examples_container').removeClass('d-none');
     corpus_search_mode = true;
 }
 
@@ -615,6 +635,8 @@ function set_image_search_mode() {
     $('#image_upload_col').removeClass('d-none');
     $('#corpus_search_link').removeClass('active');
     $('#image_search_link').addClass('active');
+    $('#search_controls').addClass('d-none');
+    $('#examples_container').addClass('d-none');
     corpus_search_mode = false;
 }
 
@@ -624,8 +646,44 @@ function set_image_search_mode() {
  * Start 
  ******************************************************************************/
 
+
+function add_examples_list() {
+    const examples = [
+        ['K2h7_092_1', 	"Different editions of Berchem, 'O s'io potessi donna' (<i>Cantus</i>)"],
+        ['A360a_005_0', "Very different editions of Striggio, 'Alma reale' (<i>Canto</i>)"],
+        ['K3k19_012_1',  "Lassus, 'Susanna faire' (<i>Cantus</i>) and the original French chanson"],
+        ['K3k19_014_0',  "Marenzio, 'I must depart all haples' (<i>Cantus</i>), and: (a) the original Italian madrigal; (b) the <i>Quinto</i> part of the latter. (The English <i>Quintus</i> part is ranked no. 9)"],
+        ['A324c_048_1',  "Nanino, 'Morir non puo'l mio core' (<i>Alto</i>) and the English version (<i>Contratenor</i>) - note the two extra notes at the beginning"],
+        ['K3k12_010_0',  "Marenzio, 'Sweet hart arise' (<i>Superius</i>), and the English version (<i>Canto</i>); the Italian <i>Quinto</i> part is ranked at 3 and the English <i>Medius</i> at 8"],
+        ['B270b_035_1',  "Marenzio, 'Dhe se potessi' (<i>Basso</i>), and its <i>Tenor</i> part at rank 3; the <i>Cantus</i> part is at rank 5"],
+        ['A19_004_0',    "End of Clemens non Papa, 'Pater peccavi' and beginning of its <i>Secunda pars</i>, 'Quanti mercanarii' (<i>Tenor</i>); 'Pater peccavi' is at rank 2"],
+        ['K3e1_061_1',  "Clemens non Papa, 'Angelus domini' (<i>Bassus</i>); another edition at rank 2; <i>Tenor</i> part at rank 3; another edition of <i>Bassus</i> at rank 5"],
+        ['K2a4_072_1',  "Lassus, Psalm 11, 'Pourquoy font bruit' (<i>Contratenor</i>), and the chanson on which it is based, 'Las me faut', ranked at 2; at ranks 3 & 4 are the two pages of another edition of the chanson"],
+        ['K8f10_134_1', "Anonymous <i>lauda</i>, 'Ecco care sorelle' (<i>Cantus</i> and <i>Tenor</i> parts on same page!) is actually a close version of Verdelot, 'Fedel' e bel cagnuolo' (<i>Cantus</i> at rank 2; <i>Tenor</i> at rank 3)"],
+        ['A569c_013_1', "'Recercar undecimo' (<i>Canto</i>), by <i>Incerto Autore</i>; at rank 2 is Damianus, 'In die tribulationis' (scholars disagree about the identity of this composer); <i>Basso</i> part of the recercar at rank 3"],
+    ];
+
+    const $examples_table = $('#examples_table');
+    for (const example of examples) {
+        const [id, note] = example;
+
+        const $row = $('<tr></tr>');
+        $examples_table.append($row);
+
+        const show_example_call = `show_example('${id}')`;
+        const id_link = `<a href="#" onclick='show_example("${id}")'>View</a>`;
+        const $id_cell = $('<td>' + id_link + '</td>')
+        $row.append($id_cell);
+
+        const $note_cell = $('<td>' + note + '</td>')
+        $row.append($note_cell);
+    }
+}
+
 $(document).ready(() => {
     get_or_set_user_id();
+    get_emo_ids();
+    add_examples_list();
 
     $('#image_display').zoom();
     $('#result_image_display').zoom();
@@ -651,8 +709,6 @@ $(document).ready(() => {
         }
     });
 
-    get_emo_ids();
     const initial_page_id = 'K2h7_092_1'
-    document.getElementById("query_id").value = initial_page_id;
     load_page_query(initial_page_id);
 });

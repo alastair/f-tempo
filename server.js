@@ -14,8 +14,8 @@ const path_app = require('path');
 /*******************************************************************************
  * Globals / Inits
  ******************************************************************************/
-// const MAWS_DB = './data/emo_ids_maws.txt';
-const MAWS_DB = './data/dev_emo_ids_maws.txt'; // for dev only! quick rebuilds.
+const MAWS_DB = './data/emo_ids_maws.txt';
+// const MAWS_DB = './data/dev_emo_ids_maws.txt'; // for dev only! smaller dataset for quick startup
 const DIAT_MEL_DB = './data/id_diat_mel_strs.txt'; 
 const EMO_IDS = []; // all ids in the system
 const EMO_IDS_MAWS = {}; // keys are ids, values are an array of maws for that id

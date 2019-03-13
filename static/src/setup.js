@@ -693,6 +693,12 @@ $(document).ready(() => {
         search(query_id,jaccard,num_results);
     });
 
+    $('#search_by_id_button').click(() => {
+        query_id = document.getElementById("query_id").value;
+        load_page_query(query_id);
+        search(query_id,jaccard,num_results);
+    });
+
     $('#random_page_button').click(() => {
         document.getElementById("query_id").value = emo_ids[getRandomIntInclusive(0, emo_ids.length)];
         query_id = document.getElementById("query_id").value;

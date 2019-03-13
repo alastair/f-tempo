@@ -58,6 +58,12 @@ app.get('/', function (req, res) {
 });
 
 
+app.get('/id_searches', function (req, res) { 
+    const data = { id_searches: true };
+    res.render('index', data);
+});
+
+
 app.get('/compare', function (req, res) { 
     // console.log(req.query.qid); console.log(req.query.mid);
 

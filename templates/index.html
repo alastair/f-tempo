@@ -132,7 +132,16 @@
     <div id='search_controls'>
 
         <div class='mt-4 form-row d-inline'>
-            <textArea onchange="show_query_display();" id="query_id" hidden></textArea> <!-- we hide this but use its value for searches -->
+
+            <textArea class='form-control' onchange="show_query_display();" id="query_id"
+                {{^id_searches}}
+                hidden
+                {{/id_searches}}
+            ></textArea> <!-- we hide this unless sent id_searches param -->
+
+            {{#id_searches}}
+            <button class="btn btn-primary btn-block" id="search_by_id_button">Search by ID</button>
+            {{/id_searches}}
 
             <button class="btn btn-primary btn-block" id="search_button">Search for Similar Pages</button>
 

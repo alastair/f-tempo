@@ -690,6 +690,7 @@ $(document).ready(() => {
 
     $('#search_button').click(() => {
         query_id = document.getElementById("query_id").value;
+        load_page_query(query_id);
         search(query_id,jaccard,num_results);
     });
 

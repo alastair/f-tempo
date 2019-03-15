@@ -223,9 +223,9 @@ function search(method, query, jaccard, num_results, threshold, ngram) {
         parsed_line = parse_id_maws_line(query);
         words = parsed_line.words;
     }
-//    else if method === 'code') {
-//        return search_with_code(query, jaccard, num_results, threshold);
-//    }
+    else if method === 'diat_int_code') {
+        return search_with_code(query, jaccard, num_results, threshold);
+    }
 
     let signature_to_ids_dict;
     if (ngram) { signature_to_ids_dict = NGRAMS_to_IDS; }

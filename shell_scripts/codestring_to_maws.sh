@@ -23,7 +23,3 @@ maw -a 'PROT' -i page.txt -o $name".maw" -k 4 -K 8 2>> log
 awk '{printf("%s ",$0)}' $name".maw" > $name"_oneline.maw" 
 cat $name"_oneline.maw"
 echo >> log
-echo
-cd $old_dir
-
-

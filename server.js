@@ -143,7 +143,7 @@ app.post('/api/query', function (req, res) {
 
     } else if(req.body.diat_int_code) {
         // console.log('q diat_int_code');
-        result = search_with_code(req.body.diat_int_code, jaccard, num_results, threshold);
+        result = search_with_code(req.body.diat_int_code, user_id, jaccard, num_results, threshold);
     }
 
     // console.log(result)  
@@ -232,7 +232,12 @@ function search(method, query, jaccard, num_results, threshold, ngram) {
 }
 
 
-function search_with_code(str, jaccard, num_results, threshold) {
+function search_with_code(str, user_id, jaccard, num_results, threshold) {
+    const user_path = './run/' + user_id + '/';
+    if (!fs.existsSync(user_path)){ fs.mkdirSync(user_path); }
+    const working_path = user_path + str + '/';
+    if (!fs.existsSync(working_path)){ fs.mkdirSync(working_path); }
+
     const query_data = cp.execSync('./shell_scripts/codestring_to_maws.sh ' + str + ' ' + working_path);
     const query_str = String(query_data); // a string of maws, preceded with an id
     const result = search('words', query_str, jaccard, threshold, num_results);

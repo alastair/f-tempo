@@ -51,10 +51,10 @@ function get_query_from_id(id) {
     return false
 }
 
+
 // Basic remote search function.
 function search(id, jaccard, num_results) {
     search_data = JSON.stringify({ id, jaccard, num_results, threshold });
-    
     $.ajax({
         url: 'api/query',
         method: 'POST',
@@ -63,6 +63,13 @@ function search(id, jaccard, num_results) {
     }).done(show_results)
       .fail((xhr, status) => alert(status)); // TODO: real error handling!
 }
+
+
+function search_by_active_query_id() {
+    query_id = document.getElementById("query_id").value;
+    search(query_id, jaccard, num_results);
+}
+
 
 
 function preloadImages(srcs) {
@@ -393,8 +400,7 @@ function checkKey(e) {
         find_page_id(true);
         query_id = document.getElementById("query_id").value;
     } else if (e.keyCode == '13') { // enter to search
-        query_id = document.getElementById("query_id").value;
-        search(query_id, jaccard, num_results);
+        search_by_active_query_id();
     }
 }
 
@@ -598,10 +604,7 @@ function change_num_res() {
         threshold = false;
     }
 
-    if (!$('#results_table').is(':empty')) {
-        query_id = document.getElementById("query_id").value;
-        search(query_id,jaccard,num_results);
-    }
+    if (!$('#results_table').is(':empty')) { search_by_active_query_id(); }
 }
 
 function change_ranking_method() {
@@ -610,10 +613,7 @@ function change_ranking_method() {
     if (v == 0) { jaccard = true; }
     else { jaccard = false; }
 
-    if (!$('#results_table').is(':empty')) {
-        query_id = document.getElementById("query_id").value;
-        search(query_id,jaccard,num_results);
-    }
+    if (!$('#results_table').is(':empty')) { search_by_active_query_id(); }
 }
 
 function set_corpus_search_mode() {
@@ -688,6 +688,8 @@ $(document).ready(() => {
     $('#image_display').zoom();
     $('#result_image_display').zoom();
 
+
+    // TODO(ra): this really wants refactoring. ugh.
     $('#search_button').click(() => {
         query_id = document.getElementById("query_id").value;
         load_page_query(query_id);

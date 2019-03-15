@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Imports 
+ * Imports
  ******************************************************************************/
 const bodyParser = require('body-parser');
 const Color = require('color');
@@ -16,7 +16,7 @@ const request = require('request');
  ******************************************************************************/
 const MAWS_DB = './data/emo_ids_maws.txt';
 // const MAWS_DB = './data/dev_emo_ids_maws.txt'; // for dev only! smaller dataset for quick startup
-const DIAT_MEL_DB = './data/id_diat_mel_strs.txt'; 
+const DIAT_MEL_DB = './data/id_diat_mel_strs.txt';
 const EMO_IDS = []; // all ids in the system
 const EMO_IDS_MAWS = {}; // keys are ids, values are an array of maws for that id
 const EMO_IDS_DIAT_MELS = {};
@@ -30,7 +30,7 @@ const app = express();
  * Setup
  ******************************************************************************/
 
-load_maws(); // load the MAWS 
+load_maws(); // load the MAWS
 load_diat_mels(); // load the diatonic melodies
 // load_ngram_database(9);   // Just a magic number that seems to work
 
@@ -41,8 +41,8 @@ app.listen(
 );
 
 app.engine('html', mustacheExpress()); // render html templates using Mustache
-app.set('view engine', 'html'); 
-app.set('views', './templates'); 
+app.set('view engine', 'html');
+app.set('views', './templates');
 
 app.use(express.static('static')); // serve static files out of /static
 app.use(fileUpload()); // file upload stuff
@@ -50,21 +50,21 @@ app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 
 /*******************************************************************************
- * Request handlers 
+ * Request handlers
  ******************************************************************************/
 
-app.get('/', function (req, res) { 
+app.get('/', function (req, res) {
     res.render('index');
 });
 
 
-app.get('/id_searches', function (req, res) { 
+app.get('/id_searches', function (req, res) {
     const data = { id_searches: true };
     res.render('index', data);
 });
 
 
-app.get('/compare', function (req, res) { 
+app.get('/compare', function (req, res) {
     // console.log(req.query.qid); console.log(req.query.mid);
 
     // q for 'query', m for 'match'
@@ -146,7 +146,7 @@ app.post('/api/query', function (req, res) {
         result = search_with_code(req.body.diat_int_code, jaccard, num_results, threshold);
     }
 
-    // console.log(result)  
+    // console.log(result)
     res.send(result);
 });
 
@@ -159,9 +159,9 @@ app.post('/api/image_query', function(req, res) {
     const user_id = req.body.user_id;
     const new_filename = user_image.name.replace(/ /g, '_');
 
-    // TODO: this probably breaks silently if the user uploads two files with the 
+    // TODO: this probably breaks silently if the user uploads two files with the
     // same name -- they'll end up in the working directory, which may cause
-    // problems for Aruspix 
+    // problems for Aruspix
     const user_path = './run/' + user_id + '/';
     if (!fs.existsSync(user_path)){ fs.mkdirSync(user_path); }
     const working_path = user_path + new_filename + '/';
@@ -214,7 +214,7 @@ function search(method, query, jaccard, num_results, threshold, ngram) {
 
     let words;
     if (method === 'id') {
-        if (!(query in EMO_IDS_MAWS)) { // TODO: need to report to frontend 
+        if (!(query in EMO_IDS_MAWS)) { // TODO: need to report to frontend
             // console.log("ID " + query + " not found in " + MAWS_DB);
             return;
         }
@@ -222,6 +222,8 @@ function search(method, query, jaccard, num_results, threshold, ngram) {
     } else if (method === 'words') {
         parsed_line = parse_id_maws_line(query);
         words = parsed_line.words;
+    } else if method === 'code') {
+        return search_with_code(query, jaccard, num_results, threshold);
     }
 
     let signature_to_ids_dict;
@@ -322,7 +324,7 @@ function get_pruned_and_sorted_scores(scores, wds_in_q, jaccard) {
     // Sort
     if (jaccard) {
         // Ascending, as 0 is identity match
-        scores_pruned.sort((a, b) => { return a.jaccard - b.jaccard; }); 
+        scores_pruned.sort((a, b) => { return a.jaccard - b.jaccard; });
     }
     else {
         // Descending
@@ -365,7 +367,7 @@ function gate_scores_by_threshold(scores_pruned, threshold, jaccard, num_results
 function load_maws() { load_file(MAWS_DB, parse_maws_db); }
 function load_diat_mels() { load_file(DIAT_MEL_DB, parse_diat_mels_db); }
 
-function parse_maws_db(data_str) {  
+function parse_maws_db(data_str) {
     const lines = data_str.split("\n");
     console.log(lines.length + " lines of MAWs to read...");
 
@@ -376,13 +378,13 @@ function parse_maws_db(data_str) {
             const id = parsed_line.id;
             const words = parsed_line.words;
 
-            if (words === undefined) { // TODO(ra): how should we handle these? 
+            if (words === undefined) { // TODO(ra): how should we handle these?
                 no_maws_ids.push(id);
                 continue;
             }
 
-            EMO_IDS.push(id);           
-            EMO_IDS_MAWS[id] = words; 
+            EMO_IDS.push(id);
+            EMO_IDS_MAWS[id] = words;
 
             word_totals[id] = words.length;
             for (const word of words) {
@@ -457,7 +459,7 @@ function getMedian(array, jaccard){
             values.push(array[i].jaccard);
         }
     }
-    else { 
+    else {
         for(let i = 0;i < array.length;i++) {
             values.push(array[i].num);
         }
@@ -640,7 +642,7 @@ function generate_index_to_colour_maps(q_diat_str, m_diat_str, show_top_ngrams) 
             q_ngrams.push(q_diat_str + "%");
         } else if (q_diat_str.length == ngr_len) {
             q_ngrams.push(q_diat_str);
-        } else {  
+        } else {
             for(i = 0; i + ngr_len <= q_diat_str.length; i++) {
                 q_ngrams.push(q_diat_str.substr(i, ngr_len));
             }
@@ -692,7 +694,7 @@ function generate_index_to_colour_maps(q_diat_str, m_diat_str, show_top_ngrams) 
 
 
 /*******************************************************************************
- * ngram stuff, unused but leaving here for now... 
+ * ngram stuff, unused but leaving here for now...
  ******************************************************************************/
 // var ng_lines = [];
 //

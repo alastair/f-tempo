@@ -1,18 +1,18 @@
 #!/bin/bash
-# n=$(mktemp -u); FILEBASE=${n#*.}
-# WORKINGPATH=$(pwd)/${FILEBASE}
-# the path has been set elsewhere; $1 is code, $2 is the path where it will be saved
-WORKINGPATH=$2;
+
+QUERY_CODE=$1; # the diatonic interval string
+WORKINGPATH=$2; 
+
 #mkdir $WORKINGPATH
 #chmod a+rwx $WORKINGPATH
 old_dir=$(pwd)
 cd $WORKINGPATH
 echo "In working directory: "$WORKINGPATH >> log
-echo "Query code is: "$1 >> log
+echo "Query code is: "$QUERY_CODE >> log
 page="query"
 
 echo ">code query: " > page.txt
-echo $1 >> page.txt
+echo $QUERY_CODE >> page.txt
 echo -n "Diat interval string (fasta): " >> log; 
 cat page.txt >> log; 
 

@@ -234,7 +234,7 @@ function search(method, query, jaccard, num_results, threshold, ngram) {
 
 function search_with_code(diat_int_code, jaccard, num_results, threshold) {
     const codestring_path = './run/codestring_queries/';
-    if (!fs.existsSync(working_path)){ fs.mkdirSync(working_path); }
+    if (!fs.existsSync(codestring_path)){ fs.mkdirSync(codestring_path); }
 
     const working_path = codestring_path + diat_int_code + '/';
     if (!fs.existsSync(working_path)){ fs.mkdirSync(working_path); }

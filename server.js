@@ -14,8 +14,8 @@ const request = require('request');
 /*******************************************************************************
  * Globals / init
  ******************************************************************************/
-const MAWS_DB = './data/emo_ids_maws.txt';
-// const MAWS_DB = './data/dev_emo_ids_maws.txt'; // for dev only! smaller dataset for quick startup
+// const MAWS_DB = './data/emo_ids_maws.txt';
+const MAWS_DB = './data/dev_emo_ids_maws.txt'; // for dev only! smaller dataset for quick startup
 const DIAT_MEL_DB = './data/id_diat_mel_strs.txt';
 const EMO_IDS = []; // all ids in the system
 const EMO_IDS_MAWS = {}; // keys are ids, values are an array of maws for that id
@@ -162,10 +162,20 @@ app.post('/api/image_query', function(req, res) {
     // TODO: this probably breaks silently if the user uploads two files with the
     // same name -- they'll end up in the working directory, which may cause
     // problems for Aruspix
+    
+    let next_working_dir;
     const user_path = './run/' + user_id + '/';
-    if (!fs.existsSync(user_path)){ fs.mkdirSync(user_path); }
-    const working_path = user_path + new_filename + '/';
-    if (!fs.existsSync(working_path)){ fs.mkdirSync(working_path); }
+    if (fs.existsSync(user_path)){
+        dirs = fs.readdirSync(user_path);
+        last_dir = parseInt(dirs[dirs.length - 1]);
+        next_working_dir = last_dir + 1;
+    } else {
+        fs.mkdirSync(user_path);
+        next_working_dir = 0;
+    }
+
+    const working_path = user_path + next_working_dir + '/';
+    fs.mkdirSync(working_path);
 
     // Use the mv() method to save the file there
     user_image.mv(working_path + new_filename, (err) => {
@@ -234,9 +244,16 @@ function search(method, query, jaccard, num_results, threshold, ngram) {
 
 function search_with_code(diat_int_code, jaccard, num_results, threshold) {
     const codestring_path = './run/codestring_queries/';
-    if (!fs.existsSync(codestring_path)){ fs.mkdirSync(codestring_path); }
-
-    const working_path = codestring_path + diat_int_code + '/';
+    let next_working_dir;
+    if (!fs.existsSync(codestring_path)){
+        fs.mkdirSync(codestring_path);
+        next_working_dir = 0;
+    } else {
+        dirs = fs.readdirSync(codestring_path);
+        last_dir = parseInt(dirs[dirs.length - 1]);
+        next_working_dir = last_dir + 1;
+    }
+    const working_path = codestring_path + next_working_dir + '/';
     if (!fs.existsSync(working_path)){ fs.mkdirSync(working_path); }
 
     const query_data = cp.execSync('./shell_scripts/codestring_to_maws.sh ' + diat_int_code + ' ' + working_path);

@@ -241,7 +241,7 @@ function search_with_code(diat_int_code, jaccard, num_results, threshold) {
 
     const query_data = cp.execSync('./shell_scripts/codestring_to_maws.sh ' + diat_int_code + ' ' + working_path);
     const query_str = String(query_data); // a string of maws, preceded with an id
-    const result = search('words', query_str, jaccard, threshold, num_results);
+    const result = search('words', query_str, jaccard, num_results, threshold);
     return result;
 }
 

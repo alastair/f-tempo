@@ -566,7 +566,9 @@ function validate_file_upload() {
 function show_user_image(user_image_file) {
     const reader = new FileReader();
     reader.onload = () => {
-        const user_image = $('<img>', { id: 'user_image', src: reader.result });
+        const user_image = $('<img>', { id: 'user_image',
+                                        class: 'img-fluid',
+                                        src: reader.result });
         $('#user_image_display').empty();
         $('#user_image_display').prepend(user_image);
         $('#user_image_display').zoom();
@@ -708,14 +710,16 @@ $(document).ready(() => {
         load_page_query(query_id);
     });
 
-    $('#uploadForm').on('submit', (event) => {
-        event.preventDefault();
+    $('#uploadForm').on('change', (event) => {
         clear_result_divs();
         const user_image_file = validate_file_upload();
-        if (user_image_file) {
-            show_user_image(user_image_file);
-            submit_upload_form(user_image_file);
-        }
+        show_user_image(user_image_file);
+    });
+
+    $('#uploadForm').on('submit', (event) => {
+        event.preventDefault();
+        const user_image_file = validate_file_upload();
+        if (user_image_file) { submit_upload_form(user_image_file); }
     });
 
     const initial_page_id = 'K2h7_092_1'

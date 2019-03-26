@@ -65,8 +65,11 @@ function search(id, jaccard, num_results) {
 }
 
 
-function search_by_active_query_id() {
+function search_by_active_query_id(load_query_image=false) {
     query_id = document.getElementById("query_id").value;
+    if (load_query_image) {
+        load_page_query(query_id);
+    }
     search(query_id, jaccard, num_results);
 }
 
@@ -379,8 +382,6 @@ function checkKey(e) {
         if (e.keyCode == '38') {    // up arrow
             if(highlighted_result_row > 0) {
                 result_row += highlighted_result_row - 1;
-            } else {
-                result_row += num_results - 1;
             }
         } else if (e.keyCode == '40') {    // down arrow
             if (highlighted_result_row < num_results - 1) {
@@ -400,7 +401,8 @@ function checkKey(e) {
         find_page_id(true);
         query_id = document.getElementById("query_id").value;
     } else if (e.keyCode == '13') { // enter to search
-        search_by_active_query_id();
+        query_id = document.getElementById("query_id").value;
+        search_by_active_query_id(true);
     }
 }
 

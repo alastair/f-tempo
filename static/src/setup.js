@@ -382,6 +382,8 @@ function checkKey(e) {
         if (e.keyCode == '38') {    // up arrow
             if(highlighted_result_row > 0) {
                 result_row += highlighted_result_row - 1;
+            } else {
+                return;
             }
         } else if (e.keyCode == '40') {    // down arrow
             if (highlighted_result_row < num_results - 1) {

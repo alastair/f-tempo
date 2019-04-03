@@ -1,0 +1,7 @@
+Loading ./data/emo_ids_maws.txt
+Loading ./data/id_diat_mel_strs.txt
+EMO app listening on port 8000!
+31722 lines of diatonic melody strings to read...
+Diatonic melody strings loaded!
+31722 lines of MAWs to read...
+31544 lines of MAW data loaded!

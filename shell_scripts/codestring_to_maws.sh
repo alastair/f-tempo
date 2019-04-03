@@ -3,17 +3,15 @@
 QUERY_CODE=$1; # the diatonic interval string
 WORKINGPATH=$2; 
 
-#mkdir $WORKINGPATH
-#chmod a+rwx $WORKINGPATH
-old_dir=$(pwd)
+set -e # stop if anything errors
+
 cd $WORKINGPATH
 echo "In working directory: "$WORKINGPATH >> log
 echo "Query code is: "$QUERY_CODE >> log
-page="query"
 
 echo ">code query: " > page.txt
 echo $QUERY_CODE >> page.txt
-echo -n "Diat interval string (fasta): " >> log; 
+echo -n "Diat interval string (fasta): " >> log
 cat page.txt >> log; 
 
 name="code_query"

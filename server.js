@@ -167,6 +167,9 @@ app.post('/api/image_query', function(req, res) {
     const user_path = './run/' + user_id + '/';
     if (fs.existsSync(user_path)){
         dirs = fs.readdirSync(user_path);
+
+        // dirs is an array of strings, which we want to sort as ints
+        dirs.sort((a, b) => parseInt(a) - parseInt(b));
         last_dir = parseInt(dirs[dirs.length - 1]);
         next_working_dir = last_dir + 1;
     } else {
@@ -250,6 +253,7 @@ function search_with_code(diat_int_code, jaccard, num_results, threshold) {
         next_working_dir = 0;
     } else {
         dirs = fs.readdirSync(codestring_path);
+        dirs.sort((a, b) => parseInt(a) - parseInt(b));
         last_dir = parseInt(dirs[dirs.length - 1]);
         next_working_dir = last_dir + 1;
     }

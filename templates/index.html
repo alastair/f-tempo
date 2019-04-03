@@ -69,29 +69,24 @@
 <div class='row'><!-- main interface is in one row, 3 cols -->
 
 <div class='col card text-center' id='emo_browser_col'>
-
-    <span id="q_page_display"></span>
-    <div id="emo_image_display"></div>
-    <div id="q_text_display"></div>
-
-    <div id='emo_browser_buttons'>
+<div id='emo_browser_buttons'>
         <div class='btn-group d-inline'>
-            <button class="btn btn-outline-secondary btn-sm"
+            <button class="btn btn-outline-secondary btn-sm emo-nav-btn"
                     id='show_prev_book'
                     onclick="find_book_id(false)"
                     title="Show previous book">
                 Previous Book
             </button>
-            <button class="btn btn-outline-secondary btn-sm"
+            <button class="btn btn-outline-secondary btn-sm emo-nav-btn"
                     id='show_prev_page'
                     onclick='find_page_id(false);'
                     title='Show previous page'>
                 Previous Page
             </button>
 
-            <button class='btn btn-secondary btn-sm' id="random_page_button" >Show a Random Page</button>
+            <button class='btn btn-secondary btn-sm emo-nav-btn' id="random_page_button" >Show a Random Page</button>
 
-            <button class="btn btn-outline-secondary btn-sm"
+            <button class="btn btn-outline-secondary btn-sm emo-nav-btn"
                          id='show_next_page'
                          onclick="find_page_id(true)"
                          src="img/next_page.png"
@@ -99,23 +94,27 @@
                         Next Page
             </button>
 
-            <button class="btn btn-outline-secondary btn-sm"
+            <button class="btn btn-outline-secondary btn-sm emo-nav-btn"
                     id='show_next_book'
                     onclick="find_book_id(true)"
                     title='Go to next book and search'>
                 Next Book
             </button>
-
-
-
         </div>
     </div>
-</div> <!-- left col in search within corpus mode -->
+
+
+    <span id="q_page_display"></span>
+    <div id="emo_image_display"></div>
+    <div id="q_text_display"></div>
+
+    </div> <!-- left col in search within corpus mode -->
 
 
 <div class='col card text-center d-none' id='image_upload_col'>
     <div id="user_image_display"></div>
     <div id="user_image_messages"></div>
+    <div id='uploading_status'></div>
 
     <div class='form-group'>
         <form id='uploadForm' encType="multipart/form-data">

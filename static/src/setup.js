@@ -591,8 +591,13 @@ function submit_upload_form(user_image_file) {
         data: formData,
         processData: false,
         contentType: false,
-    }).done(show_results)
-      .fail((xhr, status) => alert(status));
+    }).done((data) => {
+        $('#uploading_status').empty();
+        show_results(data);
+    }).fail((xhr, status) => {
+        $('#uploading_status').empty();
+        alert(status)
+    });
 }
 
 
@@ -722,6 +727,7 @@ $(document).ready(() => {
 
     $('#uploadForm').on('submit', (event) => {
         event.preventDefault();
+        $('#uploading_status').text('Uploading...');
         const user_image_file = validate_file_upload();
         if (user_image_file) { submit_upload_form(user_image_file); }
     });

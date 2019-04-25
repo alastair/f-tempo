@@ -5,3 +5,8 @@
 #query_image, #user_image, #result_image {
     max-height: 600px;
 }
+
+.emo-nav-btn {
+    height: 25px;
+    padding: 0 !important;
+}

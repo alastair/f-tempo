@@ -1,5 +1,7 @@
 # Project specific
 run/
+data/
+logs/
 
 # emacs
 .*~

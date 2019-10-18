@@ -16,6 +16,41 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
 
     <script src='src/setup.js'></script>
+
+
+
+<!-- Next bit added for Help display TC 18 Oct 2019 -->
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="css/w3_ed_JF.css">
+	<style>
+	.w3-modal {
+		font-size: small;
+	}
+	.w3-button {
+		font-weight: bold;
+	}
+	.w3-green {
+		color: green;
+	}
+	.item {
+		color: black;
+	}
+	h2 {
+		color: red;
+	}
+/* Red on dark grey for Help items that are implemented*/
+	#about, #queries, #random, #navigation, #feedback, #ranking, #results {
+ 		color: red;
+		font-size: 12px;
+		background-color: lightgray;
+	}
+/* Grey out things that aren't implemented*/
+	#comp, #uplo {
+		color: lightgray;
+	}
+	</style>
+<!-- End of bit added for Help display TC 18 Oct 2019 -->
+
 </head>
 
 <body>
@@ -37,6 +72,11 @@
       <li id='image_search_link' class="nav-item">
           <a class="nav-link" href='#' onclick="set_image_search_mode()" >Search with Image Upload</a>
       </li>
+ <!--
+      <li id='code_search_link' class="nav-item">
+          <a class="nav-link" href='#' onclick="set_code_search_mode()" >Search with Code</a>
+      </li>
+ -->
     </ul>
   </div>
 </nav>
@@ -55,6 +95,134 @@
                 data-target="#examples_div"
                 aria-expanded="false"
                 aria-controls="examples_div">Show Examples</button>
+
+	<!-- Help stuff added TC 18 Oct 2019
+	<link rel="import" href="templates/help.html"> -->
+	<!-- Help display html
+	Ripped off from https://www.w3schools.com/w3css/tryit.asp?filename=tryw3css_modal_tab
+	-->
+<!--	<span class="w3-container" style="background-color:green; color:white"> -->
+		<button onclick="document.getElementById('id01').style.display='block'; openitem(event, 'About');" class="w3-button w3-green" style="text-align:vertical">Help</button>
+		<div id="id01" class="w3-modal">
+		 <div class="w3-modal-content w3-card-4 w3-animate-zoom">
+		  <header class="w3-container w3-blue"> 
+		   <span onclick="document.getElementById('id01').style.display='none'" 
+		   class="w3-button w3-blue w3-xlarge w3-display-topright">&times;</span>
+		   <h2>Early Music Online Search - Help</h2>
+		  </header>
+		  <div class="w3-bar w3-border-bottom">
+		   <button id="about" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'About')">About Early Music Online Search</button>
+		   <button id="queries" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Queries')">Queries - Search box</button>
+		   <button id="random" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Random')">Random Search</button>
+		   <button id="navigation" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Navigation')">Navigation with arrow keys</button>
+		   <button id="feedback" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Feedback')">Feedback about results</button>
+		   <button id="ranking" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Ranking')">Result ranking</button>
+		   <button id="results" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Results')">Results to display</button>
+		   <button id="comp" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Comparison')">Comparing result with query</button>
+		   <button id="uplo" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Upload')">Uploading an image</button>
+		  </div>
+		  <div id="About" class="w3-container item">
+		   <h2>About Early Music Online Search</h2>
+		   <p>Early Music Online (EMO) was originally (July 2018) based on a collection of digital images of 16c printed music from the British Library (GB-Lbl). At that time the interface provided content-based search to about 32,000 pages from just under 200 of these books. Since then, it has been considerably expanded, to include about the same number of images from other European music libraries, such as the Bibliothèque nationale in Paris (F-Pn), the Berlin Staatsbibliothek (D-Bsb) and the Polish National Library in Warsaw (PL-Wn). Very soon we shall be incorporating half-a-million pages from the Bayerische Staatsbibliothek in Munich (D-Mbs).</p> <p>
+		   The images have been subjected to optical music recognition using <a href="https://www.verovio.org/">Aruspix</a>, and the musical contents indexed for efficient searching using a <a href="http://doc.gold.ac.uk/~mas01tc/ISMIR2018_draft.pdf" target="_blank">state-of-the-art method</a>.</p><p> 
+			This interface simply allows searches for pages containing music similar to that contained in a query page. It does not yet allow searching for an arbitrary musical sequence of notes, though this is planned for a future version. Also, it makes no use of library metadata - information about the books (titles, composers, printers, dates, places, etc.); this, too, will be incorporated in a later version.</p><p>	
+		   This experimental system runs on a server at <a href="https://www.gold.ac.uk/computing/research/music-and-art-computing/">Goldsmiths, University of London</a>.</p>
+		<p>
+			Enquiries to <a href="mailto:t.crawford@gold.ac.uk?Subject=EMO%20Search%20Enquiry" target="_top">Tim Crawford</a>
+		</p><br>
+		  </div>
+		  <div id="Queries" class="w3-container item">
+		   <h2> Queries - Search box</h2>
+		   <p>
+			Queries may be entered into the Search box in the form of an ID based on the shelf-mark of a book in the British Library, the image-number from the microfilms which were digitised for EMO, and the left/right page selected. As such, they were never intended for user-entry but they may be entered for test purposes. (To explore the collection, it will be easier to start with a Random Search.)</p>
+			<p>
+			The currently-searched page's ID will be displayed in the Search box, and the left/right arrow-keys can be used to navigate to and search the previous/next page. You can also skip to the first page of the previous/next book by holding down the shift key as you click on the respective arrows.
+		</p>
+			To perform a search, simply hit the Enter or Return key.
+		<br>
+		  </div>
+		  <div id="Random" class="w3-container item">
+		   <h2> Random Search</h2>
+		   <p>
+			This simply chooses a page at random from the entire collection, and performs a search using it as query .
+		   </p><br>
+		  </div>
+		  <div id="Feedback" class="w3-container item">
+		   <h2> Feedback - Relation to query</h2>
+		   <p>
+			You can provide feedback concerning the nature of a result by entering your own judgements. To do this, before doing a search check the box marked &ldquo;Provide judgements to help improve the system&rdquo;. The result list will then contain drop-down menus which you can use to enter your judgements. </p>
+	<!--		<p>The available choices are:</p><ul>
+				<li>Not music - choose this if the page contains no musical notation</li>
+				<li>Duplicate page - the page is identical to the query, resulting from extra photography</li/>
+				<li>Same music - the page contains some or all of the same music as the query page</li>
+				<li>Related music - while not identical, the music on the page is related to that in the query (e.g. from a different voice part)
+			</ul>
+	-->
+			<p> You are not obliged to do this, but all feedback is saved (anonymously) on the server and will be used in future for refining the way the interface operates (e.g. by initially eliminating all non-music pages). This will be enormously useful to us, and it takes very little time. By activating the &ldquo;Provide judgements&rdquo; menus we assume you are giving your consent. There is no way we can trace back the information saved by us to you.</p><p>
+			The first result will always be the query itself, but this may be a page which doesn't contain any music (e.g. a title-page, or just text, or an image) - in which case, choose 'Not music!'. For all other results, do the same if the page does not contain music. Otherwise, choose from the categories 'Duplicate page' (where it is an extra copy of the same page), 'Same music' (from a different book or edition) or 'Related music' (which might be from a different voice-part, or a different section of a work). Use your own judgement about these decisions, as it is hard to establish hard and fast rules for the last case in particular.</p><p>
+			If you make a mistake, simply re-do it immediately - all feedback is time-stamped, so we will know if a change has been made within a short time.
+		   </p><br>
+		  </div>
+		  <div id="Ranking" class="w3-container item">
+		   <h2> Result ranking</h2>
+		   <p>
+			Basically, matches are made by finding the pages with the maximum 'overlap' with the query. However, this means that pages containing a lot of notes are more likely to contain such overlaps by accident.</p><p>
+			There are two 'modes' for ranking results. The 'Basic' mode takes no account of the number of notes on a page, which can lead to false matches with long pages. The default 'Jaccard' mode, however, uses the <a href="http://www.statisticshowto.com/jaccard-index" target="_blank">Jaccard distance</a> measure instead, which tends on the whole to give better results.</p><p>
+			When you change this setting by choosing from the &ldquo;Result Ranking&rdquo; menu your search will be re-run.
+		   </p><br>
+		  </div>
+		  <div id="Results" class="w3-container item">
+		   <h2> Results to display</h2>
+		   <p>
+			You can choose a number of results to display, or 'Best matches', which simply shows our estimate of the best results to be found. Very occasionally an interesting match can be found below this threshold (e.g. when the music is only fleetingly similar), but it is hard to predict when this might occur, so you might find it interesting to explore these options.
+		   </p><p>
+			When you change this setting by choosing from the &ldquo;Result Ranking&rdquo; menu your search will be re-run.
+		   </p><br>
+		  </div>
+		  <div id="Upload" class="w3-container item">
+		   <h2> Uploading an image</h2>
+		   <p>
+			If you click on &ldquo;Search with Image Upload&rdquo; in the page header, you will be able to upload your own query page in one of a variety of common graphics formats. On clicking &ldquo;Upload and Search&rdquo; yoiur image will be uploaded to our server (which will usually take a few extra seconds), recognised and encoded as a query which is then run against the database, and the result list presented as usual. (This is an experimental feature which has not been exhaustively tested, and may produce an error message from time to time.)
+		   </p><br>
+		  </div>
+		  <div id="Navigation" class="w3-container item">
+		   <h2> Navigation with arrow keys</h2>
+		   <p>
+			As well as using the left/right arrow keys to search the previous/next page, with the shift key to move between books, you can move up and down the results list using the up and down arrow keys. As you do so, the relevant result-image will be displayed on the right, together with its ID and some information about the match.<br>
+			As you move the cursor over the query image (left) or match image (right) it will be displayed at high magnification to show detail. To avoid this behaviour simply move the mouse away from the image.
+		   </p><br>
+		  </div>
+		  <div id="Comparison" class="w3-container item">
+		   <h2> Comparing result with query</h2>
+		   <p>
+			In order to gain some feeling for the quality of the recognition, and the nature and extent of a match, you can see a visualisation of the matched sequences of notes superimposed on the original image. Simply click on the central match-score section of the result-list where a number is displayed to suggest the quality of the match. This will bring up a new window displaying the two pages side-by-side; this may take a few seconds to display, since it uses a different mechanism to verify the match. Also, so pages currently lack the data necessary for this parallel display; we intend to include this data for all pages in the near future.
+		   </p><br>
+		  </div>
+		  <div class="w3-container w3-light-grey w3-padding">
+		   <button class="w3-button w3-right w3-white w3-border" 
+		   onclick="document.getElementById('id01').style.display='none'">Close</button>
+		  </div>
+		 </div>
+		</div>
+<!--	</span> -->
+	<!-- End of HTML to display Help-->
+	<script>
+	// For displaying Help
+		function openitem(evt, itemName) {
+		  var i, x, tablinks;
+		  x = document.getElementsByClassName("item");
+		  for (i = 0; i < x.length; i++) {
+		    x[i].style.display = "none";
+		  }
+		  tablinks = document.getElementsByClassName("tablink");
+		  for (i = 0; i < x.length; i++) {
+		    tablinks[i].classList.remove("w3-light-grey");
+		  }
+		  document.getElementById(itemName).style.display = "block";
+		  evt.currentTarget.classList.add("w3-light-grey");
+		}
+	</script>
+	<!-- End of help stuff -->
     </div>
 
     <div id="examples_div" class="collapse" aria-labelledby="examples_header">
@@ -62,9 +230,12 @@
         <table id='examples_table' class='table table-striped'></table>
       </div>
     </div>
+
   </div>
-</div></div>
 </div>
+</div>
+   </div>
+ </div>
 
 <div class='row'><!-- main interface is in one row, 3 cols -->
 
@@ -142,7 +313,19 @@
             <button class="btn btn-primary btn-block" id="search_by_id_button">Search by ID</button>
             {{/id_searches}}
 
+            <textArea class='form-control'  id="query_code"
+                {{^code_searches}}
+                hidden
+                {{/code_searches}}
+            ></textArea> <!-- we hide this unless sent code_searches param -->
+
+            {{#code_searches}}
+            <button class="btn btn-primary btn-block" id="search_by_code_button">Search by code</button>
+            {{/code_searches}}
+
+            <!--
             <button class="btn btn-primary btn-block" id="search_button">Search for Similar Pages</button>
+            -->
 
             <!--
             <div class='form-group mt-2 mb-0'>

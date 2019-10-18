@@ -15,10 +15,12 @@ const request = require('request');
  * Globals / init
  ******************************************************************************/
 // const MAWS_DB = './data/emo_ids_maws.txt';
-const MAWS_DB = './data/big_emo_ids_maws.txt'; // includes Parangon & Petrucci_EMOs
+// const MAWS_DB = './data/big_emo_ids_maws.txt'; // includes Parangon & Petrucci_EMOs
+const MAWS_DB = './data/latest_maws'; // includes Parangon, Petrucci and IIIF EMOs
 // const MAWS_DB = './data/dev_emo_ids_maws.txt'; // for dev only! smaller dataset for quick startup
 // const DIAT_MEL_DB = './data/id_diat_mel_strs.txt';
-const DIAT_MEL_DB = './data/big_id_diat_mel_strs.txt'; // includes Parangon & Petrucci_EMOs
+// const DIAT_MEL_DB = './data/big_id_diat_mel_strs.txt'; // includes Parangon & Petrucci_EMOs
+const DIAT_MEL_DB = './data/latest_diat_mel_strs'; // includes Parangon, Petrucci and IIIF EMOs
 const EMO_IDS = []; // all ids in the system
 const EMO_IDS_MAWS = {}; // keys are ids, values are an array of maws for that id
 const EMO_IDS_DIAT_MELS = {};
@@ -65,6 +67,11 @@ app.get('/id_searches', function (req, res) {
     res.render('index', data);
 });
 
+app.get('/code_searches', function (req, res) {
+    const data = { code_searches: true };
+    res.render('index', data);
+});
+
 
 app.get('/compare', function (req, res) {
     // console.log(req.query.qid); console.log(req.query.mid);
@@ -75,12 +82,14 @@ app.get('/compare', function (req, res) {
 
     if (!q_id || !m_id) { return res.status(400).send('q_id or m_id must be provided!'); }
 
-    const base_img_url = 'http://doc.gold.ac.uk/~mas01tc/page_dir_50/';
+//    const base_img_url = 'http://doc.gold.ac.uk/~mas01tc/page_dir_50/';
+    const base_img_url = 'http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/';
     const img_ext = '.jpg';
 	const q_jpg_url = base_img_url + q_id + img_ext;
 	const m_jpg_url = base_img_url + m_id + img_ext;
 
-    const base_mei_url = 'http://doc.gold.ac.uk/~mas01tc/EMO_search/mei_pages/';
+//    const base_mei_url = 'http://doc.gold.ac.uk/~mas01tc/EMO_search/mei_pages/';
+    const base_mei_url = 'http://doc.gold.ac.uk/~mas01tc/EMO_search/new_mei_pages/';
     const mei_ext = '.mei';
 	const q_mei_url = base_mei_url + q_id + mei_ext;
 	const m_mei_url = base_mei_url + m_id + mei_ext;
@@ -118,6 +127,9 @@ app.get('/compare', function (req, res) {
 
 });
 
+
+// Returns the number of all emo ids
+app.get('/api/num_emo_ids', function (req, res) { res.send(EMO_IDS.length+" pages in database"); });
 
 // Returns an array of all emo ids
 app.get('/api/emo_ids', function (req, res) { res.send(EMO_IDS); });
@@ -189,6 +201,50 @@ app.post('/api/image_query', function(req, res) {
             // console.log("Uploaded file saved as " + working_path + new_filename);
             const ngram_search = false; // TODO(ra): make this work!
             const result = run_image_query(user_id, new_filename, working_path, ngram_search);
+            if (result) { res.send(result); }
+            else { return res.status(422).send('Could not process this file.'); }
+        }
+    });
+});
+
+
+// Handle file uploads (MEI, MusicXML or MIDI file as query)
+app.post('/api/image_query', function(req, res) {
+    if (!req.files) { return res.status(400).send('No files were uploaded.'); }
+
+    // this needs to stay in sync with the name given to the FormData object in the front end
+    let user_file = req.files.user_image_file; // same mechanism as image upload
+    const user_id = req.body.user_id;
+    const new_filename = user_file.name.replace(/ /g, '_');
+
+    // TODO: this probably breaks silently if the user uploads two files with the
+    // same name -- they'll end up in the working directory, which may cause
+    // problems for Aruspix
+    
+    let next_working_dir;
+    const user_path = './run/' + user_id + '/';
+    if (fs.existsSync(user_path)){
+        dirs = fs.readdirSync(user_path);
+
+        // dirs is an array of strings, which we want to sort as ints
+        dirs.sort((a, b) => parseInt(a) - parseInt(b));
+        last_dir = parseInt(dirs[dirs.length - 1]);
+        next_working_dir = last_dir + 1;
+    } else {
+        fs.mkdirSync(user_path);
+        next_working_dir = 0;
+    }
+
+    const working_path = user_path + next_working_dir + '/';
+    fs.mkdirSync(working_path);
+
+    // Use the mv() method to save the file there
+    user_image.mv(working_path + new_filename, (err) => {
+        if (err) { return res.status(500).send(err); }
+        else {
+            // console.log("Uploaded file saved as " + working_path + new_filename);
+            const ngram_search = false; // TODO(ra): make this work!
+            const result = run_file_query(user_id, new_filename, working_path, ngram_search);
             if (result) { res.send(result); }
             else { return res.status(422).send('Could not process this file.'); }
         }
@@ -296,6 +352,39 @@ function run_image_query(user_id, user_image_filename, working_path, ngram_searc
     return result;
 }
 
+/*
+function run_file_query(user_id, user_filename, working_path, ngram_search) {
+    const jaccard = true; // TODO(ra) should probably get this setting through the POST request, too...
+    const num_results = 20; // TODO(ra) should probably get this setting through the POST request, too...
+    const threshold = false; // TODO(ra) should probably get this setting through the POST request, too...
+
+    let codestring_data;
+    let query_data;
+    let query;
+    let result;
+    if(!ngram_search) {
+        try {
+//            query_data = cp.execSync('./shell_scripts/image_to_maws.sh ' // script takes 2 command line params
+//                                     + user_image_filename + ' ' + working_path);
+            codestring_data = cp.execSync('./shell_scripts/midi2codestring.sh ' // script takes 1 command line param
+                                     + user_filename );
+            query_data = cp.execSync('./shell_scripts/codestring_to_maws.sh ' // script takes 2 command line params
+                                     + codestring_data + ' ' + working_path);            
+            query = String(query_data); // a string of maws, preceded with an id
+        } catch (err) { return; } // something broke in the shell script...
+        result = search('words', query, jaccard, num_results, threshold);
+    }
+    else {
+        try {
+            query_data = cp.execSync('./shell_scripts/image_to_ngrams.sh ' + user_image_filename + ' ' + working_path + ' ' + '9');
+            query = String(query_data);
+        } catch (err) { return; } // something broke in the shell script...
+        if (query) { result = search('words', query, jaccard, num_results, threshold, true); }
+    }
+
+    return result;
+}
+*/
 
 function get_result_from_words(words, signature_to_ids_dict, jaccard, num_results, threshold) {
     if (words.length < 6) { // TODO: Need to report to frontend
@@ -398,6 +487,7 @@ function parse_maws_db(data_str) {
     console.log(lines.length + " lines of MAWs to read...");
 
     const no_maws_ids = [];
+    const short_maws_ids = [];
     for (const line of lines) {
         if (line) {
             parsed_line = parse_id_maws_line(line);
@@ -412,6 +502,10 @@ function parse_maws_db(data_str) {
             EMO_IDS.push(id);
             EMO_IDS_MAWS[id] = words;
 
+            if(words.length < 10) {
+            	short_maws_ids.push(id);
+            	continue;
+            }
             word_totals[id] = words.length;
             for (const word of words) {
                 if (!MAWS_to_IDS[word]) { MAWS_to_IDS[word] = []; }
@@ -425,6 +519,8 @@ function parse_maws_db(data_str) {
     // console.log(EMO_IDS);
     // console.log(EMO_IDS_MAWS);
     console.log(EMO_IDS.length + " lines of MAW data loaded!");
+    console.log(no_maws_ids.length + " empty lines of MAW data rejected!");
+    console.log(short_maws_ids.length + " lines with short MAW data rejected!");
 }
 
 function parse_diat_mels_db(data_str) {

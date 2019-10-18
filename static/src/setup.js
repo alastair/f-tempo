@@ -37,7 +37,7 @@ function load_page_query(id) {
     document.getElementById("query_id").value = id;
     image = id + ".jpg";
     document.getElementById("q_page_display").innerHTML = "Query page: " + id;
-    document.getElementById("emo_image_display").innerHTML = "<img class='img-fluid' id='query_image' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' role=\"presentation\"/>";
+    document.getElementById("emo_image_display").innerHTML = "<img class='img-fluid' id='query_image' src='http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/"+image+"' role=\"presentation\"/>";
     $('#emo_image_display').zoom();
 
     // $('#search_controls').removeClass('d-none');
@@ -55,6 +55,17 @@ function get_query_from_id(id) {
 // Basic remote search function.
 function search(id, jaccard, num_results) {
     search_data = JSON.stringify({ id, jaccard, num_results, threshold });
+    $.ajax({
+        url: 'api/query',
+        method: 'POST',
+        data: search_data,
+        contentType: 'application/json',
+    }).done(show_results)
+      .fail((xhr, status) => alert(status)); // TODO: real error handling!
+}
+
+function code_search(diat_int_code, jaccard, num_results) {
+    search_data = JSON.stringify({ diat_int_code, jaccard, num_results, threshold });
     $.ajax({
         url: 'api/query',
         method: 'POST',
@@ -97,6 +108,7 @@ function show_results(json) {
 
     if (json.length < 2) {
         console.log("No results for " + query_id + "!")
+        document.getElementById("result_id_msg").innerHTML = "<font color='red'>No results!!</font>";        
         return false;
     }
 
@@ -105,7 +117,11 @@ function show_results(json) {
     let table_html = "<thead><tr><th colspan=3>" + num_results + " results - "
                  + results[0].num_words + " words in query</th></tr>"
                  + "<tr><th>Page ID</th>"
-                 + "<th>Match Score</th></tr></thead>"
+                 + "<th>Match Score</th>";
+    if(provide_judgements) {
+        table_html += "<th>Judge Match</th>";
+    }
+        table_html += "</tr></thead>"
                  + "<tbody class='table_body'>";
 
 
@@ -125,7 +141,7 @@ function show_results(json) {
         var sim_choice_id = "sim_choice"+q;
         var sim_id = "sim"+q;
         //               imageSrcs.push("http://doc.gold.ac.uk/~mas01tc/page_dir/"+results[q].id+".jpg");
-        imageSrcs.push("http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+results[q].id+".jpg");
+        imageSrcs.push("http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/"+results[q].id+".jpg");
 
         const rank_percentage = (rank_factor * 100).toFixed(2);
 
@@ -133,15 +149,15 @@ function show_results(json) {
             table_html +=
                 "<tr class='id_list_name' id='"+result_row_id
                 +"' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
-                +"<td text-align='center' style='color:blue'><small>" +target_id+"</small></td>"
-
+//                +"<td text-align='center' style='color:blue'><small>" +target_id+"</small></td>"
+                +"<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
                 + "<td onclick='compare(\""+query_id+"\",\""+results[q].id+"\");'>"
                 + '<div class="progress">'
                 + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
                 + "</td>";
             if (provide_judgements) {
                 table_html += "<td id='"+sim_choice_id+"'>"
-                    +"<select class='drop_downs' "
+                   +"<select class='drop_downs'"
                     +"onchange='log_user_choice(\""+query_id+"\",\""
                     +target_id+"\","
                     +q+", \""
@@ -158,7 +174,8 @@ function show_results(json) {
             table_html +=
                 "<tr class='id_list_name' id='"+result_row_id
                 + "' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
-                + "<td text-align='center' style='color:blue'><small>" +target_id+"</small></td>"
+//                +"<td text-align='center' style='color:blue'><small>" +target_id+"</small></td>"
+                +"<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
                 + "<td onclick='compare(\""+query_id+"\",\""+results[q].id+"\");'>"
                 + '<div class="progress">'
                 + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
@@ -232,7 +249,8 @@ function load_result_image(id, rank, percent) {
         document.getElementById("result_id_msg").innerHTML = "Query: "+id;
     }
 
-    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' />";
+//    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' />";
+    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/"+image+"' />";
     highlight_result_row(rank);
     $('#result_image_display').zoom();
     document.getElementById("query_id").value = id;
@@ -326,7 +344,8 @@ function log_user_choice(query_id,target_id,result_num,database) {
         +target_id + "\t"
         +sim_choice + "\t"
         + database + "\t"
-        + 'rank: ' + result_num + ": " + (jaccard ? 'Jaccard distance' : 'Basic');
+        + 'rank: ' + result_num + ": " + (jaccard ? 'Jaccard distance' : 'Basic')
+        + "\n";
 
     $.ajax({
         type: "POST",
@@ -369,7 +388,9 @@ function log_search_problem(query_id,message,database) {
 
 // Client-side UI stuff
 function checkKey(e) {
+    
     e = e || window.event;
+    var shiftDown = e.shiftKey;
 
     if([13, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
         e.preventDefault();
@@ -389,18 +410,18 @@ function checkKey(e) {
             if (highlighted_result_row < num_results - 1) {
                 result_row += highlighted_result_row + 1;
             } else {
-                result_row += 0;
+//                result_row += 0; // is this a typo?
+                result_row = "result_row0";
             }
         }
         document.getElementById(result_row).click();
         return;
     }
-    
-    if (e.keyCode == '37') {    // left arrow - Search previous page
-        find_page_id(false);
+    if (e.keyCode == '37') {    // left arrow - Search previous page/book
+        (shiftDown)? find_book_id(false) : find_page_id(false);
         query_id = document.getElementById("query_id").value;
-    } else if (e.keyCode == '39') {    // right arrow - Search next page
-        find_page_id(true);
+    } else if (e.keyCode == '39') {    // right arrow - Search next page/book
+        (shiftDown)? find_book_id(true) : find_page_id(true);
         query_id = document.getElementById("query_id").value;
     } else if (e.keyCode == '13') { // enter to search
         query_id = document.getElementById("query_id").value;
@@ -424,6 +445,9 @@ function PreviewText() {
 
 
 // Client-side, though this needs to interact with server, as book data will be on server, not client
+// Book IDs are always at the beginning of the ID, following the library RISM siglum, which is itself followed by the first underscore char.
+// However, their format varies from library to library, so we need to take care of this.
+
 function find_book_id(next) {
     var this_id = document.getElementById("query_id").value;
     if(this_id == null) return false;
@@ -437,7 +461,15 @@ function find_book_id(next) {
         // now find next/prev item starting with a different id
         var this_book = "";
         var id_segs =  this_id.split("_");
-        for(j=0;j<id_segs.length-3;j++) this_book+=id_segs[j]+"_";
+        var seg_from_end = this_id.startsWith("PL-Wn")? 2 : 3;
+        if(this_id.startsWith("F-Pn")) {
+        	if((p = this_id.indexOf("-0-")) >= 0) {
+        		seg_from_end = this_id.length - p + 1;
+        	}
+		console.log("length: "+this_id.length+" p: "+p)
+       }
+//        for(j=0;j<id_segs.length-3;j++) this_book+=id_segs[j]+"_";
+        for(j=0;j<id_segs.length-seg_from_end;j++) this_book+=id_segs[j]+"_";
         this_book+=id_segs[j];
         var new_id = "";
         var new_book = "";
@@ -446,7 +478,8 @@ function find_book_id(next) {
                 new_book = "";
                 new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
                 id_segs =  new_id.split("_");
-                for(j=0;j<id_segs.length-3;j++) new_book+=id_segs[j]+"_";
+//                for(j=0;j<id_segs.length-3;j++) new_book+=id_segs[j]+"_";
+                for(j=0;j<id_segs.length-seg_from_end;j++) new_book+=id_segs[j]+"_";
                 new_book+=id_segs[j];
                 if(new_book.startsWith(">")) new_book = new_book.substring(1);
                 if(new_book != this_book) {
@@ -460,7 +493,8 @@ function find_book_id(next) {
                 new_book = "";
                 new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
                 id_segs =  new_id.split("_");
-                for(j=0;j<id_segs.length-3;j++) new_book+=id_segs[j]+"_";
+//                for(j=0;j<id_segs.length-3;j++) new_book+=id_segs[j]+"_";
+                for(j=0;j<id_segs.length-seg_from_end;j++) new_book+=id_segs[j]+"_";
                 new_book+=id_segs[j];
                 if(new_book.startsWith(">")) new_book = new_book.substring(1);
                 if(new_book != this_book) {
@@ -472,7 +506,8 @@ function find_book_id(next) {
                         new_book = "";
                         new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
                         id_segs =  new_id.split("_");
-                        for(j=0;j<id_segs.length-3;j++) new_book+=id_segs[j]+"_";
+//                        for(j=0;j<id_segs.length-3;j++) new_book+=id_segs[j]+"_";
+                        for(j=0;j<id_segs.length-seg_from_end;j++) new_book+=id_segs[j]+"_";
                         new_book+=id_segs[j];
                         if(new_book.startsWith(">")) new_book = new_book.substring(1);
                         if(new_book != this_book) {
@@ -488,7 +523,7 @@ function find_book_id(next) {
     }
     new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
     if(new_id.startsWith(">")) new_id = new_id.substring(1);
-    document.getElementById("query_id").value = new_id;
+//    document.getElementById("query_id").value = new_id;
 
     query_id = new_id;
     load_page_query(new_id);
@@ -499,7 +534,7 @@ function find_page_id(next) {
     var this_id = document.getElementById("query_id").value;
     if(this_id == null) return false;
     else {
-        for(var i=0;i<emo_ids.length;i++) {
+        for(var i=0;i<=emo_ids.length;i++) {
             if((emo_ids[i].startsWith(">"+this_id))||(emo_ids[i].startsWith(this_id))) {
                 break;
             }
@@ -514,7 +549,7 @@ function find_page_id(next) {
         }
     }
     if(new_id.startsWith(">")) new_id = new_id.substring(1);
-    document.getElementById("query_id").value = new_id;
+//    document.getElementById("query_id").value = new_id;
 
     query_id = new_id;
     load_page_query(new_id)
@@ -635,6 +670,7 @@ function set_corpus_search_mode() {
     $('#search_controls').removeClass('d-none');
     $('#corpus_search_link').addClass('active');
     $('#image_search_link').removeClass('active');
+    $('#code_search_link').removeClass('active');
     $('#examples_container').removeClass('d-none');
     corpus_search_mode = true;
 }
@@ -646,6 +682,21 @@ function set_image_search_mode() {
     $('#image_upload_col').removeClass('d-none');
     $('#corpus_search_link').removeClass('active');
     $('#image_search_link').addClass('active');
+    $('#code_search_link').removeClass('active');
+    $('#search_controls').addClass('d-none');
+    $('#examples_container').addClass('d-none');
+    corpus_search_mode = false;
+}
+
+/**/
+function set_code_search_mode() {
+    // console.log('search with code!');
+    clear_result_divs();
+    $('#emo_browser_col').addClass('d-none');
+    $('#image_upload_col').addClass('d-none');
+    $('#corpus_search_link').removeClass('active');
+    $('#image_search_link').removeClass('active');
+    $('#code_search_link').addClass('active');
     $('#search_controls').addClass('d-none');
     $('#examples_container').addClass('d-none');
     corpus_search_mode = false;
@@ -660,19 +711,21 @@ function set_image_search_mode() {
 
 function add_examples_list() {
     const examples = [
-        ['K2h7_092_1', 	"Different editions of Berchem, 'O s'io potessi donna' (<i>Cantus</i>)"],
-        ['A360a_005_0', "Very different editions of Striggio, 'Alma reale' (<i>Canto</i>)"],
-        ['K3k19_012_1',  "Lassus, 'Susanna faire' (<i>Cantus</i>) and the original French chanson"],
-        ['K3k19_014_0',  "Marenzio, 'I must depart all haples' (<i>Cantus</i>), and: (a) the original Italian madrigal; (b) the <i>Quinto</i> part of the latter. (The English <i>Quintus</i> part is ranked no. 9)"],
-        ['A324c_048_1',  "Nanino, 'Morir non puo'l mio core' (<i>Alto</i>) and the English version (<i>Contratenor</i>) - note the two extra notes at the beginning"],
-        ['K3k12_010_0',  "Marenzio, 'Sweet hart arise' (<i>Superius</i>), and the English version (<i>Canto</i>); the Italian <i>Quinto</i> part is ranked at 3 and the English <i>Medius</i> at 8"],
-        ['B270b_035_1',  "Marenzio, 'Dhe se potessi' (<i>Basso</i>), and its <i>Tenor</i> part at rank 3; the <i>Cantus</i> part is at rank 5"],
-        ['A19_004_0',    "End of Clemens non Papa, 'Pater peccavi' and beginning of its <i>Secunda pars</i>, 'Quanti mercanarii' (<i>Tenor</i>); 'Pater peccavi' is at rank 2"],
-        ['K3e1_061_1',  "Clemens non Papa, 'Angelus domini' (<i>Bassus</i>); another edition at rank 2; <i>Tenor</i> part at rank 3; another edition of <i>Bassus</i> at rank 5"],
-        ['K2a4_072_1',  "Lassus, Psalm 11, 'Pourquoy font bruit' (<i>Contratenor</i>), and the chanson on which it is based, 'Las me faut', ranked at 2; at ranks 3 & 4 are the two pages of another edition of the chanson"],
-        ['K8f10_134_1', "Anonymous <i>lauda</i>, 'Ecco care sorelle' (<i>Cantus</i> and <i>Tenor</i> parts on same page!) is actually a close version of Verdelot, 'Fedel' e bel cagnuolo' (<i>Cantus</i> at rank 2; <i>Tenor</i> at rank 3)"],
-        ['A569c_013_1', "'Recercar undecimo' (<i>Canto</i>), by <i>Incerto Autore</i>; at rank 2 is Damianus, 'In die tribulationis' (scholars disagree about the identity of this composer); <i>Basso</i> part of the recercar at rank 3"],
-        ['K9a10_023_0', "Morales, 'Magnificat Sexti toni' (choirbook); ranks 2 & 3 are different voice-parts from the work"],
+        ['GB-Lbl_K2h7_092_1', 	"Different editions of Berchem, 'O s'io potessi donna' (<i>Cantus</i>)"],
+        ['GB-Lbl_A360a_005_0', "Very different editions of Striggio, 'Alma reale' (<i>Canto</i>)"],
+        ['GB-Lbl_K3k19_012_1',  "Lassus, 'Susanna faire' (<i>Cantus</i>) and the original French chanson"],
+        ['GB-Lbl_K3k19_014_0',  "Marenzio, 'I must depart all haples' (<i>Cantus</i>), and: (a) the original Italian madrigal; (b) the <i>Quinto</i> part of the latter. (The English <i>Quintus</i> part is ranked no. 9)"],
+        ['GB-Lbl_A324c_048_1',  "Nanino, 'Morir non puo'l mio core' (<i>Alto</i>) and the English version (<i>Contratenor</i>) - note the two extra notes at the beginning"],
+        ['GB-Lbl_K3k12_010_0',  "Marenzio, 'Sweet hart arise' (<i>Superius</i>), and the English version (<i>Canto</i>); the Italian <i>Quinto</i> part is ranked at 3 and the English <i>Medius</i> at 8"],
+        ['GB-Lbl_B270b_035_1',  "Marenzio, 'Dhe se potessi' (<i>Basso</i>), and its <i>Tenor</i> part at rank 3; the <i>Cantus</i> part is at rank 5"],
+        ['GB-Lbl_K9a10_023_0', "Morales, 'Magnificat Sexti toni' (choirbook); ranks 2 & 3 are different voice-parts from the work"],
+        ['GB-Lbl_A19_004_0',    "End of Clemens non Papa, 'Pater peccavi' and beginning of its <i>Secunda pars</i>, 'Quanti mercanarii' (<i>Tenor</i>); 'Pater peccavi' is at rank 2"],
+        ['GB-Lbl_K3e1_061_1',  "Clemens non Papa, 'Angelus domini' (<i>Bassus</i>); another edition at rank 2; <i>Tenor</i> part at rank 3; another edition of <i>Bassus</i> at rank 5"],
+        ['GB-Lbl_K2a4_072_1',  "Lassus, Psalm 11, 'Pourquoy font bruit' (<i>Contratenor</i>), and the chanson on which it is based, 'Las me faut', ranked at 2; at ranks 3 & 4 are the two pages of another edition of the chanson"],
+        ['GB-Lbl_A569c_024_0', "Willaert, 'Recercar quinto', was also published in a transposed version  (GB-Lbl_K3b4_013_0) as well as at the original pitch (GB-Lbl_K3b4_020_0)"],
+         ['GB-Lbl_K8f10_134_1', "Anonymous <i>lauda</i>, 'Ecco care sorelle' (<i>Cantus</i> and <i>Tenor</i> parts on same page!) is actually a close version of Verdelot, 'Fedel' e bel cagnuolo' (<i>Cantus</i> at rank 2; <i>Tenor</i> at rank 3)"],
+        ['GB-Lbl_A569c_013_1', "'Recercar undecimo' (<i>Canto</i>), by <i>Incerto Autore</i>; at rank 2 is Damianus, 'In die tribulationis' (scholars disagree about the identity of this composer); <i>Basso</i> part of the recercar at rank 3"],
+        ['D-Bsb_Parangon_03_1543_inv_060_0', "Arcadelt, 'Vous perdez temps' (Tenor); turns out to be musically identical to his madrigal, 'Non ch'io, non voglio' (K2h3_031_1)"],
     ];
 
 
@@ -715,10 +768,18 @@ $(document).ready(() => {
         search(query_id,jaccard,num_results);
     });
 
+    $('#search_by_code_button').click(() => {
+        document.getElementById("emo_browser_col").style.visibility = "hidden";
+        query_code = document.getElementById("query_code").value.trim();
+//        load_page_query(query_id);
+        if(!query_code.length) alert("You must enter some code!")
+        else code_search(query_code,jaccard,num_results);
+    });
+
     $('#random_page_button').click(() => {
         document.getElementById("query_id").value = emo_ids[getRandomIntInclusive(0, emo_ids.length)];
         query_id = document.getElementById("query_id").value;
-        load_page_query(query_id);
+load_page_query(query_id);
     });
 
     $('#uploadForm').on('change', (event) => {
@@ -734,6 +795,6 @@ $(document).ready(() => {
         if (user_image_file) { submit_upload_form(user_image_file); }
     });
 
-    const initial_page_id = 'K2h7_092_1'
+    const initial_page_id = 'GB-Lbl_K2h7_092_1'
     load_page_query(initial_page_id);
 });

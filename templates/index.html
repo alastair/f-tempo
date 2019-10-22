@@ -9,7 +9,7 @@
 
     <script src='ext/jquery.min.js'></script>
     <script src='ext/jquery.zoom.js'></script>
-    <link rel="stylesheet" type="text/css" href="css/styles.css">
+<!--    <link rel="stylesheet" type="text/css" href="css/styles.css">  -->
 
     <!-- bootstrap css and js -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
@@ -21,7 +21,7 @@
 
 <!-- Next bit added for Help display TC 18 Oct 2019 -->
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" type="text/css" href="css/w3_ed_JF.css">
+    <link rel="stylesheet" type="text/css" href="css/w3_ed_JF.css"> 
 	<style>
 	.w3-modal {
 		font-size: small;
@@ -38,14 +38,17 @@
 	h2 {
 		color: red;
 	}
+	.bkgnd-lightgrey {
+		background-color: lightgray;
+	}
 /* Red on dark grey for Help items that are implemented*/
-	#about, #queries, #random, #navigation, #feedback, #ranking, #results {
+	#about, #queries, #random, #navigation, #feedback, #ranking, #results, #comp, #uplo {
  		color: red;
 		font-size: 12px;
 		background-color: lightgray;
 	}
 /* Grey out things that aren't implemented*/
-	#comp, #uplo {
+	{
 		color: lightgray;
 	}
 	</style>
@@ -108,9 +111,9 @@
 		  <header class="w3-container w3-blue"> 
 		   <span onclick="document.getElementById('id01').style.display='none'" 
 		   class="w3-button w3-blue w3-xlarge w3-display-topright">&times;</span>
-		   <h2>Early Music Online Search - Help</h2>
+		<!--   <h2>Early Music Online Search - Help</h2> -->
 		  </header>
-		  <div class="w3-bar w3-border-bottom">
+		  <div class="w3-bar w3-border-bottom bkgnd-lightgrey">
 		   <button id="about" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'About')">About Early Music Online Search</button>
 		   <button id="queries" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Queries')">Queries - Search box</button>
 		   <button id="random" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Random')">Random Search</button>

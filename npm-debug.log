@@ -1,0 +1,63 @@
+0 info it worked if it ends with ok
+1 verbose cli [ '/usr/bin/node', '/usr/bin/npm', 'restart', 'server.js' ]
+2 info using npm@3.10.10
+3 info using node@v6.14.4
+4 verbose run-script [ 'prerestart',
+4 verbose run-script   'prestop',
+4 verbose run-script   'stop',
+4 verbose run-script   'poststop',
+4 verbose run-script   'restart',
+4 verbose run-script   'prestart',
+4 verbose run-script   'start',
+4 verbose run-script   'poststart',
+4 verbose run-script   'postrestart' ]
+5 info lifecycle EMO_search@0.0.0~prerestart: EMO_search@0.0.0
+6 silly lifecycle EMO_search@0.0.0~prerestart: no script for prerestart, continuing
+7 info lifecycle EMO_search@0.0.0~prestop: EMO_search@0.0.0
+8 silly lifecycle EMO_search@0.0.0~prestop: no script for prestop, continuing
+9 info lifecycle EMO_search@0.0.0~stop: EMO_search@0.0.0
+10 silly lifecycle EMO_search@0.0.0~stop: no script for stop, continuing
+11 info lifecycle EMO_search@0.0.0~poststop: EMO_search@0.0.0
+12 silly lifecycle EMO_search@0.0.0~poststop: no script for poststop, continuing
+13 info lifecycle EMO_search@0.0.0~restart: EMO_search@0.0.0
+14 silly lifecycle EMO_search@0.0.0~restart: no script for restart, continuing
+15 info lifecycle EMO_search@0.0.0~prestart: EMO_search@0.0.0
+16 silly lifecycle EMO_search@0.0.0~prestart: no script for prestart, continuing
+17 info lifecycle EMO_search@0.0.0~start: EMO_search@0.0.0
+18 verbose lifecycle EMO_search@0.0.0~start: unsafe-perm in lifecycle true
+19 verbose lifecycle EMO_search@0.0.0~start: PATH: /usr/lib/node_modules/npm/bin/node-gyp-bin:/home/mas01tc/emo_search/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+20 verbose lifecycle EMO_search@0.0.0~start: CWD: /home/mas01tc/emo_search
+21 silly lifecycle EMO_search@0.0.0~start: Args: [ '-c', 'node server.js' ]
+22 silly lifecycle EMO_search@0.0.0~start: Returned: code: 1  signal: null
+23 info lifecycle EMO_search@0.0.0~start: Failed to exec start script
+24 verbose stack Error: EMO_search@0.0.0 start: `node server.js`
+24 verbose stack Exit status 1
+24 verbose stack     at EventEmitter.<anonymous> (/usr/lib/node_modules/npm/lib/utils/lifecycle.js:255:16)
+24 verbose stack     at emitTwo (events.js:106:13)
+24 verbose stack     at EventEmitter.emit (events.js:191:7)
+24 verbose stack     at ChildProcess.<anonymous> (/usr/lib/node_modules/npm/lib/utils/spawn.js:40:14)
+24 verbose stack     at emitTwo (events.js:106:13)
+24 verbose stack     at ChildProcess.emit (events.js:191:7)
+24 verbose stack     at maybeClose (internal/child_process.js:920:16)
+24 verbose stack     at Process.ChildProcess._handle.onexit (internal/child_process.js:230:5)
+25 verbose pkgid EMO_search@0.0.0
+26 verbose cwd /home/mas01tc/emo_search
+27 error Linux 4.9.0-8-amd64
+28 error argv "/usr/bin/node" "/usr/bin/npm" "restart" "server.js"
+29 error node v6.14.4
+30 error npm  v3.10.10
+31 error code ELIFECYCLE
+32 error EMO_search@0.0.0 start: `node server.js`
+32 error Exit status 1
+33 error Failed at the EMO_search@0.0.0 start script 'node server.js'.
+33 error Make sure you have the latest version of node.js and npm installed.
+33 error If you do, this is most likely a problem with the EMO_search package,
+33 error not with npm itself.
+33 error Tell the author that this fails on your system:
+33 error     node server.js
+33 error You can get information on how to open an issue for this project with:
+33 error     npm bugs EMO_search
+33 error Or if that isn't available, you can get their info via:
+33 error     npm owner ls EMO_search
+33 error There is likely additional logging output above.
+34 verbose exit [ 1, true ]

@@ -21,33 +21,42 @@
 
 <!-- Next bit added for Help display TC 18 Oct 2019 -->
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" type="text/css" href="css/w3_ed_JF.css">
+<!-- 	<link rel="stylesheet" type="text/css" href="css/w3_ed_JF.css">  -->
 	<style>
-	.w3-modal {
-		font-size: small;
-	}
-	.w3-button {
-		font-weight: bold;
-	}
-	.w3-green {
-		color: green;
-	}
-	.item {
-		color: black;
-	}
-	h2 {
-		color: red;
-	}
-/* Red on dark grey for Help items that are implemented*/
-	#about, #queries, #random, #navigation, #feedback, #ranking, #results {
- 		color: red;
-		font-size: 12px;
-		background-color: lightgray;
-	}
-/* Grey out things that aren't implemented*/
-	#comp, #uplo {
-		color: lightgray;
-	}
+/*		.w3-modal {
+			font-size: small;
+		}
+		.w3-button {
+			font-weight: bold;
+			border: 1px;
+		}
+		.w3-green {
+			color: green;
+		}
+		.w3-light-grey,.w3-hover-light-grey:hover,.w3-light-gray,.w3-hover-light-gray:hover {
+			color:#000;background-color:#f1f1f1;
+		}
+		.item {
+			color: black;
+		}
+		h2 {
+			color: red;
+		}
+*/
+	/* Red on light grey for Help items that are implemented*/
+/*
+		#h_item_bkgnd, #about, #queries, #random, #navigation, #feedback, #ranking, #results, #comp, #uplo {
+			color: red;
+			font-size: 12px;
+			background-color: lightgray;
+		}
+		 #w3-bar	 {
+			background-color: lightgray;
+		}
+		 #w3-bar-item	 {
+			border: 1px;
+		}
+*/
 	</style>
 <!-- End of bit added for Help display TC 18 Oct 2019 -->
 
@@ -108,18 +117,18 @@
 		  <header class="w3-container w3-blue"> 
 		   <span onclick="document.getElementById('id01').style.display='none'" 
 		   class="w3-button w3-blue w3-xlarge w3-display-topright">&times;</span>
-		   <h2>Early Music Online Search - Help</h2>
+	<!--	   <h2>Early Music Online Search - Help</h2> -->
 		  </header>
-		  <div class="w3-bar w3-border-bottom">
-		   <button id="about" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'About')">About Early Music Online Search</button>
-		   <button id="queries" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Queries')">Queries - Search box</button>
-		   <button id="random" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Random')">Random Search</button>
-		   <button id="navigation" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Navigation')">Navigation with arrow keys</button>
-		   <button id="feedback" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Feedback')">Feedback about results</button>
-		   <button id="ranking" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Ranking')">Result ranking</button>
-		   <button id="results" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Results')">Results to display</button>
-		   <button id="comp" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Comparison')">Comparing result with query</button>
-		   <button id="uplo" class="tablink w3-bar-item w3-button" onclick="openitem(event, 'Upload')">Uploading an image</button>
+		  <div id="h_item_bkgnd" class="w3-bar w3-border-bottom w3-light-grey">
+		   <button id="about" class="tablink w3-bar-item " onclick="openitem(event, 'About')">About Early Music Online Search</button>
+		   <button id="queries" class="tablink w3-bar-item " onclick="openitem(event, 'Queries')">Queries - Search box</button>
+		   <button id="random" class="tablink w3-bar-item " onclick="openitem(event, 'Random')">Random Search</button>
+		   <button id="navigation" class="tablink w3-bar-item " onclick="openitem(event, 'Navigation')">Navigation with arrow keys</button>
+		   <button id="feedback" class="tablink w3-bar-item " onclick="openitem(event, 'Feedback')">Feedback about results</button>
+		   <button id="ranking" class="tablink w3-bar-item " onclick="openitem(event, 'Ranking')">Result ranking</button>
+		   <button id="results" class="tablink w3-bar-item " onclick="openitem(event, 'Results')">Results to display</button>
+		   <button id="comp" class="tablink w3-bar-item " onclick="openitem(event, 'Comparison')">Comparing result with query</button>
+		   <button id="uplo" class="tablink w3-bar-item " onclick="openitem(event, 'Upload')">Uploading an image</button>
 		  </div>
 		  <div id="About" class="w3-container item">
 		   <h2>About Early Music Online Search</h2>
@@ -179,17 +188,17 @@
 			When you change this setting by choosing from the &ldquo;Result Ranking&rdquo; menu your search will be re-run.
 		   </p><br>
 		  </div>
-		  <div id="Upload" class="w3-container item">
-		   <h2> Uploading an image</h2>
-		   <p>
-			If you click on &ldquo;Search with Image Upload&rdquo; in the page header, you will be able to upload your own query page in one of a variety of common graphics formats. On clicking &ldquo;Upload and Search&rdquo; yoiur image will be uploaded to our server (which will usually take a few extra seconds), recognised and encoded as a query which is then run against the database, and the result list presented as usual. (This is an experimental feature which has not been exhaustively tested, and may produce an error message from time to time.)
-		   </p><br>
-		  </div>
 		  <div id="Navigation" class="w3-container item">
 		   <h2> Navigation with arrow keys</h2>
 		   <p>
 			As well as using the left/right arrow keys to search the previous/next page, with the shift key to move between books, you can move up and down the results list using the up and down arrow keys. As you do so, the relevant result-image will be displayed on the right, together with its ID and some information about the match.<br>
 			As you move the cursor over the query image (left) or match image (right) it will be displayed at high magnification to show detail. To avoid this behaviour simply move the mouse away from the image.
+		   </p><br>
+		  </div>
+		  <div id="Upload" class="w3-container item">
+		   <h2> Uploading an image</h2>
+		   <p>
+			If you click on &ldquo;Search with Image Upload&rdquo; in the page header, you will be able to upload your own query page in one of a variety of common graphics formats. On clicking &ldquo;Upload and Search&rdquo; yoiur image will be uploaded to our server (which will usually take a few extra seconds), recognised and encoded as a query which is then run against the database, and the result list presented as usual. (This is an experimental feature which has not been exhaustively tested, and may produce an error message from time to time.)
 		   </p><br>
 		  </div>
 		  <div id="Comparison" class="w3-container item">

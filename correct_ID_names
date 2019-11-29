@@ -1,0 +1,26 @@
+
+BEGIN {
+  pref="";
+  alph="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  dig="1234567890";
+}
+{
+  gsub(/^>/,"");  # remove initial ">" chars throughout
+  inc=substr($1,1,1);
+  if(substr($1,1,8)=="Parangon") pref="D-Bsb_";
+  else {
+    if(index(alph,inc)>0) {
+      pref="GB-Lbl_";
+    }
+    else {
+      if(index(dig,inc)>0) {
+        pref="PL-Wn_";
+      }
+      else {
+        pref="";
+      }
+    }
+  }
+  print pref $0;
+}
+

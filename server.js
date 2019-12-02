@@ -61,7 +61,6 @@ app.get('/', function (req, res) {
     res.render('index');
 });
 
-
 app.get('/id_searches', function (req, res) {
     const data = { id_searches: true };
     res.render('index', data);
@@ -72,7 +71,10 @@ app.get('/code_searches', function (req, res) {
     res.render('index', data);
 });
 
-
+var q_mei_url;
+var q_diat_str;
+var q_diat_url;
+var working_path;
 app.get('/compare', function (req, res) {
     // console.log(req.query.qid); console.log(req.query.mid);
 
@@ -80,7 +82,7 @@ app.get('/compare', function (req, res) {
     const q_id = req.query.qid;
     const m_id = req.query.mid;
 
-    if (!q_id || !m_id) { return res.status(400).send('q_id or m_id must be provided!'); }
+    if (!q_id || !m_id) { return res.status(400).send('q_id and m_id must be provided!'); }
 
 //    const base_img_url = 'http://doc.gold.ac.uk/~mas01tc/page_dir_50/';
     const base_img_url = 'http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/';
@@ -91,13 +93,13 @@ app.get('/compare', function (req, res) {
 //    const base_mei_url = 'http://doc.gold.ac.uk/~mas01tc/EMO_search/mei_pages/';
     const base_mei_url = 'http://doc.gold.ac.uk/~mas01tc/EMO_search/new_mei_pages/';
     const mei_ext = '.mei';
-	const q_mei_url = base_mei_url + q_id + mei_ext;
+	q_mei_url = base_mei_url + q_id + mei_ext;
 	const m_mei_url = base_mei_url + m_id + mei_ext;
 
 
     // id_diat_mel_lookup is a file of ids and codestrings
     // this finds the line of the query and result pages
-	const q_diat_str = EMO_IDS_DIAT_MELS[q_id];
+	q_diat_str = EMO_IDS_DIAT_MELS[q_id];
 	const m_diat_str = EMO_IDS_DIAT_MELS[m_id];
 
     if (!q_diat_str) { return res.status(400).send('Could not find melody string for this q_id'); }
@@ -191,13 +193,17 @@ app.post('/api/image_query', function(req, res) {
         next_working_dir = 0;
     }
 
-    const working_path = user_path + next_working_dir + '/';
+//    const working_path = user_path + next_working_dir + '/';
+	working_path = user_path + next_working_dir + '/';
     fs.mkdirSync(working_path);
 
     // Use the mv() method to save the file there
     user_image.mv(working_path + new_filename, (err) => {
         if (err) { return res.status(500).send(err); }
         else {
+
+		load_current_query_diat_str(working_path +"page.txt");
+
             // console.log("Uploaded file saved as " + working_path + new_filename);
             const ngram_search = false; // TODO(ra): make this work!
             const result = run_image_query(user_id, new_filename, working_path, ngram_search);
@@ -207,7 +213,7 @@ app.post('/api/image_query', function(req, res) {
     });
 });
 
-
+/*
 // Handle file uploads (MEI, MusicXML or MIDI file as query)
 app.post('/api/image_query', function(req, res) {
     if (!req.files) { return res.status(400).send('No files were uploaded.'); }
@@ -235,7 +241,8 @@ app.post('/api/image_query', function(req, res) {
         next_working_dir = 0;
     }
 
-    const working_path = user_path + next_working_dir + '/';
+//    const working_path = user_path + next_working_dir + '/';
+    working_path = user_path + next_working_dir + '/';
     fs.mkdirSync(working_path);
 
     // Use the mv() method to save the file there
@@ -250,7 +257,7 @@ app.post('/api/image_query', function(req, res) {
         }
     });
 });
-
+*/
 
 app.post('/api/log', function(req, res) {
     const log_entry = req.body.log_entry;
@@ -315,7 +322,7 @@ function search_with_code(diat_int_code, jaccard, num_results, threshold) {
         last_dir = parseInt(dirs[dirs.length - 1]);
         next_working_dir = last_dir + 1;
     }
-    const working_path = codestring_path + next_working_dir + '/';
+    working_path = codestring_path + next_working_dir + '/';
     if (!fs.existsSync(working_path)){ fs.mkdirSync(working_path); }
 
     const query_data = cp.execSync('./shell_scripts/codestring_to_maws.sh ' + diat_int_code + ' ' + working_path);
@@ -325,7 +332,7 @@ function search_with_code(diat_int_code, jaccard, num_results, threshold) {
 }
 
 
-function run_image_query(user_id, user_image_filename, working_path, ngram_search) {
+function run_image_query(user_id, user_image_filename, the_working_path, ngram_search) {
     const jaccard = true; // TODO(ra) should probably get this setting through the POST request, too...
     const num_results = 20; // TODO(ra) should probably get this setting through the POST request, too...
     const threshold = false; // TODO(ra) should probably get this setting through the POST request, too...
@@ -336,14 +343,14 @@ function run_image_query(user_id, user_image_filename, working_path, ngram_searc
     if(!ngram_search) {
         try {
             query_data = cp.execSync('./shell_scripts/image_to_maws.sh ' // script takes 2 command line params
-                                     + user_image_filename + ' ' + working_path);
+                                     + user_image_filename + ' ' + the_working_path);
             query = String(query_data); // a string of maws, preceded with an id
         } catch (err) { return; } // something broke in the shell script...
         result = search('words', query, jaccard, num_results, threshold);
     }
     else {
         try {
-            query_data = cp.execSync('./shell_scripts/image_to_ngrams.sh ' + user_image_filename + ' ' + working_path + ' ' + '9');
+            query_data = cp.execSync('./shell_scripts/image_to_ngrams.sh ' + user_image_filename + ' ' + the_working_path + ' ' + '9');
             query = String(query_data);
         } catch (err) { return; } // something broke in the shell script...
         if (query) { result = search('words', query, jaccard, num_results, threshold, true); }
@@ -551,8 +558,13 @@ function load_file(file, data_callback) {
     });
 }
 
-
-
+function load_current_query_diat_str(q_diat_url) { load_file(q_diat_url, get_diat_str); }
+function get_diat_str(data_str) {
+console.log("url for mel str is "+q_diat_url);
+    const lines = data_str.split("\n");
+    console.log("Query string loaded!");
+    q_diat_str =  lines[1];	// we want the second line of page.txt
+}
 
 
 /*******************************************************************************

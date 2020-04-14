@@ -1,5 +1,5 @@
 {
-  "name": "EMO_search",
+  "name": "F-TEMPO",
   "version": "0.0.0",
   "description": "Early Music Online search engine",
   "main": "express_server.js",
@@ -9,8 +9,8 @@
   "author": "Tim Crawford",
   "contributors": [
     {
-      "name": "Ryaan Ahmed",
-      "email": "mail@ryaanahmed.com"
+      "name": "Tim Crawford",
+      "email": "t.crawford@gold.ac.uk"
     }
   ],
   "license": "ISC",

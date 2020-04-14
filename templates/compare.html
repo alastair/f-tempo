@@ -6,10 +6,13 @@
 	<script type="text/javascript" src="ext/jquery.min.js" ></script>
     <script type="text/javascript" src="ext/verovio-toolkit.js"></script>
 	<script type="text/javascript" src="ext/underscore-min.js"></script>
+	<script type="text/javascript" src="ext/svg.js"></script>
+	<script src="src/utils.js"></script> 
 
 	<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.3/themes/base/jquery-ui.css" type="text/css"/>
 
 	<style type="text/css">
+
 		#q_svg_output {
 			z-index:1;
 			position:absolute;
@@ -23,6 +26,26 @@
 			opacity:5;
 	/*		transform:  translate(-164px, 0px); */
 			order: 2;
+		}
+		#message {
+			font-size: 10px;
+			font-family: Arial, Helvetica, sans-serif;
+			colour:blue;
+		}
+
+		g.note:hover {
+	/*
+			filter: url(#highlighting);
+			stroke: blue;
+	*/
+		}
+		
+		.q_selRect, .m_selRect {
+			pointer-events: all;			
+		}
+		
+		.q_selRect: hover, .m_selRect: hover {
+			background-color: yellow;
 		}
 		
 		div {padding:0;}
@@ -49,32 +72,62 @@
 	</style>
 
 	<script type="text/javascript" src="src/compare.js" ></script>
+	
 </head>
 
 <body>
 
 
+<div>
+<span>
+	Choose ngram length:<select id="ngr_len_change" onchange="redrawPage();">
+		<option value="3">3</option>
+		<option value="4">4</option>
+		<option value="5" selected>5</option>
+		<option value="6">6</option>
+		<option value="7">7</option>
+		<option value="8">8</option>
+		<option value="9">9</option>
+		<option value="10">10</option>
+		<option value="11">11</option>
+		<option value="12">12</option>
+
+	</select>
+</span>
+<span id="message"></span>
+</div>
 <div class="display_row">
+
 	<div left="0px" width="1050px" id="query_container" class="page_display">
-        <div id="query_page_display">
-            Query:
-            <span id="query_label" class="label">
-                {{ q_id }}
-            </span>
-        </div>
-		<div><div id="q_svg_output"></div>
-		<img id="query_image" class="page_image" width="500" src="
-            {{ q_jpg_url }}
-        "></div>
+		<div id="query_page_display">Query:	<span id="query_label" class="label">
+				 {{ q_id }}
+			  </span>
+			  <span>
+			  	<button id="hide_q_image" value="false" onclick="hide_show_image(true);">Hide image</button>
+			  </span>
+		</div>
+		<div>
+			<div id="q_svg_output"></div>
+			<img id="query_image" class="page_image" width="500" src="
+			  {{ q_jpg_url }}   "
+			  >
+		</div>
 	</div>
+	
 	<div left="0px" width="1050px" id="match_container" class="page_display">	
 		<div id="match_page_display">Match:	<span id="query_label" class="label">
-            {{ m_id }}
-        </span></div>
-		<div><div  id="m_svg_output"></div>
-		<img id="match_image" class="page_image" width="500" src="
-            {{ m_jpg_url }}
-        "></div>
+            		{{ m_id }}
+          	  </span>
+			  <span>
+			  	<button id="hide_m_image" value="false" onclick="hide_show_image(false);">Hide image</button>
+			  </span>
+          </div>
+		<div>
+			<div  id="m_svg_output"></div>
+			<img id="match_image" class="page_image" width="500" src="
+			  {{ m_jpg_url }} "
+			  >
+          </div>
 	</div>
 </div>
 
@@ -84,12 +137,23 @@
 setup_page({
     q_id: '{{ q_id }}',
     m_id: '{{ m_id }}',
-	qmei_txt: '{{& q_mei }}',
-	mmei_txt: '{{& m_mei }}',
+    q_jpg_url: '{{ q_jpg_url }}',
+    m_jpg_url: '{{ m_jpg_url }}',
+    q_mei: '{{& q_mei }}',
+    m_mei: '{{& m_mei }}',
+/*
     q_index_to_colour: {{& q_index_to_colour }},
     m_index_to_colour: {{& m_index_to_colour }},
+    qcomm_str: '{{& qcomm_str }}',
+    mcomm_str: '{{& mcomm_str }}',
+*/
+    q_diat_str: '{{& q_diat_str }}',
+    m_diat_str: '{{& m_diat_str }}',
+
+    ng_len: '{{& ng_len }}'
 });
 </script>
+
 
 </body>
 </html>

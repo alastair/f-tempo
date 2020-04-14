@@ -11,6 +11,8 @@
     <script src='ext/jquery.zoom.js'></script>
 <!--    <link rel="stylesheet" type="text/css" href="css/styles.css">  -->
 
+	<!--    <script src='ext/popper.min.js'></script> -->
+	<script src="https://unpkg.com/@popperjs/core@2.0.0-rc.3"></script>
     <!-- bootstrap css and js -->
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
@@ -39,6 +41,9 @@
 	h2 {
 		color: red;
 		width:90%;
+	}
+	.mag-glass {
+		cursor: pointer;
 	}
 	.bkgnd-lightgrey {
 		background-color: lightgray;
@@ -70,6 +75,22 @@
 	{
 		color: lightgray;
 	}
+
+/*select:not([multiple]) { */
+select.btn-sm * {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-position: right 50%;
+    background-repeat: no-repeat;
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAMCAYAAABSgIzaAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBNYWNpbnRvc2giIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NDZFNDEwNjlGNzFEMTFFMkJEQ0VDRTM1N0RCMzMyMkIiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6NDZFNDEwNkFGNzFEMTFFMkJEQ0VDRTM1N0RCMzMyMkIiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo0NkU0MTA2N0Y3MUQxMUUyQkRDRUNFMzU3REIzMzIyQiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo0NkU0MTA2OEY3MUQxMUUyQkRDRUNFMzU3REIzMzIyQiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PuGsgwQAAAA5SURBVHjaYvz//z8DOYCJgUxAf42MQIzTk0D/M+KzkRGPoQSdykiKJrBGpOhgJFYTWNEIiEeAAAMAzNENEOH+do8AAAAASUVORK5CYII=);
+    padding: .5em;
+    padding-right: 1.5em
+    
+    font-size: 10px;
+    color: red;
+}
+
+
 	</style>
 
 	<script>
@@ -97,6 +118,97 @@
 	</script>
 
 <!-- End of bit added for Help display TC 18 Oct 2019 -->
+
+<script>
+//Cosine similarity code (from: 
+// https://medium.com/@sumn2u/string-similarity-comparision-in-js-with-examples-4bae35f13968)
+
+//(function () {
+    
+    function termFreqMap(str) {
+        var words = str.split(' ');
+        var termFreq = {};
+        words.forEach(function(w) {
+            termFreq[w] = (termFreq[w] || 0) + 1;
+        });
+        return termFreq;
+    }
+    function addKeysToDict(map, dict) {
+        for (var key in map) {
+            dict[key] = true;
+        }
+    }
+    function termFreqMapToVector(map, dict) {
+        var termFreqVector = [];
+        for (var term in dict) {
+            termFreqVector.push(map[term] || 0);
+        }
+        return termFreqVector;
+    }
+    function vecDotProduct(vecA, vecB) {
+        var product = 0;
+        for (var i = 0; i < vecA.length; i++) {
+            product += vecA[i] * vecB[i];
+        }
+        return product;
+    }
+    function vecMagnitude(vec) {
+        var sum = 0;
+        for (var i = 0; i < vec.length; i++) {
+            sum += vec[i] * vec[i];
+        }
+        return Math.sqrt(sum);
+    }
+    function cosineSimilarity(vecA, vecB) {
+        return vecDotProduct(vecA, vecB) / (vecMagnitude(vecA) * vecMagnitude(vecB));
+    }
+  //  Cosinesimilarity = 
+    function textCosineSimilarity(strA, strB) {
+        var termFreqA = termFreqMap(strA);
+        var termFreqB = termFreqMap(strB);
+
+        var dict = {};
+        addKeysToDict(termFreqA, dict);
+        addKeysToDict(termFreqB, dict);
+
+        var termFreqVecA = termFreqMapToVector(termFreqA, dict);
+        var termFreqVecB = termFreqMapToVector(termFreqB, dict);
+
+        return cosineSimilarity(termFreqVecA, termFreqVecB);
+    }
+//})();
+// End of cosine similarity code
+
+
+function findAllIndexes(source, find) {
+  var result = [];
+  for (i = 0; i < source.length-find.length; ++i) {
+    if (source.substring(i, i + find.length) == find) {
+      result.push(i);
+    }
+    else result.push(-1);
+  }
+  return result;
+}
+function ngram_array(str, n) {
+// Returns array of all complete ngrams in str of length n
+	if(!str.length) return false;
+	ngrams = [];
+	if(str.length<n) {
+		ngrams.push(str + "%");
+	}
+	else if (str.length==n) {
+		ngrams.push(str);
+		}
+		else {  
+			for(i=0; i+n <= str.length; i++) {
+				ngrams.push(str.substr(i,n));
+			}
+		}
+	return ngrams;
+}
+
+</script>
 
 </head>
 
@@ -231,7 +343,7 @@
 		  <div id="Random" class="w3-container help_text">
 		   <h2> Random Search</h2>
 		   <p>
-			This simply chooses a page at random from the entire collection, and performs a search using it as query .
+			This simply chooses a page at random from the entire collection. You can use the backslash ('\') as a keyboard shortcut.
 		   </p><br>
 		  </div>
 		  <div id="Feedback" class="w3-container help_text">
@@ -319,7 +431,7 @@
                 Previous Page
             </button>
 
-            <button class='btn btn-secondary btn-sm emo-nav-btn' id="random_page_button" >Show a Random Page</button>
+            <button class='btn btn-secondary btn-sm emo-nav-btn' id="random_page_button" >Random Page</button>
 
             <button class="btn btn-outline-secondary btn-sm emo-nav-btn"
                          id='show_next_page'
@@ -392,6 +504,7 @@
             -->
 
             <!--
+            -->
             <div class='form-group mt-2 mb-0'>
                 <label for='search_select'>Search Type</label>
                 <select id="search_select" name="search_select" onchange="change_search_method();">
@@ -399,9 +512,8 @@
                     <option value=1>5-grams</option>
                 </select>
             </div>
-            -->
 
-            <div class='form-group mt-2 mb-0'>
+           <div class='form-group mt-2 mb-0'>
                 <label for='ranking_select'>Result Ranking</label>
                 <select id="ranking_select" name="num_to_disp" onchange="change_ranking_method();">
                     <option value=0 selected>Jaccard Distance</option>

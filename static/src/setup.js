@@ -1,3 +1,62 @@
+//Cosine similarity code (from: 
+// https://medium.com/@sumn2u/string-similarity-comparision-in-js-with-examples-4bae35f13968)
+
+//(function () {
+    
+    function termFreqMap(str) {
+        var words = str.split(' ');
+        var termFreq = {};
+        words.forEach(function(w) {
+            termFreq[w] = (termFreq[w] || 0) + 1;
+        });
+        return termFreq;
+    }
+    function addKeysToDict(map, dict) {
+        for (var key in map) {
+            dict[key] = true;
+        }
+    }
+    function termFreqMapToVector(map, dict) {
+        var termFreqVector = [];
+        for (var term in dict) {
+            termFreqVector.push(map[term] || 0);
+        }
+        return termFreqVector;
+    }
+    function vecDotProduct(vecA, vecB) {
+        var product = 0;
+        for (var i = 0; i < vecA.length; i++) {
+            product += vecA[i] * vecB[i];
+        }
+        return product;
+    }
+    function vecMagnitude(vec) {
+        var sum = 0;
+        for (var i = 0; i < vec.length; i++) {
+            sum += vec[i] * vec[i];
+        }
+        return Math.sqrt(sum);
+    }
+    function cosineSimilarity(vecA, vecB) {
+        return vecDotProduct(vecA, vecB) / (vecMagnitude(vecA) * vecMagnitude(vecB));
+    }
+  //  Cosinesimilarity = 
+    function textCosineSimilarity(strA, strB) {
+        var termFreqA = termFreqMap(strA);
+        var termFreqB = termFreqMap(strB);
+
+        var dict = {};
+        addKeysToDict(termFreqA, dict);
+        addKeysToDict(termFreqB, dict);
+
+        var termFreqVecA = termFreqMapToVector(termFreqA, dict);
+        var termFreqVecB = termFreqMapToVector(termFreqB, dict);
+
+        return cosineSimilarity(termFreqVecA, termFreqVecB);
+    }
+//})();
+// End of cosine similarity code
+
 // Global variables
 let num_results = 15; // default
 let query_id = "";
@@ -10,6 +69,8 @@ let words_in_page = []; // ''
 let emo_ids; // Array of page IDs loaded from database on initialisatiom
 let user_id; // for identifying user to logs, etc.
 let can_store_user_id = false;
+
+//let ngram_search = false;
 
 function get_or_set_user_id() {
     if (storageAvailable('localStorage')) {
@@ -51,10 +112,51 @@ function get_query_from_id(id) {
     return false
 }
 
+ngr_len = 5;
+// Canvas needs to be created and supplied!
+function lineAt(canvas,startx,starty,colour) {
+	let h = canvas.height;
+	let ctx = canvas.getContext("2d");
+	ctx.beginPath();
+	ctx.moveTo(startx, starty);
+	ctx.lineTo(startx,starty+h) ;
+	ctx.strokeStyle = colour;
+	ctx.lineWidth = 2;
+	ctx.stroke();
+}
+function display_cosine_sim_line(json) {            
+	var results = json;
+	var q_str = results[0].codestring;
+	for(let q = 1; q < num_results; q++) {
+		let progID = 'progress'+q;
+		let progRect = document.getElementById(progID).getBoundingClientRect();
+		let canWidth = progRect.width;
+		let canHeight = progRect.height;
+		let canTop = progRect.top;
+		let canLeft = progRect.left;
+		let canID = 'canvas'+q;
+		let canv = document.createElement('canvas');
+		canv.id = canID;
+		document.getElementById(progID).parentNode.appendChild(canv);
+//		document.getElementById(progID).parentNode.insertBefore(canv,document.getElementById(progID).nextSibling);
+		canv.style.position="absolute";
+		canv.style.zIndex="2";
+		canv.width=canWidth;
+//		canv.height=canHeight;
+		canv.height="5";
+		canv.top=(canTop-canHeight)+"px";
+		canv.left=canLeft;
+		m_str = results[q].codestring;
+		var cos_sim = textCosineSimilarity(ngram_array(q_str,ngr_len).join(' '), ngram_array(m_str,ngr_len).join(' '));
+		var line_x = cos_sim * canv.width;
+		lineAt(canv,line_x,0,"red");
+	}
+}
 
 // Basic remote search function.
-function search(id, jaccard, num_results) {
-    search_data = JSON.stringify({ id, jaccard, num_results, threshold });
+function search(id, jaccard, num_results, ngram_search) {
+    search_data = JSON.stringify({ id, jaccard, num_results, threshold, ngram_search});
+//console.log(search_data)
     $.ajax({
         url: 'api/query',
         method: 'POST',
@@ -76,12 +178,12 @@ function code_search(diat_int_code, jaccard, num_results) {
 }
 
 
-function search_by_active_query_id(load_query_image=false) {
+function search_by_active_query_id(load_query_image=false, ngram_search) {
     query_id = document.getElementById("query_id").value;
     if (load_query_image) {
         load_page_query(query_id);
     }
-    search(query_id, jaccard, num_results);
+    search(query_id, jaccard, num_results, ngram_search);
 }
 
 
@@ -151,7 +253,8 @@ function show_results(json) {
                 +"' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
 //                +"<td text-align='center' style='color:blue'><small>" +target_id+"</small></td>"
                 +"<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
-                + "<td onclick='compare(\""+query_id+"\",\""+results[q].id+"\");'>"
+          //      + "<td onclick='compare(\""+query_id+"\",\""+results[q].id+"\");'>"
+               + "<td>"
                 + '<div class="progress">'
                 + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
                 + "</td>";
@@ -176,10 +279,12 @@ function show_results(json) {
                 + "' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
 //                +"<td text-align='center' style='color:blue'><small>" +target_id+"</small></td>"
                 +"<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
-                + "<td onclick='compare(\""+query_id+"\",\""+results[q].id+"\");'>"
-                + '<div class="progress">'
+         //       + "<td onclick='compare(\""+query_id+"\",\""+results[q].id+"\");'>"
+                + "<td>"
+                + '<div class="progress" id="progress'+q+'">'
                 + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
                 + "</td>"
+                + "<td><img class='mag-glass' width='16' height='16' src='img/magnifying-glass.svg' onclick='compare(\""+query_id+"\",\""+results[q].id+"\")'/></td>";
             if (provide_judgements) {
                 table_html += "<td id='"+sim_choice_id+"'>"
                     + "<select  class='drop_downs'"
@@ -210,11 +315,15 @@ function show_results(json) {
     else { top_result_rank_factor = results[0].num / results[0].num_words };
 
     load_result_image(top_result_id, 0, top_result_rank_factor);
+
+   if(query_id.length) {
+	   display_cosine_sim_line(json);
+	}
 }
 
 
 function compare(a,b) {
-    var url="compare?qid="+a+"&mid="+b;
+    var url="compare?qid="+a+"&mid="+b; 
     window.open(url, "Compare pages","comp_win");
 }
 
@@ -423,10 +532,16 @@ function checkKey(e) {
     } else if (e.keyCode == '39') {    // right arrow - Search next page/book
         (shiftDown)? find_book_id(true) : find_page_id(true);
         query_id = document.getElementById("query_id").value;
+    } else if (e.keyCode == '220') { // '\' for random query
+        document.getElementById("query_id").value = emo_ids[getRandomIntInclusive(0, emo_ids.length)];
+        query_id = document.getElementById("query_id").value;    
+        load_page_query(query_id);
     } else if (e.keyCode == '13') { // enter to search
         query_id = document.getElementById("query_id").value;
-        search_by_active_query_id(true);
-    }
+        ngram_search = change_search_method();
+        search_by_active_query_id(true, ngram_search);
+
+    }    
 }
 
 // Unused??
@@ -653,6 +768,16 @@ function change_num_res() {
     if (!$('#results_table').is(':empty')) { search_by_active_query_id(); }
 }
 
+function change_search_method() {
+    const search_select = document.getElementById('search_select');
+    const v = search_select.options[search_select.selectedIndex].value;
+    if (v == 1) { ngram_search = true; }
+    else { ngram_search = false; }
+
+//    if (!$('#results_table').is(':empty')) { search_by_active_query_id(); ngram_search}
+	return ngram_search;
+}
+
 function change_ranking_method() {
     const ranking_select = document.getElementById('ranking_select');
     const v = ranking_select.options[ranking_select.selectedIndex].value;
@@ -747,6 +872,7 @@ function add_examples_list() {
 }
 
 $(document).ready(() => {
+    
     get_or_set_user_id();
     get_emo_ids();
     add_examples_list();
@@ -759,13 +885,14 @@ $(document).ready(() => {
     $('#search_button').click(() => {
         query_id = document.getElementById("query_id").value;
         load_page_query(query_id);
-        search(query_id,jaccard,num_results);
+        search(query_id,jaccard,num_results, change_search_methods);       
     });
 
     $('#search_by_id_button').click(() => {
         query_id = document.getElementById("query_id").value;
         load_page_query(query_id);
-        search(query_id,jaccard,num_results);
+   //     search(query_id,jaccard,num_results, ngram_search);
+        search(query_id,jaccard,num_results, change_search_method());
     });
 
     $('#search_by_code_button').click(() => {
@@ -797,4 +924,5 @@ load_page_query(query_id);
 
     const initial_page_id = 'GB-Lbl_K2h7_092_1'
     load_page_query(initial_page_id);
+    
 });

@@ -12,6 +12,9 @@ const path_app = require('path');
 const request = require('request');
 
 const utils = require('./static/src/utils.js');
+const dpath = require('./static/src/data_paths.js');
+
+var	argv = require('minimist')(process.argv.slice(2));
 
 /*******************************************************************************
  * Globals / init
@@ -36,13 +39,112 @@ const ngr_len = 5;
 
 const app = express();
 
+var ARG_LIST = argv._;  // Arguments on command-line
+var DB_PREFIX_LIST = []; // Array of prefixes to F_TEMPO data collections
+
+// Goldsmiths-based location of files *excluding D-Mbs* --- CHANGE THIS!!
+const BASE_IMG_URL = 'http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/';
+const BASE_MEI_URL = 'http://doc.gold.ac.uk/~mas01tc/EMO_search/new_mei_pages/';
+
+//console.log("Before: "+ARG_LIST+" (length "+ARG_LIST.length+")");
+while(ARG_LIST.length) {
+	if (
+		ARG_LIST[0].startsWith("D-Mbs")||
+		ARG_LIST[0].startsWith("Mbs")||
+		ARG_LIST[0].startsWith("D-Bsb")||
+		ARG_LIST[0].startsWith("F-Pn")||
+		ARG_LIST[0].startsWith("GB-Lbl")||
+		ARG_LIST[0].startsWith("PL-Wn")||
+		(ARG_LIST[0] == "all")
+	) {
+		if(ARG_LIST[0].startsWith("Mbs")){
+			var suffix = ARG_LIST[0].substring(3);
+			switch (suffix) {
+				case "0":
+				case "1":
+				case "2":
+				case "3":
+				case "4":
+				case "5":
+				case "6":
+				case "7":
+				case "_all":
+					DB_PREFIX_LIST.push(ARG_LIST.shift());
+					break;
+				default:
+					ARG_LIST.shift(); // Throw away garbage/illegal arguments
+					break;
+			}
+		}
+		else {
+			DB_PREFIX_LIST.push(ARG_LIST.shift());
+		}
+	}
+	else {
+		ARG_LIST.shift(); // Throw away garbage/illegal arguments
+	}
+}
+for(i=0;i<DB_PREFIX_LIST.length;i++) {
+	if(DB_PREFIX_LIST[i].startsWith("Mbs")) {
+		if(DB_PREFIX_LIST[i]=="Mbs_all") DB_PREFIX_LIST[i] = "all"
+		DB_PREFIX_LIST[i]="D-Mbs/"+DB_PREFIX_LIST[i];
+	}
+}
+
 /*******************************************************************************
  * Setup
  ******************************************************************************/
-console.log("\nF-TEMPO server started at "+Date());
+console.log("F-TEMPO server started at "+Date());
 
-load_maws(); // load the MAWS
-load_diat_mels(); // load the diatonic melodies
+const D_MBS_ID_PATHS = [];
+function parse_Mbs_paths(data_str) {
+	let lines = data_str.split("\n");
+	for (let line of lines) {
+		if(line) {
+			D_MBS_ID_PATHS[Mbs_segment] += line+" ";
+		}
+	}
+	return data_str.length;
+}
+var Mbs_segment;
+
+if(!DB_PREFIX_LIST.length) {
+	load_maws(); // load the MAWS
+	load_diat_mels(); // load the diatonic melodies
+}
+else {
+	console.log(DB_PREFIX_LIST.length+" Databases to load: "+DB_PREFIX_LIST);
+	for (var m=0;m<DB_PREFIX_LIST.length;m++) {
+		console.log(m)
+// Comment out the next 5 lines on the 'real' server, where D-Mbs files will be present.
+		if(DB_PREFIX_LIST[m].startsWith("D-Mbs")) {
+			console.log("D-Mbs not available on this server");
+//			process.exit();
+			continue;
+		}
+		var maws_db = "./data/maws/"+DB_PREFIX_LIST[m];
+		console.log("maws_db is "+maws_db);
+		load_file(maws_db, parse_maws_db);
+		
+		var diat_mel_db = "./data/codestrings/"+DB_PREFIX_LIST[m];
+		console.log("diat_mel_db is "+diat_mel_db);
+		load_file(diat_mel_db, parse_diat_mels_db);
+	}
+}
+
+if(DB_PREFIX_LIST.includes("D-Mbs")) {
+	var total_size = 0;
+	for(Mbs_segment=0;Mbs_segment<=7;Mbs_segment++) {
+		let path_file = "data/collections/D-Mbs/Mbs"+Mbs_segment;
+		total_size += parse_Mbs_paths(load_file_sync(path_file));
+	}
+	console.log(D_MBS_ID_PATHS.length+" Mbs segments loaded; total size: "+total_size);
+}
+
+///// Test stuff here
+console.log("Testing datapath: "+dpath.get_datapath("F-Pn_RES-VM7-504_3_150r_128"))
+//console.log("Testing datapath: "+dpath.get_datapath("D-Mbs_bsb00103258_00033"))
+
 
 const port = 8000;
 app.listen(
@@ -90,16 +192,19 @@ app.get('/compare', function (req, res) {
     if (!q_id || !m_id) { return res.status(400).send('q_id and m_id must be provided!'); }
 
 // Get page-images for query and match
-    const base_img_url = 'http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/';
     const img_ext = '.jpg';
+    if (get_collection_from_id(q_id) != "D-Mbs") var base_img_url = BASE_IMG_URL;
     const q_jpg_url = base_img_url + q_id + img_ext;
+    if (get_collection_from_id(m_id) != "D-Mbs") var base_img_url = BASE_IMG_URL;
     const m_jpg_url = base_img_url + m_id + img_ext;
 
 //    Get both MEI files
-    const base_mei_url = 'http://doc.gold.ac.uk/~mas01tc/EMO_search/new_mei_pages/';
     const mei_ext = '.mei';
-    var q_mei_url = base_mei_url + q_id + mei_ext;
-    var m_mei_url = base_mei_url + m_id + mei_ext;
+    const base_mei_url = BASE_MEI_URL;
+    if (get_collection_from_id(q_id) != "D-Mbs") var base_img_url = BASE_MEI_URL;
+    const q_mei_url = base_img_url + q_id + mei_ext;
+    if (get_collection_from_id(m_id) != "D-Mbs") var base_img_url = BASE_MEI_URL;
+    const m_mei_url = base_img_url + m_id + mei_ext;
 
     // id_diat_mel_lookup is a file of ids and codestrings
     // this finds the line of the query and result pages
@@ -505,12 +610,13 @@ function load_maws() { load_file(MAWS_DB, parse_maws_db); }
 function load_diat_mels() { load_file(DIAT_MEL_DB, parse_diat_mels_db);}
 
 function parse_maws_db(data_str) {
-    const lines = data_str.split("\n");
+    let lines = data_str.split("\n");
     console.log(lines.length + " lines of MAWs to read...");
 
     const no_maws_ids = [];
     const short_maws_ids = [];
-    for (const line of lines) {
+    var line_count = 0;
+    for (let line of lines) {
         if (line) {
             parsed_line = parse_id_maws_line(line);
             const id = parsed_line.id;
@@ -533,7 +639,9 @@ function parse_maws_db(data_str) {
                 if (!MAWS_to_IDS[word]) { MAWS_to_IDS[word] = []; }
                 MAWS_to_IDS[word].push(id);
             }
+        line_count++;
         }
+       process.stdout.write((("  "+line_count/lines.length)*100).toFixed(2)+"%"+"\r") 
     }
 
     // fs.writeFile("./run/err.log", no_maws, () => {}); // write out ids with no maws
@@ -546,13 +654,16 @@ function parse_maws_db(data_str) {
 }
 
 function parse_diat_mels_db(data_str) {
-    const lines = data_str.split("\n");
+	let lines = data_str.split("\n");
     console.log(lines.length + " lines of diatonic melody strings to read...");
-    for (const line of lines) {
+    var line_count = 0;
+    for (let line of lines) {
         if (line) {
             const [id, diat_mels_str] = line.split(/ (.+)/); // splits on first match of whitespace
             EMO_IDS_DIAT_MELS[id] = diat_mels_str;
+            line_count++;
         }
+        process.stdout.write((("  "+line_count/lines.length)*100).toFixed(2)+"%"+"\r") 
     }
     console.log(Object.keys(EMO_IDS_DIAT_MELS).length+" Diatonic melody strings loaded!");
 
@@ -568,7 +679,9 @@ function load_ngrams_from_diat_mels (ng_len) {
 			EMO_IDS_NGRAMS[id] = utils.ngram_array_as_set(EMO_IDS_DIAT_MELS[id],ng_len);
 		}
 	}
-	console.log("Generated "+ng_len+"-grams for "+Object.keys(EMO_IDS_NGRAMS).length+" IDs.");
+	var id_total = Object.keys(EMO_IDS_NGRAMS).length;
+	var id_count = 0;
+	console.log("Generated "+ng_len+"-grams for "+id_total+" IDs.");
 	
 	var id_keys = Object.keys(EMO_IDS_NGRAMS);
 	var ngram_array = Object.values(EMO_IDS_NGRAMS);
@@ -582,6 +695,8 @@ function load_ngrams_from_diat_mels (ng_len) {
 			}
 			NGRAMS_to_IDS[ngrams[ngram]].push(id_keys[id]);
 		}
+		id_count++;
+		process.stdout.write((("  "+id_count/id_total)*100).toFixed(2)+"%"+"\r") 
 	}
 	console.log("There are "+Object.keys(NGRAMS_to_IDS).length+" unique "+ng_len+"-grams");
 	
@@ -605,9 +720,6 @@ function load_ngrams_from_diat_mels (ng_len) {
 }
 	
 function load_file(file, data_callback) {
-    // The 'db' is a text file, where each line is an EMO page ID,
-    // followed by the MAWs for that page.
-
     console.log("Loading " + file);
     fs.readFile(file, 'utf8', (err, data) => {
         if (err) { throw err; }
@@ -618,6 +730,13 @@ function load_file(file, data_callback) {
             data_callback(data);
         }
     });
+}
+	
+function load_file_sync(file) {
+//	console.log("Loading " + file + " synchronously");
+	var data = fs.readFileSync(file, 'utf8');
+//	console.log("    "+data.length);
+	return data;
 }
 
 function load_current_query_diat_str(q_diat_url) { load_file(q_diat_url, get_diat_str); }
@@ -632,6 +751,11 @@ console.log("url for mel str is "+q_diat_url);
 /*******************************************************************************
  * Helpers
  ******************************************************************************/
+
+// Gets library RISM siglum from beginning of id
+function get_collection_from_id(id) {
+	return id.substr(0,id.indexOf("_"));
+}
 
 function jacc_delta (array, n) {
     return array[n].jaccard - array[n - 1].jaccard;

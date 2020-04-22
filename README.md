@@ -25,7 +25,7 @@ mkdir run
 
 To run...
 ```
-node server.js
+node --max-old-space-size=8192 server.js Mbs0 Mbs1 Mbs2 Mbs3 Mbs4 Mbs5 Mbs6 Mbs7
 ```
 
 The app listens at port 8020.

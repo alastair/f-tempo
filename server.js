@@ -10,18 +10,35 @@ const fs = require('fs');
 const mustacheExpress = require('mustache-express');
 const path_app = require('path');
 const request = require('request');
-
 const utils = require('./static/src/utils.js');
-const dpath = require('./static/src/data_paths.js');
-
 var	argv = require('minimist')(process.argv.slice(2));
 
 /*******************************************************************************
  * Globals / init
  ******************************************************************************/
-const MAWS_DB = './data/latest_maws'; 
+const dp_prefix = {};
+dp_prefix["D-Bsb_"] = "/storage/ftempo/locations/D-Bsb/";
+dp_prefix["D-Mbs_"] = "/storage/ftempo/locations/D-Mbs/";
+dp_prefix["F-Pn_"] = "/storage/ftempo/locations/F-Pn/";
+dp_prefix["GB-Lbl_"] = "/storage/ftempo/locations/GB-Lbl/";
+dp_prefix["PL_Wn_"] = "/storage/ftempo/locations/PL_Wn/";
+
+const D_MBS_ID_PATHS = [];
+
+// This function returns the path to the correct subdirectory of D-Mbs data
+function get_datapath(id) {
+	if(id.startsWith("D-Mbs_")){
+		for(var x=0;x<=7;x++) {
+			if(D_MBS_ID_PATHS[x].includes(id)) return "D-Mbs/Mbs"+x+"/"+id;
+		}
+	}
+	else {
+		return Object.keys(dp_prefix)[id.substr(0,id.indexOf("_")+1)];
+	}
+}
+var MAWS_DB = './data/latest_maws'; 
 //const MAWS_DB = './data/latest_maws_corrIDs_30Sep2019.txt'; 
-const DIAT_MEL_DB = './data/latest_diat_mel_strs'; 
+var DIAT_MEL_DB = './data/latest_diat_mel_strs'; 
 //const DIAT_MEL_DB = './data/latest_diat_mel_strs_corrIDs_30Sep2019.txt'; 
 const EMO_IDS = []; // all ids in the system
 const EMO_IDS_DIAT_MELS = {}; // keys are ids, values are the diat_int_code for that id
@@ -43,8 +60,15 @@ var ARG_LIST = argv._;  // Arguments on command-line
 var DB_PREFIX_LIST = []; // Array of prefixes to F_TEMPO data collections
 
 // Goldsmiths-based location of files *excluding D-Mbs* --- CHANGE THIS!!
-const BASE_IMG_URL = 'http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/';
-const BASE_MEI_URL = 'http://doc.gold.ac.uk/~mas01tc/EMO_search/new_mei_pages/';
+//const BASE_IMG_URL = 'http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/';
+//const BASE_MEI_URL = 'http://doc.gold.ac.uk/~mas01tc/EMO_search/new_mei_pages/';
+const BASE_IMG_URL = '/img/jpg/';
+const BASE_MEI_URL = '/img/mei/';
+
+// flags to say whether the current id comes from D-Mbs or elsewhere (in app.get('/compare' ..., below)
+// If true, page-image MEI files are local; otherwise they need to be downloaded via http 
+var q_Mbs = true;
+var m_Mbs = true;
 
 //console.log("Before: "+ARG_LIST+" (length "+ARG_LIST.length+")");
 while(ARG_LIST.length) {
@@ -96,7 +120,6 @@ for(i=0;i<DB_PREFIX_LIST.length;i++) {
  ******************************************************************************/
 console.log("F-TEMPO server started at "+Date());
 
-const D_MBS_ID_PATHS = [];
 function parse_Mbs_paths(data_str) {
 	let lines = data_str.split("\n");
 	for (let line of lines) {
@@ -117,16 +140,16 @@ else {
 	for (var m=0;m<DB_PREFIX_LIST.length;m++) {
 		console.log(m)
 // Comment out the next 5 lines on the 'real' server, where D-Mbs files will be present.
-		if(DB_PREFIX_LIST[m].startsWith("D-Mbs")) {
-			console.log("D-Mbs not available on this server");
+//		if(DB_PREFIX_LIST[m].startsWith("D-Mbs")) {
+//			console.log("D-Mbs not available on this server");
 //			process.exit();
-			continue;
-		}
-		var maws_db = "./data/maws/"+DB_PREFIX_LIST[m];
+//			continue;
+//		}
+		var maws_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/maws";
 		console.log("maws_db is "+maws_db);
 		load_file(maws_db, parse_maws_db);
 		
-		var diat_mel_db = "./data/codestrings/"+DB_PREFIX_LIST[m];
+		var diat_mel_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/codestrings";
 		console.log("diat_mel_db is "+diat_mel_db);
 		load_file(diat_mel_db, parse_diat_mels_db);
 	}
@@ -135,21 +158,30 @@ else {
 if(DB_PREFIX_LIST.includes("D-Mbs")) {
 	var total_size = 0;
 	for(Mbs_segment=0;Mbs_segment<=7;Mbs_segment++) {
-		let path_file = "data/collections/D-Mbs/Mbs"+Mbs_segment;
+//		let path_file = "data/collections/D-Mbs/Mbs"+Mbs_segment;
+		let path_file = "/storage/ftempo/locations/Mbs/Mbs"+Mbs_segment;
 		total_size += parse_Mbs_paths(load_file_sync(path_file));
 	}
 	console.log(D_MBS_ID_PATHS.length+" Mbs segments loaded; total size: "+total_size);
+
+/*
+  ///// Test stuff here
+  console.log("Testing dp_prefix")
+  var test_id="F-Pn_RES-VM7-504_3_150r_128"
+  //console.log("    Testing datapath for "+test_id+": "+get_datapath(test_id))
+  console.log("Testing datapath: "+get_datapath("D-Mbs_bsb00103258_00033"));
+  process.exit();
+*/
 }
 
-///// Test stuff here
-console.log("Testing datapath: "+dpath.get_datapath("F-Pn_RES-VM7-504_3_150r_128"))
-//console.log("Testing datapath: "+dpath.get_datapath("D-Mbs_bsb00103258_00033"))
-
-
-const port = 8000;
+console.time('load_ngrams_from_diat_mels');
+load_ngrams_from_diat_mels(5);
+console.timeEnd('load_ngrams_from_diat_mels');
+	
+const port = 8020;
 app.listen(
     port,
-    () => console.log('EMO app listening on port 8000!') // success callback
+    () => console.log('EMO app listening on port 8020!') // success callback
 );
 
 app.engine('html', mustacheExpress()); // render html templates using Mustache
@@ -191,20 +223,28 @@ app.get('/compare', function (req, res) {
 
     if (!q_id || !m_id) { return res.status(400).send('q_id and m_id must be provided!'); }
 
+    // Because D-Mbs MEI files are stored locally, we need to load them differently than those from URLs
+    // q_Mbs and m_Mbs are globals
+    if (get_collection_from_id(q_id) == "D-Mbs")  q_Mbs = true;
+    if (get_collection_from_id(m_id) == "D-Mbs")  m_Mbs = true;
+
 // Get page-images for query and match
     const img_ext = '.jpg';
+    const base_img_url = BASE_IMG_URL;
+/*
     if (get_collection_from_id(q_id) != "D-Mbs") var base_img_url = BASE_IMG_URL;
+ */
     const q_jpg_url = base_img_url + q_id + img_ext;
-    if (get_collection_from_id(m_id) != "D-Mbs") var base_img_url = BASE_IMG_URL;
     const m_jpg_url = base_img_url + m_id + img_ext;
 
 //    Get both MEI files
     const mei_ext = '.mei';
     const base_mei_url = BASE_MEI_URL;
-    if (get_collection_from_id(q_id) != "D-Mbs") var base_img_url = BASE_MEI_URL;
-    const q_mei_url = base_img_url + q_id + mei_ext;
-    if (get_collection_from_id(m_id) != "D-Mbs") var base_img_url = BASE_MEI_URL;
-    const m_mei_url = base_img_url + m_id + mei_ext;
+/*
+    if (get_collection_from_id(q_id) != "D-Mbs") var base_mei_url = BASE_MEI_URL;
+*/
+    var q_mei_url = base_mei_url + q_id + mei_ext;
+    var m_mei_url = base_mei_url + m_id + mei_ext;
 
     // id_diat_mel_lookup is a file of ids and codestrings
     // this finds the line of the query and result pages
@@ -303,8 +343,35 @@ app.get('/compare', function (req, res) {
     const show_top_ngrams = false;
     const [q_index_to_colour, m_index_to_colour] = generate_index_to_colour_maps(q_diat_str, m_diat_str, show_top_ngrams);
 
-    request(q_mei_url, function (error, response, q_mei) { if (!error && response.statusCode == 200) {
-    request(m_mei_url, function (error, response, m_mei) { if (!error && response.statusCode == 200) {
+	let q_mei = "";
+	let m_mei = "";
+	var ok = false;
+	if(q_Mbs) {
+		q_mei_url = "static"+q_mei_url;
+		q_mei = load_file_sync(q_mei_url);
+		if(!q_mei.length) return res.status(400).send('Could not find the MEI file '+q_mei_url);
+	}
+	else {
+		request(q_mei_url, function (error, response, q_mei) { 
+			if (!error && response.statusCode == 200) {
+				ok = true;
+			}
+			else  return res.status(400).send('Could not find the MEI file '+q_mei_url);
+		});
+	}
+	if(m_Mbs) {
+		m_mei_url = "static"+m_mei_url;
+		m_mei = load_file_sync(m_mei_url);
+		if(!m_mei.length) return res.status(400).send('Could not find the MEI file '+m_mei_url);
+	}
+	else {
+		request(m_mei_url, function (error, response, m_mei) { 
+			if (!error && response.statusCode == 200) {
+				ok = true;
+			}
+			else  return res.status(400).send('Could not find the MEI file '+q_mei_url);
+		});
+	}
 	const  data = {
 		q_id,
 		m_id,
@@ -317,8 +384,31 @@ app.get('/compare', function (req, res) {
 		ng_len: ngram_length,
 	  }
 	res.render('compare', data);
-     } else { return res.status(400).send('Could not find the MEI file for m_id'+m_id); }});
-    } else { return res.status(400).send('Could not find the MEI file for q_id '+q_id); }});
+
+/*
+    request(q_mei_url, function (error, response, q_mei) { 
+    	if (!error && response.statusCode == 200) {
+	    request(m_mei_url, function (error, response, m_mei) { 
+	    	if (!error && response.statusCode == 200) {
+		const  data = {
+			q_id,
+			m_id,
+			q_jpg_url,
+			m_jpg_url,
+			q_mei: q_mei.replace(/(\r\n|\n|\r)/gm,''), // strip newlines
+			m_mei: m_mei.replace(/(\r\n|\n|\r)/gm,''), // strip newlines
+			q_diat_str: JSON.stringify(q_diat_str),
+			m_diat_str: JSON.stringify(m_diat_str),
+			ng_len: ngram_length,
+		  }
+		res.render('compare', data);
+		} 
+		else { 
+			return res.status(400).send('Could not find the MEI file '+m_mei_url); 
+			}
+	});
+    } else { return res.status(400).send('Could not find the MEI file '+q_mei_url); }});
+*/
 
 });
 
@@ -447,7 +537,7 @@ function search(method, query, jaccard, num_results, threshold, ngram) {
  console.log("ID " + query + " not found in " + MAWS_DB);
             return;
         }
- 
+// console.log((ngram=="true")? "NGRAM search":"MAWs search")
         words = ngram? EMO_IDS_NGRAMS[query] : EMO_IDS_MAWS[query];
     } else if (method === 'words') {
         parsed_line = parse_id_maws_line(query);
@@ -667,10 +757,6 @@ function parse_diat_mels_db(data_str) {
     }
     console.log(Object.keys(EMO_IDS_DIAT_MELS).length+" Diatonic melody strings loaded!");
 
-	console.time('load_ngrams_from_diat_mels');
-	load_ngrams_from_diat_mels(5);
-	console.timeEnd('load_ngrams_from_diat_mels');
-	
 }
 
 function load_ngrams_from_diat_mels (ng_len) {

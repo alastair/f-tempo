@@ -9,22 +9,27 @@ if(typeof exports === "undefined") {
  with another 'segment' containing the whole set:
     Mbs/all
 */
-const dp_prefix = [];
+var dp_prefix = {};
 dp_prefix["D-Bsb_"] = "/storage/ftempo/locations/D-Bsb/";
 dp_prefix["D-Mbs_"] = "/storage/ftempo/locations/Mbs/";
 dp_prefix["F-Pn_"] = "/storage/ftempo/locations/F-Pn/";
 dp_prefix["GB-Lbl_"] = "/storage/ftempo/locations/GB-Lbl/";
 dp_prefix["PL_Wn_"] = "/storage/ftempo/locations/PL_Wn/";
 
-// This functions returns the path to the correct subdirectory of D-Mbs data
+Object.keys(dp_prefix).forEach(function(key) {console.log(key,dp_prefix[key]);});
+
+// This function returns the path to the correct subdirectory of D-Mbs data
 function get_datapath(id) {
-	if(id.startsWith("D-Mbs_")){
+	var incipit = 	id.substr(0,id.indexOf("_")+1);
+console.log("ID is "+id+"; incipit is "+incipit)
+	if(incipit == "D-Mbs_"){
 		for(var x=0;x<=7;x++) {
-			if(D_MBS_ID_PATHS[x].includes(id)) return "D-Mbs/Mbs"+x+"/"+id;
+//			if(D_MBS_ID_PATHS[x].includes(id)) return "D-Mbs/Mbs"+x+"/"+id;
 		}
 	}
 	else {
-		return dp_prefix[id.substr(0,id.indexOf("_")+1)];
+		return Object.keys(dp_prefix)[incipit];
 	}
 }
 exports.get_datapath = get_datapath;
+exports.dp_prefix;

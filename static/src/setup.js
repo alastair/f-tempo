@@ -70,6 +70,9 @@ let emo_ids; // Array of page IDs loaded from database on initialisatiom
 let user_id; // for identifying user to logs, etc.
 let can_store_user_id = false;
 
+const BASE_IMG_URL = '/img/jpg/';
+const BASE_MEI_URL = '/img/mei/';
+
 //let ngram_search = false;
 
 function get_or_set_user_id() {
@@ -98,7 +101,8 @@ function load_page_query(id) {
     document.getElementById("query_id").value = id;
     image = id + ".jpg";
     document.getElementById("q_page_display").innerHTML = "Query page: " + id;
-    document.getElementById("emo_image_display").innerHTML = "<img class='img-fluid' id='query_image' src='http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/"+image+"' role=\"presentation\"/>";
+//    document.getElementById("emo_image_display").innerHTML = "<img class='img-fluid' id='query_image' src='http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/"+image+"' role=\"presentation\"/>";
+    document.getElementById("emo_image_display").innerHTML = "<img class='img-fluid' id='query_image' src='"+BASE_IMG_URL+image+"' role=\"presentation\"/>";
     $('#emo_image_display').zoom();
 
     // $('#search_controls').removeClass('d-none');
@@ -203,6 +207,9 @@ function preloadImages(srcs) {
 var imageSrcs = [];
 
 function show_results(json) {
+
+	imageSrcs.length = 0; // empty the cache altogether
+
     var result_num = 0;
     var results = json;
     const provide_judgements = $('#provide_judgements').is(':checked');
@@ -243,7 +250,8 @@ function show_results(json) {
         var sim_choice_id = "sim_choice"+q;
         var sim_id = "sim"+q;
         //               imageSrcs.push("http://doc.gold.ac.uk/~mas01tc/page_dir/"+results[q].id+".jpg");
-        imageSrcs.push("http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/"+results[q].id+".jpg");
+        //imageSrcs.push("http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/"+results[q].id+".jpg");
+        imageSrcs.push(BASE_IMG_URL+results[q].id+".jpg");
 
         const rank_percentage = (rank_factor * 100).toFixed(2);
 
@@ -359,7 +367,7 @@ function load_result_image(id, rank, percent) {
     }
 
 //    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' />";
-    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/"+image+"' />";
+    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='"+BASE_IMG_URL+image+"' />";
     highlight_result_row(rank);
     $('#result_image_display').zoom();
     document.getElementById("query_id").value = id;

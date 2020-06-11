@@ -61,6 +61,14 @@
 		position:relative;
  		color: red; 
 	}
+	#query_tp_display {
+	/*	position: absolute; */
+		left: 20
+	}
+	#result_tp_display {
+	/*	position: absolute; */
+		right: 20
+	}
 	.tablink {
 		font-size: 12px;
 		background-color: lightgray;
@@ -70,6 +78,12 @@
 	}
 	.selected {
 		color: #000!important;
+	}
+	.title {
+		position: absolute;
+	/*	left: 20px; */
+		object-fit: scale-down;
+		height: 250px;
 	}
 /* Grey out things that aren't implemented*/
 	{
@@ -207,14 +221,17 @@ function ngram_array(str, n) {
 		}
 	return ngrams;
 }
-
 </script>
 
 </head>
 
 <body>
 
-<script>document.onkeydown = checkKey;</script>
+<script>
+	document.onkeydown = checkKey;
+
+
+</script>
 
 
 <!-- navigation -->
@@ -452,7 +469,7 @@ function ngram_array(str, n) {
 
 
     <span id="q_page_display"></span>
-    <div id="emo_image_display"></div>
+    <div id="emo_image_display" max-height="1000px"></div>
     <div id="q_text_display"></div>
 
     </div> <!-- left col in search within corpus mode -->
@@ -539,20 +556,77 @@ function ngram_array(str, n) {
                 <input type="checkbox" class="form-check-input" id="provide_judgements">
                 <label class="form-check-label" for="provide_judgements">Provide judgements to help improve the system</label>
             </div>
+<script>
+
+var collections_to_search=[];
+$('.coll_select').change(function(){
+	$('#select_all').checked=false;
+	collections_to_search.push(this.id).substring(7).replace("_","-");
+});
+$('#select_all').click(function(){
+	$(this).checked=true;
+	$('#select_D_Bs').checked=true;
+	$('#select_D_Mbs').checked=true;
+	$('#select_F_Pn').checked=true;
+	$('#select_GB_Lbl').checked=true;
+	$('#select_PL_Wn').checked=true;
+	collections_to_search.push(this.id).substring(7).replace("_","-");
+});
+
+</script>
+            <div class="form-group form-check">Collections to search<br>
+			  <table id="collection_select_table" width="100%">
+				  <tr>
+					  <td>
+						 <input padding-left="15px" type="checkbox" class="form-check-input" id="select_all" checked>
+						 <label class="form-check-label" for="select_all">All</label>
+					</td>
+					<td>
+						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" id="select_D_Mbs">
+						 <label class="form-check-label" for="select_D_Mbs">D-Mbs</label>
+					</td>
+					<td>
+						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" id="select_D_Bs">
+						 <label class="form-check-label" for="select_D_Bs">D-Bs</label>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" id="select_F_Pn">
+						 <label class="form-check-label" for="select_F_Pn">F-Pn</label>
+					</td>
+					<td>
+						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" id="select_GB_Lbl">
+						 <label class="form-check-label" for="select_GB_Lbl">GB-Lbl</label>
+					</td>
+					<td>
+						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" id="select_PL_Wn">
+						 <label class="form-check-label" for="select_PL_Wn">PL-Wn</label>
+					  </td>
+				  </tr>
+			  </table>
+            </div>
         </div>
     </div> <!-- end search controls -->
 </div> <!-- middle col -->
 
 <div class='col card' id="res_display_div">
-    <div id="result_image_display"></div>
+    <div id="result_image_display" max-height="1000px"></div>
     <div id="result_id_msg"></div>
 </div> <!-- right col -->
 
 </div> <!-- outermost row -->
 
-
 </div> <!-- container fluid -->
 
+<div id="tp_display">
+	<span id="query_tp_display" style="float:left;display:block">
+		<img id="query_tp_img" width="250"/>
+	</span>
+	<span id="result_tp_display" style="float:right;display:block">
+		<img id="result_tp_img" width="250"/>
+	</span>
+</div>
 
 </body>
 

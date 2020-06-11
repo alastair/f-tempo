@@ -21,7 +21,7 @@ dp_prefix["D-Bsb_"] = "/storage/ftempo/locations/D-Bsb/";
 dp_prefix["D-Mbs_"] = "/storage/ftempo/locations/D-Mbs/";
 dp_prefix["F-Pn_"] = "/storage/ftempo/locations/F-Pn/";
 dp_prefix["GB-Lbl_"] = "/storage/ftempo/locations/GB-Lbl/";
-dp_prefix["PL_Wn_"] = "/storage/ftempo/locations/PL_Wn/";
+dp_prefix["PL-Wn_"] = "/storage/ftempo/locations/PL_Wn/";
 
 const D_MBS_ID_PATHS = [];
 
@@ -50,13 +50,34 @@ const NGRAMS_to_IDS = {}; // keys are ngrams, values are a array of all ids in w
 const NGRAM_ID_BASE = "./data/ngram_id_dict_";
 const ID_NGRAM_BASE = "./data/id_ngram_dict_";
 
+var TP_JPG_LIST = "static/src/jpg_list.txt";
+const tp_jpgs = []; // URLs to title-pages (NB only for D-Mbs!)
+
+var search_ids = []; // list of ids to search - constructed from EMO_IDS as required
+
 const word_totals = []; // total words per id, used for normalization
 const word_ngram_totals = []; // total words per id, used for normalization
 const ngr_len = 5;
 
 const app = express();
+var ARG_LIST = [];
 
-var ARG_LIST = argv._;  // Arguments on command-line
+console.log("argv is: " + argv)
+if(argv._.length) {
+	ARG_LIST = argv._; // Arguments on command-line
+console.log(argv._.length+" arguments")
+}
+else {
+console.log("No arguments")
+	var data = load_file_sync("static/src/startup_config")
+	var words = data.split(" ");
+	for(var i=0;i<words.length;i++) {
+		ARG_LIST.push(words[i]);
+	}
+}
+console.log("ARG_LIST = "+ARG_LIST)
+/**/
+
 var DB_PREFIX_LIST = []; // Array of prefixes to F_TEMPO data collections
 
 // Goldsmiths-based location of files *excluding D-Mbs* --- CHANGE THIS!!
@@ -70,17 +91,7 @@ const BASE_MEI_URL = '/img/mei/';
 var q_Mbs = true;
 var m_Mbs = true;
 
-//console.log("Before: "+ARG_LIST+" (length "+ARG_LIST.length+")");
-while(ARG_LIST.length) {
-	if (
-		ARG_LIST[0].startsWith("D-Mbs")||
-		ARG_LIST[0].startsWith("Mbs")||
-		ARG_LIST[0].startsWith("D-Bsb")||
-		ARG_LIST[0].startsWith("F-Pn")||
-		ARG_LIST[0].startsWith("GB-Lbl")||
-		ARG_LIST[0].startsWith("PL-Wn")||
-		(ARG_LIST[0] == "all")
-	) {
+while (ARG_LIST.length > 0) {
 		if(ARG_LIST[0].startsWith("Mbs")){
 			var suffix = ARG_LIST[0].substring(3);
 			switch (suffix) {
@@ -101,24 +112,35 @@ while(ARG_LIST.length) {
 			}
 		}
 		else {
-			DB_PREFIX_LIST.push(ARG_LIST.shift());
+			DB_PREFIX_LIST.push(ARG_LIST.shift().trim());
 		}
-	}
-	else {
-		ARG_LIST.shift(); // Throw away garbage/illegal arguments
-	}
 }
 for(i=0;i<DB_PREFIX_LIST.length;i++) {
 	if(DB_PREFIX_LIST[i].startsWith("Mbs")) {
 		if(DB_PREFIX_LIST[i]=="Mbs_all") DB_PREFIX_LIST[i] = "all"
 		DB_PREFIX_LIST[i]="D-Mbs/"+DB_PREFIX_LIST[i];
 	}
+console.log(DB_PREFIX_LIST[i]);
 }
 
 /*******************************************************************************
  * Setup
  ******************************************************************************/
+console.time("Full startup time");
 console.log("F-TEMPO server started at "+Date());
+
+load_file(TP_JPG_LIST,parse_tp_jpgs);
+
+function parse_tp_jpgs(data_str) {
+        let lines = data_str.split("\n");
+    for (let line of lines) {
+	var linecount;
+        if (line) {
+		tp_jpgs.push(line);
+        }
+    }
+    console.log(Object.keys(tp_jpgs).length+" title-page urls loaded!");
+}
 
 function parse_Mbs_paths(data_str) {
 	let lines = data_str.split("\n");
@@ -134,8 +156,7 @@ var Mbs_segment;
 if(!DB_PREFIX_LIST.length) {
 	load_maws(); // load the MAWS
 	load_diat_mels(); // load the diatonic melodies
-}
-else {
+}else {
 	console.log(DB_PREFIX_LIST.length+" Databases to load: "+DB_PREFIX_LIST);
 	for (var m=0;m<DB_PREFIX_LIST.length;m++) {
 		console.log(m)
@@ -145,43 +166,33 @@ else {
 //			process.exit();
 //			continue;
 //		}
-		var maws_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/maws";
-		console.log("maws_db is "+maws_db);
-		load_file(maws_db, parse_maws_db);
-		
-		var diat_mel_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/codestrings";
+		if(DB_PREFIX_LIST[m].startsWith("D-Mbs")) var maws_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/maws";
+		else var maws_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/all/maws";
+		load_file(maws_db, parse_maws_db,DB_PREFIX_LIST[m]);
+
+		if(DB_PREFIX_LIST[m].startsWith("D-Mbs")) var diat_mel_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/codestrings";
+		else var diat_mel_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/all/codestrings";
 		console.log("diat_mel_db is "+diat_mel_db);
-		load_file(diat_mel_db, parse_diat_mels_db);
+		load_file(diat_mel_db, parse_diat_mels_db, DB_PREFIX_LIST[m]);
 	}
 }
 
 if(DB_PREFIX_LIST.includes("D-Mbs")) {
 	var total_size = 0;
 	for(Mbs_segment=0;Mbs_segment<=7;Mbs_segment++) {
-//		let path_file = "data/collections/D-Mbs/Mbs"+Mbs_segment;
 		let path_file = "/storage/ftempo/locations/Mbs/Mbs"+Mbs_segment;
 		total_size += parse_Mbs_paths(load_file_sync(path_file));
 	}
 	console.log(D_MBS_ID_PATHS.length+" Mbs segments loaded; total size: "+total_size);
 
-/*
-  ///// Test stuff here
-  console.log("Testing dp_prefix")
-  var test_id="F-Pn_RES-VM7-504_3_150r_128"
-  //console.log("    Testing datapath for "+test_id+": "+get_datapath(test_id))
-  console.log("Testing datapath: "+get_datapath("D-Mbs_bsb00103258_00033"));
-  process.exit();
-*/
 }
+// This doesn't work, as loading is asynchronous!
+console.timeEnd("Full startup time");
 
-console.time('load_ngrams_from_diat_mels');
-load_ngrams_from_diat_mels(5);
-console.timeEnd('load_ngrams_from_diat_mels');
-	
-const port = 8020;
+const port = 8000;
 app.listen(
     port,
-    () => console.log('EMO app listening on port 8020!') // success callback
+    () => console.log('EMO app listening on port 8000!') // success callback
 );
 
 app.engine('html', mustacheExpress()); // render html templates using Mustache
@@ -246,12 +257,12 @@ app.get('/compare', function (req, res) {
     var q_mei_url = base_mei_url + q_id + mei_ext;
     var m_mei_url = base_mei_url + m_id + mei_ext;
 
-    // id_diat_mel_lookup is a file of ids and codestrings
+    //EMO_IDS_DIAT_MELS lists ids and codestrings;
     // this finds the line of the query and result pages
-	q_diat_str = EMO_IDS_DIAT_MELS[q_id];
-	const m_diat_str = EMO_IDS_DIAT_MELS[m_id];
-    if (!q_diat_str) { return res.status(400).send('Could not find melody string for this q_id'); }
-    if (!m_diat_str) { return res.status(400).send('Could not find melody string for this m_id'); }
+    const q_diat_str = EMO_IDS_DIAT_MELS[q_id];
+    const m_diat_str = EMO_IDS_DIAT_MELS[m_id];
+    if (!q_diat_str) { return res.status(400).send('Could not find melody string for this q_id '+q_id); }
+    if (!m_diat_str) { return res.status(400).send('Could not find melody string for this m_id: '+m_id); }
     
 	function ngram_string(str, n) {
 	// Returns array of ngrams of length n
@@ -384,32 +395,6 @@ app.get('/compare', function (req, res) {
 		ng_len: ngram_length,
 	  }
 	res.render('compare', data);
-
-/*
-    request(q_mei_url, function (error, response, q_mei) { 
-    	if (!error && response.statusCode == 200) {
-	    request(m_mei_url, function (error, response, m_mei) { 
-	    	if (!error && response.statusCode == 200) {
-		const  data = {
-			q_id,
-			m_id,
-			q_jpg_url,
-			m_jpg_url,
-			q_mei: q_mei.replace(/(\r\n|\n|\r)/gm,''), // strip newlines
-			m_mei: m_mei.replace(/(\r\n|\n|\r)/gm,''), // strip newlines
-			q_diat_str: JSON.stringify(q_diat_str),
-			m_diat_str: JSON.stringify(m_diat_str),
-			ng_len: ngram_length,
-		  }
-		res.render('compare', data);
-		} 
-		else { 
-			return res.status(400).send('Could not find the MEI file '+m_mei_url); 
-			}
-	});
-    } else { return res.status(400).send('Could not find the MEI file '+q_mei_url); }});
-*/
-
 });
 
 var q_diat_str;
@@ -420,6 +405,9 @@ app.get('/api/num_emo_ids', function (req, res) { res.send(EMO_IDS.length+" page
 
 // Returns an array of all emo ids
 app.get('/api/emo_ids', function (req, res) { res.send(EMO_IDS); });
+
+// Returns an array of all title-page jpg urls
+app.get('/api/title-pages', function (req, res) { res.send(tp_jpgs); });
 
 // Handle a query
 app.post('/api/query', function (req, res) {
@@ -487,10 +475,7 @@ app.post('/api/image_query', function(req, res) {
     user_image.mv(working_path + new_filename, (err) => {
         if (err) { return res.status(500).send(err); }
         else {
-
-		load_current_query_diat_str(working_path +"page.txt");
-
-            // console.log("Uploaded file saved as " + working_path + new_filename);
+// console.log("Uploaded file saved as " + working_path + new_filename);
             const ngram_search = false; // TODO(ra): make this work!
             const result = run_image_query(user_id, new_filename, working_path, ngram_search);
             if (result) { res.send(result); }
@@ -524,7 +509,6 @@ to log ${log}.`
 // query is a string, either holding the id a id+maws line
 function search(method, query, jaccard, num_results, threshold, ngram) {
     if (ngram === undefined) { ngram = false; }
-//    if(ngram_search == true) {ngram = true};
 
     if(!query) { // Need to report this back to browser/user
         console.log("No query provided!");
@@ -534,9 +518,10 @@ function search(method, query, jaccard, num_results, threshold, ngram) {
     let words;
     if (method === 'id') {
         if (!(query in EMO_IDS_MAWS)) { // TODO: need to report to frontend
- console.log("ID " + query + " not found in " + MAWS_DB);
+ console.log("ID " + query + " not found in F-TEMPO data!");
             return;
         }
+console.log("ID: "+query);
 // console.log((ngram=="true")? "NGRAM search":"MAWs search")
         words = ngram? EMO_IDS_NGRAMS[query] : EMO_IDS_MAWS[query];
     } else if (method === 'words') {
@@ -589,6 +574,7 @@ function run_image_query(user_id, user_image_filename, the_working_path, ngram_s
                                      + user_image_filename + ' ' + the_working_path);
             query = String(query_data); // a string of maws, preceded with an id
         } catch (err) { return; } // something broke in the shell script...
+// console.log("query is "+query)
         result = search('words', query, jaccard, num_results, threshold);
     }
     else {
@@ -607,27 +593,43 @@ function get_result_from_words(words, signature_to_ids_dict, jaccard, num_result
         // console.log("Not enough words in query.");
         return [];
     }
-
+console.time("search");
+// console.log("Words: \n"+words)
 // Safety check that the words are all unique:    
     const uniq_words = Array.from(new Set(words));
-//if(words.length != uniq_words.length) console.log("words and uniq_words don't match.")
     const scores = get_scores(uniq_words, signature_to_ids_dict, ngram);
+console.log(uniq_words.length+" words")
+console.log(Object.keys(scores).length+" scores to prune");
+console.time("pruning")
     const scores_pruned = get_pruned_and_sorted_scores(scores, uniq_words.length, jaccard,ngram);
+console.timeEnd("pruning")
+console.log("Now pruned to "+scores_pruned.length);
     const result = gate_scores_by_threshold(scores_pruned, threshold, jaccard, num_results);
+console.timeEnd("search");
     return result;
 }
 
 function get_scores(words, signature_to_ids_dict, ngram) {
     var res = false;
     var scores = {};
+console.time("get_scores")
     for (const word of words) {
         const ids = signature_to_ids_dict[word]
         if (!ids) { continue; }
         for(const id of ids) {
-            if (!scores[id]) { scores[id] = 0; }
-            scores[id]++;
+		   if(typeof id_list == "undefined"){
+		   	if (!scores[id]) { scores[id] = 0; }
+			scores[id]++;
+		   }
+		   else {
+		   	if(id_list.includes(id)) {
+				if (!scores[id]) { scores[id] = 0; }
+				scores[id]++;		   		
+		   	}
+		   }
         }
     }
+console.timeEnd("get_scores")
     return scores;
 }
 
@@ -652,7 +654,7 @@ if((result.jaccard < 0)&&(num > num_words)) console.log("num: "+num+" : num_word
             scores_pruned.push(result);
         }
     }
-
+console.time("sort")
     // Sort
     if (jaccard) {
         // Ascending, as 0 is identity match
@@ -662,7 +664,7 @@ if((result.jaccard < 0)&&(num > num_words)) console.log("num: "+num+" : num_word
         // Descending
         scores_pruned.sort((a, b) => { return b.num - a.num; });
     }
-
+console.timeEnd("sort")
     return scores_pruned;
 }
 
@@ -696,12 +698,12 @@ function gate_scores_by_threshold(scores_pruned, threshold, jaccard, num_results
  * Data loading
  ******************************************************************************/
 
-function load_maws() { load_file(MAWS_DB, parse_maws_db); }
-function load_diat_mels() { load_file(DIAT_MEL_DB, parse_diat_mels_db);}
+function load_maws() { load_file(MAWS_DB, parse_maws_db,"basic"); }
+function load_diat_mels() { load_file(DIAT_MEL_DB, parse_diat_mels_db,"basic");}
 
-function parse_maws_db(data_str) {
+function parse_maws_db(data_str,source) {
     let lines = data_str.split("\n");
-    console.log(lines.length + " lines of MAWs to read...");
+    console.log(lines.length + " lines of MAWs to read from "+source+" ...");
 
     const no_maws_ids = [];
     const short_maws_ids = [];
@@ -718,14 +720,16 @@ function parse_maws_db(data_str) {
             }
 
             EMO_IDS.push(id);
-            EMO_IDS_MAWS[id] = words;
+	var uniq_words = Array.from(new Set(words));
 
-            if(words.length < 10) {
+           EMO_IDS_MAWS[id] = uniq_words;
+
+            if(uniq_words.length < 10) {
             	short_maws_ids.push(id);
             	continue;
             }
-            word_totals[id] = words.length;
-            for (const word of words) {
+            word_totals[id] = uniq_words.length;
+            for (const word of uniq_words) {
                 if (!MAWS_to_IDS[word]) { MAWS_to_IDS[word] = []; }
                 MAWS_to_IDS[word].push(id);
             }
@@ -734,23 +738,20 @@ function parse_maws_db(data_str) {
        process.stdout.write((("  "+line_count/lines.length)*100).toFixed(2)+"%"+"\r") 
     }
 
-    // fs.writeFile("./run/err.log", no_maws, () => {}); // write out ids with no maws
-    // console.log(no_maws);
-    // console.log(EMO_IDS);
-    // console.log(EMO_IDS_MAWS);
     console.log(EMO_IDS.length + " lines of MAW data loaded!");
+    console.log(Object.keys(MAWS_to_IDS).length + " unique MAWs!");
     console.log(no_maws_ids.length + " empty lines of MAW data rejected!");
     console.log(short_maws_ids.length + " lines with short MAW data rejected!");
 }
 
-function parse_diat_mels_db(data_str) {
+function parse_diat_mels_db(data_str,source) {
 	let lines = data_str.split("\n");
-    console.log(lines.length + " lines of diatonic melody strings to read...");
+    console.log(lines.length + " lines of diatonic melody strings to read from "+source+" ...");
     var line_count = 0;
     for (let line of lines) {
         if (line) {
             const [id, diat_mels_str] = line.split(/ (.+)/); // splits on first match of whitespace
-            EMO_IDS_DIAT_MELS[id] = diat_mels_str;
+            if(typeof diat_mels_str != "undefined") EMO_IDS_DIAT_MELS[id] = diat_mels_str;
             line_count++;
         }
         process.stdout.write((("  "+line_count/lines.length)*100).toFixed(2)+"%"+"\r") 
@@ -768,13 +769,11 @@ function load_ngrams_from_diat_mels (ng_len) {
 	var id_total = Object.keys(EMO_IDS_NGRAMS).length;
 	var id_count = 0;
 	console.log("Generated "+ng_len+"-grams for "+id_total+" IDs.");
-	
 	var id_keys = Object.keys(EMO_IDS_NGRAMS);
 	var ngram_array = Object.values(EMO_IDS_NGRAMS);
 	for(id in id_keys) {
 		var ngrams = ngram_array[id];
 		word_ngram_totals[id_keys[id]] = ngrams.length;
-		
 		for (var ngram in ngrams) {
 			if(!NGRAMS_to_IDS[ngrams[ngram]]) { 
 				NGRAMS_to_IDS[ngrams[ngram]] = [];
@@ -785,7 +784,7 @@ function load_ngrams_from_diat_mels (ng_len) {
 		process.stdout.write((("  "+id_count/id_total)*100).toFixed(2)+"%"+"\r") 
 	}
 	console.log("There are "+Object.keys(NGRAMS_to_IDS).length+" unique "+ng_len+"-grams");
-	
+
 /*
 	// Write out the two arrays to disk
 	fs.writeFile(NGRAM_ID_BASE+ng_len+".json",
@@ -802,10 +801,10 @@ function load_ngrams_from_diat_mels (ng_len) {
 		  console.log('The id_ngram_dict has been saved!');
 		}
 	);
-*/	
+*/
 }
-	
-function load_file(file, data_callback) {
+
+function load_file(file, data_callback,source) {
     console.log("Loading " + file);
     fs.readFile(file, 'utf8', (err, data) => {
         if (err) { throw err; }
@@ -813,11 +812,11 @@ function load_file(file, data_callback) {
         if (!data.length) {
             console.log("No data!");
         } else {
-            data_callback(data);
+            data_callback(data,source);
         }
     });
 }
-	
+
 function load_file_sync(file) {
 //	console.log("Loading " + file + " synchronously");
 	var data = fs.readFileSync(file, 'utf8');
@@ -826,6 +825,13 @@ function load_file_sync(file) {
 }
 
 function load_current_query_diat_str(q_diat_url) { load_file(q_diat_url, get_diat_str); }
+
+
+function load_image_query_diat_str(q_diat_url) {
+	var datastr = load_file_sync(q_diat_url); 
+	get_diat_str(datastr);
+}
+
 function get_diat_str(data_str) {
 console.log("url for mel str is "+q_diat_url);
     const lines = data_str.split("\n");
@@ -878,25 +884,25 @@ function getMedian(array, jaccard){
 
 function parse_id_maws_line(line) {
     parsed_line = {};
-
     let [id, maws_str] = line.split(/ (.+)/); // splits on first match of whitespace
-
     if (id.charAt(0) === '>') { id = id.substring(1); } // remove leading > if it's there
     parsed_line.id = id;
-
     if (maws_str === undefined) { return parsed_line; }
-
     const words = maws_str.split(/[ ,]+/).filter(Boolean); // splits rest into words by whitespace
     parsed_line.words = words;
     return parsed_line;
 }
 
-
-
+//////////////////////////////////////////////////////////////////
+/*
+From here to end is Ryaan Ahmed's way of colouring matched 
+sequences for compare.js, which we don't currently use.
+Could be deleted?
+*/
 
 // Takes two diatonic melody strings, and returns a pair of arrays
 // that maps indicies of the melody to colours,
-// if show_top_ngrams,  based on the longest ngrams common to both
+// if show_top_ngrams, based on the longest ngrams common to both
 // else, based on as much overlapping material as possible
 function generate_index_to_colour_maps(q_diat_str, m_diat_str, show_top_ngrams) {
     let q_index_to_colour = [];

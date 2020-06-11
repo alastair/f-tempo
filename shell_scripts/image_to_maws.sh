@@ -2,6 +2,8 @@
 
 # takes a command line argument of the filename to process
 
+HOME_DIR=$(pwd);
+
 IMG_FILE=$1
 WORKINGPATH=$2;
 
@@ -19,7 +21,7 @@ echo "Converted to tiff OK" >> log
 
 
 # Run Aruspix on the converted image
-aruspix-cmdline -m ../../../data/aruspix_models page.tiff 2>> log
+aruspix-cmdline -m $HOME_DIR/data/aruspix_models page.tiff 2>> log
 echo "Passed through Aruspix OK" >> log
 
 # Extract things we need from the Aruspix output
@@ -28,15 +30,17 @@ echo "Extracted MEI OK" >> log
 
 # Parse MEI into diatonic interval string
 echo ">"$IMG_FILE > page.txt
-gawk -f ../../../shell_scripts/parse_mei_to_diat_int_str.awk page.mei >> page.txt
+gawk -f $HOME_DIR/shell_scripts/parse_mei_to_diat_int_str.awk page.mei >> page.txt
 echo -n "Diat interval string (fasta): " >> log; 
 cat page.txt >> log; 
-
 
 # Generate maws and return that out
 basename=$(basename ${IMG_FILE%.*})
 timestamp=`date --rfc-3339=seconds`
 echo $timestamp": Generating MAWs for "$IMG_FILE":" >> log
 maw -a 'PROT' -i page.txt -o $basename".maw" -k 4 -K 8 2>> log
-awk '{printf("%s ",$0)}' $basename".maw" > $basename"_oneline.maw" 
+awk '{printf("%s ",$0)}' $basename".maw" > $basename"_real_oneline.maw" 
+awk '{printf("%s ",substr($0,2))}' $basename".maw" > $basename"_oneline.maw" 
 cat $basename"_oneline.maw"
+
+cd $HOME_DIR;

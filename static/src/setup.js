@@ -70,6 +70,8 @@ let emo_ids; // Array of page IDs loaded from database on initialisatiom
 let user_id; // for identifying user to logs, etc.
 let can_store_user_id = false;
 
+let tp_urls = get_tp_urls(); // Array of title-page urls loaded at startup
+
 const BASE_IMG_URL = '/img/jpg/';
 const BASE_MEI_URL = '/img/mei/';
 
@@ -101,10 +103,10 @@ function load_page_query(id) {
     document.getElementById("query_id").value = id;
     image = id + ".jpg";
     document.getElementById("q_page_display").innerHTML = "Query page: " + id;
-//    document.getElementById("emo_image_display").innerHTML = "<img class='img-fluid' id='query_image' src='http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/"+image+"' role=\"presentation\"/>";
+    document.getElementById("emo_image_display").style.maxHeight="1000px";
     document.getElementById("emo_image_display").innerHTML = "<img class='img-fluid' id='query_image' src='"+BASE_IMG_URL+image+"' role=\"presentation\"/>";
     $('#emo_image_display').zoom();
-
+show_tp(id,true);
     // $('#search_controls').removeClass('d-none');
     // $('#emo_browser_buttons').removeClass('d-none');
 }
@@ -190,7 +192,39 @@ function search_by_active_query_id(load_query_image=false, ngram_search) {
     search(query_id, jaccard, num_results, ngram_search);
 }
 
-
+function show_tp(id,isquery) {
+	let new_img_src="";
+	for(var i=0;i<tp_urls.length;i++) {
+		if(tp_urls[i].indexOf(parse_id(id).book)>0) {
+			console.log(tp_urls[i])
+//			get small version of the image via IIIF:
+			let bits=tp_urls[i].split("/");
+			for(var j=0;j<bits.length-1;j++){
+				var seg=bits[j];
+				if(seg==",500") seg="500,";
+				new_img_src += seg+"/";
+			}
+			new_img_src += bits[j];
+			break;
+		}
+	}
+	if(isquery) {
+//		$('.title').remove();
+//		$('.zoomImg').remove();
+		var query_tp_img = document.getElementById("query_tp_img");
+		query_tp_img.src = new_img_src;
+		query_tp_img.style.left="20px";
+		$('#query_tp_display').zoom({url: query_tp_img.src});
+}
+	else {
+//		$('.title').remove();
+//		$('.zoomImg').remove();
+		var result_tp_img = document.getElementById("result_tp_img");
+		result_tp_img.src = new_img_src;
+		result_tp_img.style.right="20px";
+		$('#result_tp_display').zoom({url: result_tp_img.src});
+	}
+}
 
 function preloadImages(srcs) {
     if (!preloadImages.cache) {
@@ -213,7 +247,11 @@ function show_results(json) {
     var result_num = 0;
     var results = json;
     const provide_judgements = $('#provide_judgements').is(':checked');
-
+    const select_D_Mbs = $('#select_D_Mbs').is(':checked');
+    const select_D_Bs = $('#select_D_Bs').is(':checked');
+    const select_F_Pn = $('#select_F_Pn').is(':checked');
+    const select_GB_Lbl = $('#select_GB_Lbl').is(':checked');
+    const select_PL_Wn = $('#select_PL_Wn').is(':checked');
 
     if (json.length < 2) {
         console.log("No results for " + query_id + "!")
@@ -233,8 +271,6 @@ function show_results(json) {
         table_html += "</tr></thead>"
                  + "<tbody class='table_body'>";
 
-
-
     for(let q = 0; q < results.length; q++) {
         let rank_factor;
 
@@ -249,8 +285,6 @@ function show_results(json) {
         var target_id = results[q].id;
         var sim_choice_id = "sim_choice"+q;
         var sim_id = "sim"+q;
-        //               imageSrcs.push("http://doc.gold.ac.uk/~mas01tc/page_dir/"+results[q].id+".jpg");
-        //imageSrcs.push("http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/"+results[q].id+".jpg");
         imageSrcs.push(BASE_IMG_URL+results[q].id+".jpg");
 
         const rank_percentage = (rank_factor * 100).toFixed(2);
@@ -259,9 +293,9 @@ function show_results(json) {
             table_html +=
                 "<tr class='id_list_name' id='"+result_row_id
                 +"' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
-//                +"<td text-align='center' style='color:blue'><small>" +target_id+"</small></td>"
-                +"<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
-          //      + "<td onclick='compare(\""+query_id+"\",\""+results[q].id+"\");'>"
+          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onclick='show_tp(\"" + target_id + "\","+true+")'></td>"
+          else table_html +=  "<td></td>" 
+                table_html += "<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
                + "<td>"
                 + '<div class="progress">'
                 + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
@@ -285,9 +319,9 @@ function show_results(json) {
             table_html +=
                 "<tr class='id_list_name' id='"+result_row_id
                 + "' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
-//                +"<td text-align='center' style='color:blue'><small>" +target_id+"</small></td>"
-                +"<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
-         //       + "<td onclick='compare(\""+query_id+"\",\""+results[q].id+"\");'>"
+          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onclick='show_tp(\"" + target_id + "\","+false+")'></td>"
+          else table_html +=  "<td></td>" 
+                table_html += "<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
                 + "<td>"
                 + '<div class="progress" id="progress'+q+'">'
                 + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
@@ -335,7 +369,6 @@ function compare(a,b) {
     window.open(url, "Compare pages","comp_win");
 }
 
-
 function highlight_result_row(rank) {
     let rowID;
     for(var i=0; i < num_results; i++) {
@@ -348,7 +381,6 @@ function highlight_result_row(rank) {
     document.getElementById(rowID).style.backgroundColor = "LightPink";
     highlighted_result_row = rank;
 }
-
 
 function load_result_image(id, rank, percent) {
     if (!id) {
@@ -367,13 +399,13 @@ function load_result_image(id, rank, percent) {
     }
 
 //    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' />";
+    document.getElementById("result_image_display").style.maxHeight='1000px';
     document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='"+BASE_IMG_URL+image+"' />";
     highlight_result_row(rank);
     $('#result_image_display').zoom();
     document.getElementById("query_id").value = id;
     //                load_lyrics(id, false);
 }
-
 
 // Load emo_ids at startup
 function get_emo_ids(){
@@ -387,6 +419,20 @@ function get_emo_ids(){
     });
 }
 
+// Load title-page jpg urls at startup
+function get_tp_urls(){
+    var result="";
+    $.ajax({
+        type: "GET",
+        url: "api/title-pages",
+	async: false,
+        success:function(data) {
+        result = data; 
+//        console.log(result);
+        }
+    });
+    return result;
+}
 /*********** Utility functions: ***********/
 function storageAvailable(type) {
     try {
@@ -411,6 +457,7 @@ function storageAvailable(type) {
             storage.length !== 0;
     }
 }
+
 function getFormattedDate() {
     var date = new Date();
     var month = date.getMonth() + 1;
@@ -463,7 +510,6 @@ function log_user_choice(query_id,target_id,result_num,database) {
         + database + "\t"
         + 'rank: ' + result_num + ": " + (jaccard ? 'Jaccard distance' : 'Basic')
         + "\n";
-
     $.ajax({
         type: "POST",
         url: "api/log",
@@ -527,7 +573,6 @@ function checkKey(e) {
             if (highlighted_result_row < num_results - 1) {
                 result_row += highlighted_result_row + 1;
             } else {
-//                result_row += 0; // is this a typo?
                 result_row = "result_row0";
             }
         }
@@ -548,7 +593,6 @@ function checkKey(e) {
         query_id = document.getElementById("query_id").value;
         ngram_search = change_search_method();
         search_by_active_query_id(true, ngram_search);
-
     }    
 }
 
@@ -565,17 +609,53 @@ function PreviewText() {
     };
 };
 
+// Get library siglum, book siglum and page_code from id
+// The book siglum is the section of the id following the RISM siglum
+// NB The style of underscore-separation differs between collections
+function parse_id(id) {
+//console.log("ID: "+id)
+	let parsed_id = {};
+	let segment = id.split("_");   
+// The library RISM siglum is always the prefix to the id,
+// followed by the first underscore in the id.
+	parsed_id.RISM=segment[0];
+	switch (parsed_id.RISM) {
+		case "D-Mbs":
+		case "PL-Wn":
+			parsed_id.book = segment[1];
+			parsed_id.page = segment[2];
+			break;
+        case "F-Pn":
+//           	parsed_id.book = segment[1];
+//			parsed_id.page = segment[2]+"_"+segment[3];
+//            break;
+        case "GB-Lbl": 
+			if (segment.length == 4) { 
+				parsed_id.book = segment[1];
+				parsed_id.page = segment[2]+"_"+segment[3];
+			  }
+			  else {
+				parsed_id.book = segment[1]+"_"+segment[2];
+				parsed_id.page = segment[3]+"_"+segment[4];
+			  }          
+			break;
+	}   
+	return parsed_id;
+}
 
 
 // Client-side, though this needs to interact with server, as book data will be on server, not client
 // Book IDs are always at the beginning of the ID, following the library RISM siglum, which is itself followed by the first underscore char.
 // However, their format varies from library to library, so we need to take care of this.
 
-function find_book_id(next) {
+function old_find_book_id(next) {
     var this_id = document.getElementById("query_id").value;
     if(this_id == null) return false;
     else {
-        for(var i=0;i<emo_ids.length;i++) {
+var parsed_id = parse_id(this_id);
+console.log("RISM: "+parsed_id.RISM+" book: "+parsed_id.book+" page: "+parsed_id.page)
+var i;
+        for( i=0;i<emo_ids.length;i++) {
             if((emo_ids[i].startsWith(">"+this_id))||(emo_ids[i].startsWith(this_id))) {
                 break;
             }
@@ -591,7 +671,6 @@ function find_book_id(next) {
         	}
 		console.log("length: "+this_id.length+" p: "+p)
        }
-//        for(j=0;j<id_segs.length-3;j++) this_book+=id_segs[j]+"_";
         for(j=0;j<id_segs.length-seg_from_end;j++) this_book+=id_segs[j]+"_";
         this_book+=id_segs[j];
         var new_id = "";
@@ -601,7 +680,6 @@ function find_book_id(next) {
                 new_book = "";
                 new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
                 id_segs =  new_id.split("_");
-//                for(j=0;j<id_segs.length-3;j++) new_book+=id_segs[j]+"_";
                 for(j=0;j<id_segs.length-seg_from_end;j++) new_book+=id_segs[j]+"_";
                 new_book+=id_segs[j];
                 if(new_book.startsWith(">")) new_book = new_book.substring(1);
@@ -616,7 +694,6 @@ function find_book_id(next) {
                 new_book = "";
                 new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
                 id_segs =  new_id.split("_");
-//                for(j=0;j<id_segs.length-3;j++) new_book+=id_segs[j]+"_";
                 for(j=0;j<id_segs.length-seg_from_end;j++) new_book+=id_segs[j]+"_";
                 new_book+=id_segs[j];
                 if(new_book.startsWith(">")) new_book = new_book.substring(1);
@@ -629,7 +706,6 @@ function find_book_id(next) {
                         new_book = "";
                         new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
                         id_segs =  new_id.split("_");
-//                        for(j=0;j<id_segs.length-3;j++) new_book+=id_segs[j]+"_";
                         for(j=0;j<id_segs.length-seg_from_end;j++) new_book+=id_segs[j]+"_";
                         new_book+=id_segs[j];
                         if(new_book.startsWith(">")) new_book = new_book.substring(1);
@@ -644,12 +720,71 @@ function find_book_id(next) {
             }
         }
     }
+if(new_book.length) {
     new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
+}
+else return false;
     if(new_id.startsWith(">")) new_id = new_id.substring(1);
-//    document.getElementById("query_id").value = new_id;
 
     query_id = new_id;
     load_page_query(new_id);
+}
+
+function find_book_id(next) {
+	var this_id = document.getElementById("query_id").value.trim();
+	if(this_id == null) return false;
+	var parsed_id = parse_id(this_id.trim())
+//console.log("RISM: "+parsed_id.RISM+"; book: "+parsed_id.book+"; page: "+parsed_id.page);
+	var i;
+	for(i=0;i<emo_ids.length;i++) {
+		if(emo_ids[i].trim() == this_id) break;
+	}
+	if(((i==0)&&(!next))||((i==emo_ids.length)&&(next))) return;
+	// now find next/prev item from a different book
+	var this_book = parsed_id.book;
+console.log("Found this_book: "+this_book)
+	var new_id = "";
+	var new_book = "";
+	if(next) {
+		for(;i<emo_ids.length;i++) {
+			new_id = emo_ids[i];
+			new_book=parse_id(new_id).book;
+			if(new_book != this_book) {
+				break;
+			}
+		}
+console.log(i+": '"+emo_ids[i]+"'");
+console.log("Found next book: "+new_book)
+	}
+	else { 
+		for(;i>0;i--) {
+			new_id = emo_ids[i].trim();
+			new_book = parse_id(new_id).book;
+			if(new_book != this_book) {
+				// now we are at the last image of the previous book
+				// so find the book before that one and go to next
+				// image - it will be the first of the book we want
+				this_book = new_book;
+				for(;i>0;i--) {
+					new_id = emo_ids[i].trim();
+					new_book = parse_id(new_id).book;
+					if(new_book != this_book) {
+						if(i>0) i++; // Don't go to next if at first book
+						new_id = emo_ids[i].trim();
+						break;
+					}
+				}
+				break;
+			}
+		}
+console.log("Found previous book: "+new_book)
+	}
+	if(i < emo_ids.length) {
+		new_id = emo_ids[i].trim();
+	}
+	else new_id = emo_ids[i]
+	query_id = new_id;
+	load_page_query(new_id);
 }
 
 
@@ -657,23 +792,24 @@ function find_page_id(next) {
     var this_id = document.getElementById("query_id").value;
     if(this_id == null) return false;
     else {
+var parsed_id = parse_id(this_id);
+console.log("RISM: "+parsed_id.RISM+" book: "+parsed_id.book+" page: "+parsed_id.page)
         for(var i=0;i<=emo_ids.length;i++) {
-            if((emo_ids[i].startsWith(">"+this_id))||(emo_ids[i].startsWith(this_id))) {
+            if(emo_ids[i] == this_id) {
                 break;
             }
         }
         if(((i==0)&&(!next))||((i==emo_ids.length)&&(next))) return;
         var new_id = "";
         if(next) {
-            new_id = emo_ids[i+1].split(/[ ,]+/).filter(Boolean)[0];
+            new_id = emo_ids[i+1];
         }
         else {
-            new_id = emo_ids[i-1].split(/[ ,]+/).filter(Boolean)[0];
+            new_id = emo_ids[i-1];
         }
     }
-    if(new_id.startsWith(">")) new_id = new_id.substring(1);
-//    document.getElementById("query_id").value = new_id;
-
+var new_page = parse_id(new_id).page;
+console.log("New page is: "+new_page)
     query_id = new_id;
     load_page_query(new_id)
 }
@@ -700,11 +836,9 @@ function show_example(example_id){
     $('#examples_div').collapse('hide');
 }
 
-
 /*******************************************************************************
  * Image upload
  ******************************************************************************/
-
 
 function validate_file_upload() {
     const files = $('#user_image_file')[0].files;
@@ -758,7 +892,6 @@ function submit_upload_form(user_image_file) {
     });
 }
 
-
 /*******************************************************************************
  * Search settings
  ******************************************************************************/
@@ -772,7 +905,6 @@ function change_num_res() {
         num_results = document.getElementById("res_disp_select").value;
         threshold = false;
     }
-
     if (!$('#results_table').is(':empty')) { search_by_active_query_id(); }
 }
 
@@ -781,9 +913,7 @@ function change_search_method() {
     const v = search_select.options[search_select.selectedIndex].value;
     if (v == 1) { ngram_search = true; }
     else { ngram_search = false; }
-
-//    if (!$('#results_table').is(':empty')) { search_by_active_query_id(); ngram_search}
-	return ngram_search;
+    return ngram_search;
 }
 
 function change_ranking_method() {
@@ -791,7 +921,6 @@ function change_ranking_method() {
     const v = ranking_select.options[ranking_select.selectedIndex].value;
     if (v == 0) { jaccard = true; }
     else { jaccard = false; }
-
     if (!$('#results_table').is(':empty')) { search_by_active_query_id(); }
 }
 
@@ -821,7 +950,6 @@ function set_image_search_mode() {
     corpus_search_mode = false;
 }
 
-/**/
 function set_code_search_mode() {
     // console.log('search with code!');
     clear_result_divs();
@@ -835,12 +963,9 @@ function set_code_search_mode() {
     corpus_search_mode = false;
 }
 
-
-
 /*******************************************************************************
  * Start 
  ******************************************************************************/
-
 
 function add_examples_list() {
     const examples = [
@@ -861,19 +986,15 @@ function add_examples_list() {
         ['D-Bsb_Parangon_03_1543_inv_060_0', "Arcadelt, 'Vous perdez temps' (Tenor); turns out to be musically identical to his madrigal, 'Non ch'io, non voglio' (K2h3_031_1)"],
     ];
 
-
     const $examples_table = $('#examples_table');
     for (const example of examples) {
         const [id, note] = example;
-
         const $row = $('<tr></tr>');
         $examples_table.append($row);
-
         const show_example_call = `show_example('${id}')`;
         const id_link = `<a href="#" onclick='show_example("${id}")'>View</a>`;
         const $id_cell = $('<td>' + id_link + '</td>')
         $row.append($id_cell);
-
         const $note_cell = $('<td>' + note + '</td>')
         $row.append($note_cell);
     }
@@ -887,8 +1008,19 @@ $(document).ready(() => {
 
     $('#image_display').zoom();
     $('#result_image_display').zoom();
-
-
+//    $('#tp_display').zoom();
+/*
+      $('#query_tp_img')
+	    .wrap('<span style="display:inline-block"></span>')
+	    .css('display', 'block')
+	    .parent()
+	    .zoom();
+    $('#result_tp_img')
+	    .wrap('<span style="display:inline-block"></span>')
+	    .css('display', 'block')
+	    .parent()
+	    .zoom();
+*/	
     // TODO(ra): this really wants refactoring. ugh.
     $('#search_button').click(() => {
         query_id = document.getElementById("query_id").value;
@@ -906,7 +1038,6 @@ $(document).ready(() => {
     $('#search_by_code_button').click(() => {
         document.getElementById("emo_browser_col").style.visibility = "hidden";
         query_code = document.getElementById("query_code").value.trim();
-//        load_page_query(query_id);
         if(!query_code.length) alert("You must enter some code!")
         else code_search(query_code,jaccard,num_results);
     });
@@ -914,7 +1045,7 @@ $(document).ready(() => {
     $('#random_page_button').click(() => {
         document.getElementById("query_id").value = emo_ids[getRandomIntInclusive(0, emo_ids.length)];
         query_id = document.getElementById("query_id").value;
-load_page_query(query_id);
+        load_page_query(query_id);
     });
 
     $('#uploadForm').on('change', (event) => {
@@ -930,7 +1061,7 @@ load_page_query(query_id);
         if (user_image_file) { submit_upload_form(user_image_file); }
     });
 
-    const initial_page_id = 'GB-Lbl_K2h7_092_1'
+    const initial_page_id = 'D-Mbs_bsb00071951_00029'
     load_page_query(initial_page_id);
     
 });

@@ -15,6 +15,7 @@ dp_prefix["D-Mbs_"] = "/storage/ftempo/locations/Mbs/";
 dp_prefix["F-Pn_"] = "/storage/ftempo/locations/F-Pn/";
 dp_prefix["GB-Lbl_"] = "/storage/ftempo/locations/GB-Lbl/";
 dp_prefix["PL_Wn_"] = "/storage/ftempo/locations/PL_Wn/";
+dp_prefix["PL_Kj_"] = "/storage/ftempo/locations/PL_Kj/";
 
 Object.keys(dp_prefix).forEach(function(key) {console.log(key,dp_prefix[key]);});
 

@@ -72,8 +72,10 @@ let can_store_user_id = false;
 
 let tp_urls = get_tp_urls(); // Array of title-page urls loaded at startup
 
-const BASE_IMG_URL = '/img/jpg/';
-const BASE_MEI_URL = '/img/mei/';
+//const BASE_IMG_URL = '/img/jpg/';
+//const BASE_MEI_URL = '/img/mei/';
+const BASE_IMG_URL = 'http://f-tempo-mbs.rism-ch.org/img/jpg/';
+const BASE_MEI_URL = 'http://f-tempo-mbs.rism-ch.org/img/mei/';
 
 //let ngram_search = false;
 

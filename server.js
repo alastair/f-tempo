@@ -36,6 +36,7 @@ function get_datapath(id) {
 		return Object.keys(dp_prefix)[id.substr(0,id.indexOf("_")+1)];
 	}
 }
+var test = false;
 var MAWS_DB = './data/latest_maws'; 
 //const MAWS_DB = './data/latest_maws_corrIDs_30Sep2019.txt'; 
 var DIAT_MEL_DB = './data/latest_diat_mel_strs'; 
@@ -83,8 +84,10 @@ var DB_PREFIX_LIST = []; // Array of prefixes to F_TEMPO data collections
 // Goldsmiths-based location of files *excluding D-Mbs* --- CHANGE THIS!!
 //const BASE_IMG_URL = 'http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/';
 //const BASE_MEI_URL = 'http://doc.gold.ac.uk/~mas01tc/EMO_search/new_mei_pages/';
-const BASE_IMG_URL = '/img/jpg/';
-const BASE_MEI_URL = '/img/mei/';
+//const BASE_IMG_URL = '/img/jpg/';
+//const BASE_MEI_URL = '/img/mei/';
+const BASE_IMG_URL = 'http://f-tempo-mbs.rism-ch.org/img/jpg/';
+const BASE_MEI_URL = 'http://f-tempo-mbs.rism-ch.org/img/mei/';
 
 // flags to say whether the current id comes from D-Mbs or elsewhere (in app.get('/compare' ..., below)
 // If true, page-image MEI files are local; otherwise they need to be downloaded via http 
@@ -153,7 +156,10 @@ function parse_Mbs_paths(data_str) {
 }
 var Mbs_segment;
 
-if(!DB_PREFIX_LIST.length) {
+if((!DB_PREFIX_LIST.length)||((DB_PREFIX_LIST.length==1)&&(DB_PREFIX_LIST[0]=="test"))) {
+	test = true;
+	MAWS_DB = '../../test_data/maws/all'; 
+	DIAT_MEL_DB = '../../test_data/codestrings/all'; 
 	load_maws(); // load the MAWS
 	load_diat_mels(); // load the diatonic melodies
 }else {
@@ -358,7 +364,7 @@ app.get('/compare', function (req, res) {
 	let m_mei = "";
 	var ok = false;
 	if(q_Mbs) {
-		q_mei_url = "static"+q_mei_url;
+//		q_mei_url = "static"+q_mei_url;
 		q_mei = load_file_sync(q_mei_url);
 		if(!q_mei.length) return res.status(400).send('Could not find the MEI file '+q_mei_url);
 	}
@@ -371,7 +377,7 @@ app.get('/compare', function (req, res) {
 		});
 	}
 	if(m_Mbs) {
-		m_mei_url = "static"+m_mei_url;
+//		m_mei_url = "static"+m_mei_url;
 		m_mei = load_file_sync(m_mei_url);
 		if(!m_mei.length) return res.status(400).send('Could not find the MEI file '+m_mei_url);
 	}

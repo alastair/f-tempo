@@ -2,10 +2,6 @@
 
 ### Current implementation
 
-This version, running on a RISM server, currently _only_ searches ~500,000 pages from D-Mbs.
-It will be augmented with the original F-TEMPO data (from D-Bsb, F-Pn, GB-Lbl and PL-Wn) shortly.
-
-NB The Next/Previous Book commands do not currently work 
 
 ### Dependencies
 ```
@@ -25,10 +21,11 @@ mkdir run
 
 To run...
 ```
-node --max-old-space-size=8192 server.js Mbs0 Mbs1 Mbs2 Mbs3 Mbs4 Mbs5 Mbs6 Mbs7
+node --max-old-space-size=8192 server.js test
 ```
+(The 'test' argument is necessary for local testing. To do this, you must expand 'test_data.zip' to a directory two levels above 'f-tempo' (see server.js lines 162/3)
 
-The app listens at port 8020.
+The app listens at port 8000. Point your browser at localhost:8000
 
 ### TODO:
 - Replace parse_mei_to_diat_int_str.awk with an actual parser for the MEI

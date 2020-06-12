@@ -558,12 +558,14 @@ function ngram_array(str, n) {
             </div>
 <script>
 
-var collections_to_search=[];
+/*
 $('.coll_select').change(function(){
+console.log(this.id + " checkbox clicked")
 	$('#select_all').checked=false;
 	collections_to_search.push(this.id).substring(7).replace("_","-");
 });
 $('#select_all').click(function(){
+console.log(this.id + " checkbox clicked")
 	$(this).checked=true;
 	$('#select_D_Bs').checked=true;
 	$('#select_D_Mbs').checked=true;
@@ -571,36 +573,94 @@ $('#select_all').click(function(){
 	$('#select_GB_Lbl').checked=true;
 	$('#select_PL_Wn').checked=true;
 	collections_to_search.push(this.id).substring(7).replace("_","-");
+selectAll();
 });
+*/
+
+// DL's suggested code 11Jun2020:
+	function selectAll() {
+	console.log("Select All")
+	 $('.coll_select').attr('checked', 'checked');
+	 all_checked=true;
+	 document.getElementById('select_all').innerHTML="UnSelect All"
+	 update_colls_to_search()
+	}
+	function unselectAll(){
+	console.log("Unselect All")
+	 $('.coll_select').removeAttr('checked');
+	 all_checked=false;
+	 document.getElementById('select_all').innerHTML="Select All"
+	 update_colls_to_search()
+	}
+
+	//And a test for whether the All button is on:
+	function allIsSelected(){
+	 return all_checked;
+	}
+
+	//So the onClick callback for the All button would be:
+	function selectAllToggledCallback(event){
+	 var el = event.target;
+	 if(allIsSelected()) {
+	   unselectAll();
+	 } else {
+	   selectAll();
+	 }
+	 update_colls_to_search()
+	}
+	
+	function collSelectToggledCallback(event){
+	collections_to_search.push(event.target.id.substring(7).replace("_","-"));
+	 var el = event.target;
+	  if(allIsSelected()){
+	    if(el.hasAttribute('checked')) {
+		 selectAll();
+	    }
+	  }
+	  update_colls_to_search();
+	}
+// End of DL's suggested code 11Jun2020:
+
+	var all_checked=false;
+
+	function update_colls_to_search() {
+		collections_to_search.length=0; // clear the list first
+		$('#collection_select_table tr').each(function(){
+			$(this).find('td input').each(function(){
+			   if(this.checked) {
+				if(!collections_to_search.includes(this.id.substring(7).replace("_","-"))) {
+					collections_to_search.push(this.id.substring(7).replace("_","-"))
+				}
+			   }
+		    })
+		})
+	console.log("Searching: "+collections_to_search)
+	}
 
 </script>
             <div class="form-group form-check">Collections to search<br>
 			  <table id="collection_select_table" width="100%">
 				  <tr>
-					  <td>
-						 <input padding-left="15px" type="checkbox" class="form-check-input" id="select_all" checked>
-						 <label class="form-check-label" for="select_all">All</label>
-					</td>
 					<td>
-						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" id="select_D_Mbs">
+						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" onclick="collSelectToggledCallback(event)" id="select_D_Mbs" checked>
 						 <label class="form-check-label" for="select_D_Mbs">D-Mbs</label>
 					</td>
 					<td>
-						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" id="select_D_Bs">
-						 <label class="form-check-label" for="select_D_Bs">D-Bs</label>
+						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" onclick="collSelectToggledCallback(event)" id="select_D_Bs" checked>
+						 <label class="form-check-label" for="select_D_Bsb">D-Bsb</label>
 					</td>
 				</tr>
 				<tr>
 					<td>
-						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" id="select_F_Pn">
+						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" onclick="collSelectToggledCallback(event)" id="select_F_Pn" checked>
 						 <label class="form-check-label" for="select_F_Pn">F-Pn</label>
 					</td>
 					<td>
-						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" id="select_GB_Lbl">
+						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" onclick="collSelectToggledCallback(event)" id="select_GB_Lbl" checked>
 						 <label class="form-check-label" for="select_GB_Lbl">GB-Lbl</label>
 					</td>
 					<td>
-						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" id="select_PL_Wn">
+						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" onclick="collSelectToggledCallback(event)" id="select_PL_Wn" checked>
 						 <label class="form-check-label" for="select_PL_Wn">PL-Wn</label>
 					  </td>
 				  </tr>

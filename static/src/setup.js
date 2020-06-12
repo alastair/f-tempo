@@ -58,6 +58,8 @@
 // End of cosine similarity code
 
 // Global variables
+var collections_to_search=[];
+
 let num_results = 15; // default
 let query_id = "";
 let db_name ="";
@@ -162,9 +164,9 @@ function display_cosine_sim_line(json) {
 }
 
 // Basic remote search function.
-function search(id, jaccard, num_results, ngram_search) {
-    search_data = JSON.stringify({ id, jaccard, num_results, threshold, ngram_search});
-//console.log(search_data)
+function search(id, jaccard, num_results, ngram_search, collections_to_search) {
+    search_data = JSON.stringify({ id, jaccard, num_results, threshold, ngram_search, collections_to_search});
+console.log(search_data)
     $.ajax({
         url: 'api/query',
         method: 'POST',
@@ -174,8 +176,8 @@ function search(id, jaccard, num_results, ngram_search) {
       .fail((xhr, status) => alert(status)); // TODO: real error handling!
 }
 
-function code_search(diat_int_code, jaccard, num_results) {
-    search_data = JSON.stringify({ diat_int_code, jaccard, num_results, threshold });
+function code_search(diat_int_code, jaccard, num_results, collections_to_search) {
+    search_data = JSON.stringify({ diat_int_code, jaccard, num_results, threshold, collections_to_search });
     $.ajax({
         url: 'api/query',
         method: 'POST',
@@ -186,19 +188,19 @@ function code_search(diat_int_code, jaccard, num_results) {
 }
 
 
-function search_by_active_query_id(load_query_image=false, ngram_search) {
+function search_by_active_query_id(load_query_image=false, ngram_search, collections_to_search) {
     query_id = document.getElementById("query_id").value;
     if (load_query_image) {
         load_page_query(query_id);
     }
-    search(query_id, jaccard, num_results, ngram_search);
+    update_colls_to_search();
+    search(query_id, jaccard, num_results, ngram_search, collections_to_search);
 }
 
 function show_tp(id,isquery) {
 	let new_img_src="";
 	for(var i=0;i<tp_urls.length;i++) {
 		if(tp_urls[i].indexOf(parse_id(id).book)>0) {
-			console.log(tp_urls[i])
 //			get small version of the image via IIIF:
 			let bits=tp_urls[i].split("/");
 			for(var j=0;j<bits.length-1;j++){
@@ -592,9 +594,10 @@ function checkKey(e) {
         query_id = document.getElementById("query_id").value;    
         load_page_query(query_id);
     } else if (e.keyCode == '13') { // enter to search
+console.log("Searching in "+collections_to_search); 
         query_id = document.getElementById("query_id").value;
         ngram_search = change_search_method();
-        search_by_active_query_id(true, ngram_search);
+        search_by_active_query_id(true, ngram_search, collections_to_search);
     }    
 }
 
@@ -611,6 +614,22 @@ function PreviewText() {
     };
 };
 
+function update_colls_to_search() {
+	collections_to_search.length=0; // clear the list first
+	$('#collection_select_table tr').each(function(){
+		$(this).find('td input').each(function(){
+		   if(this.checked) {
+			if(!collections_to_search.includes(this.id.substring(7).replace("_","-"))) {
+				collections_to_search.push(this.id.substring(7).replace("_","-"))
+			}
+		   }
+	    })
+	})
+console.log("Searching: "+collections_to_search)
+}
+
+
+
 // Get library siglum, book siglum and page_code from id
 // The book siglum is the section of the id following the RISM siglum
 // NB The style of underscore-separation differs between collections
@@ -623,6 +642,7 @@ function parse_id(id) {
 	parsed_id.RISM=segment[0];
 	switch (parsed_id.RISM) {
 		case "D-Mbs":
+		case "D-Bsb":
 		case "PL-Wn":
 			parsed_id.book = segment[1];
 			parsed_id.page = segment[2];
@@ -834,7 +854,8 @@ function clear_result_divs() {
 
 function show_example(example_id){
     load_page_query(example_id);
-    search(example_id, jaccard, num_results);
+    update_colls_to_search();
+    search(example_id, jaccard, num_results, collections_to_search);
     $('#examples_div').collapse('hide');
 }
 
@@ -1027,21 +1048,22 @@ $(document).ready(() => {
     $('#search_button').click(() => {
         query_id = document.getElementById("query_id").value;
         load_page_query(query_id);
-        search(query_id,jaccard,num_results, change_search_methods);       
+        update_colls_to_search();
+        search(query_id,jaccard,num_results, change_search_methods, collections_to_search);       
     });
 
     $('#search_by_id_button').click(() => {
         query_id = document.getElementById("query_id").value;
         load_page_query(query_id);
-   //     search(query_id,jaccard,num_results, ngram_search);
-        search(query_id,jaccard,num_results, change_search_method());
+        update_colls_to_search();
+        search(query_id,jaccard,num_results, change_search_method(), collections_to_search);
     });
 
     $('#search_by_code_button').click(() => {
         document.getElementById("emo_browser_col").style.visibility = "hidden";
         query_code = document.getElementById("query_code").value.trim();
         if(!query_code.length) alert("You must enter some code!")
-        else code_search(query_code,jaccard,num_results);
+        else code_search(query_code,jaccard,num_results, collections_to_search);
     });
 
     $('#random_page_button').click(() => {
@@ -1063,7 +1085,7 @@ $(document).ready(() => {
         if (user_image_file) { submit_upload_form(user_image_file); }
     });
 
-    const initial_page_id = 'D-Mbs_bsb00071951_00029'
+    const initial_page_id = 'GB-Lbl_A103b_025_0'
     load_page_query(initial_page_id);
     
 });

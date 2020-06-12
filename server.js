@@ -43,7 +43,7 @@ var DIAT_MEL_DB = './data/latest_diat_mel_strs';
 //const DIAT_MEL_DB = './data/latest_diat_mel_strs_corrIDs_30Sep2019.txt'; 
 const EMO_IDS = []; // all ids in the system
 const EMO_IDS_DIAT_MELS = {}; // keys are ids, values are the diat_int_code for that id
-const EMO_IDS_MAWS = {}; // keys are ids, values are an array of maws for that id
+var EMO_IDS_MAWS = {}; // keys are ids, values are an array of maws for that id
 const MAWS_to_IDS = {}; // keys are maws, values are an array of all ids for which that maw appears
 const EMO_IDS_NGRAMS = {}; // keys are ids, values are an array of ngrams for that id
 const NGRAMS_to_IDS = {}; // keys are ngrams, values are a array of all ids in whose diat_int_code that ngram appears
@@ -55,6 +55,7 @@ var TP_JPG_LIST = "static/src/jpg_list.txt";
 const tp_jpgs = []; // URLs to title-pages (NB only for D-Mbs!)
 
 var search_ids = []; // list of ids to search - constructed from EMO_IDS as required
+var collections_to_search;
 
 const word_totals = []; // total words per id, used for normalization
 const word_ngram_totals = []; // total words per id, used for normalization
@@ -422,24 +423,26 @@ app.post('/api/query', function (req, res) {
     let jaccard = true;
     let threshold = false;
     let ngram = false;
+    collections_to_search = [];
 
     // Set values if given in query
     if (req.body.jaccard !== undefined) { jaccard = req.body.jaccard; }
     if (req.body.num_results !== undefined) { num_results = req.body.num_results; }
     if (req.body.threshold !== undefined) { threshold = req.body.threshold; }
     if (req.body.ngram_search !== undefined) { ngram = req.body.ngram_search; }
+    if (req.body.collections_to_search !== undefined) { collections_to_search = req.body.collections_to_search; }
     let result;
     if(req.body.qstring) {
         // console.log('Querying by string...');
         const query = req.body.qstring;
-        result = search('words', query, jaccard, num_results, threshold);
+        result = search('words', query, jaccard, num_results, threshold, ngram, collections_to_search);
     } else if(req.body.id) {
       //   console.log('Querying by id... '+ngram);
-        if(ngram) result = search('id', req.body.id, jaccard, num_results, threshold, ngram);
-        else result = search('id', req.body.id, jaccard, num_results, threshold);
+        if(ngram) result = search('id', req.body.id, jaccard, num_results, threshold, ngram, collections_to_search);
+        else result = search('id', req.body.id, jaccard, num_results, threshold, ngram, collections_to_search);
 
     } else if(req.body.diat_int_code) {
-        result = search_with_code(req.body.diat_int_code, jaccard, num_results, threshold);
+        result = search_with_code(req.body.diat_int_code, jaccard, num_results, threshold, ngram, collections_to_search);
     }
 
     res.send(result);
@@ -510,24 +513,22 @@ to log ${log}.`
 /*******************************************************************************
  * Query functions
  ******************************************************************************/
-
 // method can be 'id' or 'words'
 // query is a string, either holding the id a id+maws line
-function search(method, query, jaccard, num_results, threshold, ngram) {
+function search(method, query, jaccard, num_results, threshold, ngram, collections_to_search) {
     if (ngram === undefined) { ngram = false; }
 
     if(!query) { // Need to report this back to browser/user
         console.log("No query provided!");
         return false;
     }
-
+//console.log(method+"\nquery: "+query+"\njaccard: "+jaccard+"\nnum_results: "+num_results+"\nthreshold: "+threshold+"\nngram: "+ngram+"\ncollections: "+collections_to_search)
     let words;
     if (method === 'id') {
         if (!(query in EMO_IDS_MAWS)) { // TODO: need to report to frontend
  console.log("ID " + query + " not found in F-TEMPO data!");
             return;
         }
-console.log("ID: "+query);
 // console.log((ngram=="true")? "NGRAM search":"MAWs search")
         words = ngram? EMO_IDS_NGRAMS[query] : EMO_IDS_MAWS[query];
     } else if (method === 'words') {
@@ -536,15 +537,15 @@ console.log("ID: "+query);
     }
 
 //console.log(ngram? "NGRAM search: " : "MAW search: "+words);
+//console.log("Searching ")+ collections_to_search
     let signature_to_ids_dict;
     if (ngram) { signature_to_ids_dict = NGRAMS_to_IDS; }
     else { signature_to_ids_dict = MAWS_to_IDS; }
-
-    return get_result_from_words(words, signature_to_ids_dict, jaccard, num_results, threshold, ngram);
+    return get_result_from_words(words, signature_to_ids_dict, jaccard, num_results, threshold, ngram,collections_to_search);
 }
 
 // ** TODO NB: this only supports MAW-based searches at present
-function search_with_code(diat_int_code, jaccard, num_results, threshold) {
+function search_with_code(diat_int_code, jaccard, num_results, threshold, collections_to_search) {
     const codestring_path = './run/codestring_queries/';
     let next_working_dir;
     if (!fs.existsSync(codestring_path)){
@@ -561,7 +562,7 @@ function search_with_code(diat_int_code, jaccard, num_results, threshold) {
 
     const query_data = cp.execSync('./shell_scripts/codestring_to_maws.sh ' + diat_int_code + ' ' + working_path);
     const query_str = String(query_data); // a string of maws, preceded with an id
-    const result = search('words', query_str, jaccard, num_results, threshold);
+    const result = search('words', query_str, jaccard, num_results, threshold, collections_to_search);
     return result;
 }
 
@@ -581,20 +582,20 @@ function run_image_query(user_id, user_image_filename, the_working_path, ngram_s
             query = String(query_data); // a string of maws, preceded with an id
         } catch (err) { return; } // something broke in the shell script...
 // console.log("query is "+query)
-        result = search('words', query, jaccard, num_results, threshold);
+        result = search('words', query, jaccard, num_results, threshold, collections_to_search);
     }
     else {
         try {
             query_data = cp.execSync('./shell_scripts/image_to_ngrams.sh ' + user_image_filename + ' ' + the_working_path + ' ' + '9');
             query = String(query_data);
         } catch (err) { return; } // something broke in the shell script...
-        if (query) { result = search('words', query, jaccard, num_results, threshold, true); }
+        if (query) { result = search('words', query, jaccard, num_results, threshold, true,collections_to_search); }
     }
 
     return result;
 }
 
-function get_result_from_words(words, signature_to_ids_dict, jaccard, num_results, threshold, ngram) {
+function get_result_from_words(words, signature_to_ids_dict, jaccard, num_results, threshold, ngram, collections_to_search) {
     if (words.length < 6) { // TODO: Need to report to frontend
         // console.log("Not enough words in query.");
         return [];
@@ -603,7 +604,7 @@ console.time("search");
 // console.log("Words: \n"+words)
 // Safety check that the words are all unique:    
     const uniq_words = Array.from(new Set(words));
-    const scores = get_scores(uniq_words, signature_to_ids_dict, ngram);
+    const scores = get_scores(uniq_words, signature_to_ids_dict, ngram, collections_to_search);
 console.log(uniq_words.length+" words")
 console.log(Object.keys(scores).length+" scores to prune");
 console.time("pruning")
@@ -615,7 +616,41 @@ console.timeEnd("search");
     return result;
 }
 
-function get_scores(words, signature_to_ids_dict, ngram) {
+// Get library siglum, book siglum and page_code from id
+// The book siglum is the section of the id following the RISM siglum
+// NB The style of underscore-separation differs between collections
+function parse_id(id) {
+//console.log("ID: "+id)
+	let parsed_id = {};
+	let segment = id.split("_");   
+// The library RISM siglum is always the prefix to the id,
+// followed by the first underscore in the id.
+	parsed_id.RISM=segment[0];
+	switch (parsed_id.RISM) {
+		case "D-Mbs":
+		case "PL-Wn":
+			parsed_id.book = segment[1];
+			parsed_id.page = segment[2];
+			break;
+        case "F-Pn":
+//           	parsed_id.book = segment[1];
+//			parsed_id.page = segment[2]+"_"+segment[3];
+//            break;
+        case "GB-Lbl": 
+			if (segment.length == 4) { 
+				parsed_id.book = segment[1];
+				parsed_id.page = segment[2]+"_"+segment[3];
+			  }
+			  else {
+				parsed_id.book = segment[1]+"_"+segment[2];
+				parsed_id.page = segment[3]+"_"+segment[4];
+			  }          
+			break;
+	}   
+	return parsed_id;
+}
+
+function get_scores(words, signature_to_ids_dict, ngram, collections_to_search) {
     var res = false;
     var scores = {};
 console.time("get_scores")
@@ -623,6 +658,7 @@ console.time("get_scores")
         const ids = signature_to_ids_dict[word]
         if (!ids) { continue; }
         for(const id of ids) {
+		   if(!collections_to_search.includes(parse_id(id).RISM)) continue;
 		   if(typeof id_list == "undefined"){
 		   	if (!scores[id]) { scores[id] = 0; }
 			scores[id]++;
@@ -729,7 +765,6 @@ function parse_maws_db(data_str,source) {
 	var uniq_words = Array.from(new Set(words));
 
            EMO_IDS_MAWS[id] = uniq_words;
-
             if(uniq_words.length < 10) {
             	short_maws_ids.push(id);
             	continue;
@@ -745,6 +780,7 @@ function parse_maws_db(data_str,source) {
     }
 
     console.log(EMO_IDS.length + " lines of MAW data loaded!");
+    console.log(EMO_IDS_MAWS.length + " ids with MAWs data loaded!");
     console.log(Object.keys(MAWS_to_IDS).length + " unique MAWs!");
     console.log(no_maws_ids.length + " empty lines of MAW data rejected!");
     console.log(short_maws_ids.length + " lines with short MAW data rejected!");
@@ -884,7 +920,7 @@ function getMedian(array, jaccard){
     }
     values.sort((a, b) => a - b);
     let median = (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2;
-    console.log("Median = " + median);
+    //console.log("Median = " + median);
     return median;
 }
 

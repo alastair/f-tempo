@@ -167,6 +167,7 @@ function display_cosine_sim_line(json) {
 function search(id, jaccard, num_results, ngram_search, collections_to_search) {
     search_data = JSON.stringify({ id, jaccard, num_results, threshold, ngram_search, collections_to_search});
 console.log(search_data)
+$('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>'); 
     $.ajax({
         url: 'api/query',
         method: 'POST',

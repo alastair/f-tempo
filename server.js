@@ -860,8 +860,19 @@ function load_file(file, data_callback,source) {
 }
 
 function load_file_sync(file) {
+	if(file.startsWith("http")) {
+		var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+		var request = new XMLHttpRequest();
+		request.open('GET', file, false);  // `false` makes the request synchronous
+		request.send(null);
+		if (request.status === 200) {
+		  return request.responseText;
+		}
+	}
+	else {
 //	console.log("Loading " + file + " synchronously");
-	var data = fs.readFileSync(file, 'utf8');
+		var data = fs.readFileSync(file, 'utf8');
+	}
 //	console.log("    "+data.length);
 	return data;
 }

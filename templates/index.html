@@ -469,7 +469,7 @@ function ngram_array(str, n) {
 
 
     <span id="q_page_display"></span>
-    <div id="emo_image_display" max-height="1000px"></div>
+    <div id="emo_image_display"></div>
     <div id="q_text_display"></div>
 
     </div> <!-- left col in search within corpus mode -->
@@ -557,25 +557,6 @@ function ngram_array(str, n) {
                 <label class="form-check-label" for="provide_judgements">Provide judgements to help improve the system</label>
             </div>
 <script>
-
-/*
-$('.coll_select').change(function(){
-console.log(this.id + " checkbox clicked")
-	$('#select_all').checked=false;
-	collections_to_search.push(this.id).substring(7).replace("_","-");
-});
-$('#select_all').click(function(){
-console.log(this.id + " checkbox clicked")
-	$(this).checked=true;
-	$('#select_D_Bs').checked=true;
-	$('#select_D_Mbs').checked=true;
-	$('#select_F_Pn').checked=true;
-	$('#select_GB_Lbl').checked=true;
-	$('#select_PL_Wn').checked=true;
-	collections_to_search.push(this.id).substring(7).replace("_","-");
-selectAll();
-});
-*/
 
 // DL's suggested code 11Jun2020:
 	function selectAll() {
@@ -671,7 +652,7 @@ selectAll();
 </div> <!-- middle col -->
 
 <div class='col card' id="res_display_div">
-    <div id="result_image_display" max-height="1000px"></div>
+    <div id="result_image_display"></div>
     <div id="result_id_msg"></div>
 </div> <!-- right col -->
 

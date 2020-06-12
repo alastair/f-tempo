@@ -108,9 +108,10 @@ function load_page_query(id) {
     image = id + ".jpg";
     document.getElementById("q_page_display").innerHTML = "Query page: " + id;
     document.getElementById("emo_image_display").style.maxHeight="1000px";
-    document.getElementById("emo_image_display").innerHTML = "<img class='img-fluid' id='query_image' src='"+BASE_IMG_URL+image+"' role=\"presentation\"/>";
+//    document.getElementById("emo_image_display").innerHTML = "<img class='img-fluid' id='query_image' src='"+BASE_IMG_URL+image+"' role=\"presentation\"/>";
+    document.getElementById("emo_image_display").innerHTML = "<img id='query_image' src='"+BASE_IMG_URL+image+"' role=\"presentation\"/>";
     $('#emo_image_display').zoom();
-show_tp(id,true);
+//show_tp(id,true);
     // $('#search_controls').removeClass('d-none');
     // $('#emo_browser_buttons').removeClass('d-none');
 }
@@ -178,6 +179,7 @@ $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in 
 }
 
 function code_search(diat_int_code, jaccard, num_results, collections_to_search) {
+$('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>'); 
     search_data = JSON.stringify({ diat_int_code, jaccard, num_results, threshold, collections_to_search });
     $.ajax({
         url: 'api/query',
@@ -190,6 +192,7 @@ function code_search(diat_int_code, jaccard, num_results, collections_to_search)
 
 
 function search_by_active_query_id(load_query_image=false, ngram_search, collections_to_search) {
+$('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>'); 
     query_id = document.getElementById("query_id").value;
     if (load_query_image) {
         load_page_query(query_id);
@@ -214,20 +217,32 @@ function show_tp(id,isquery) {
 		}
 	}
 	if(isquery) {
-//		$('.title').remove();
-//		$('.zoomImg').remove();
+/*
 		var query_tp_img = document.getElementById("query_tp_img");
 		query_tp_img.src = new_img_src;
 		query_tp_img.style.left="20px";
 		$('#query_tp_display').zoom({url: query_tp_img.src});
+*/
+		var query_tp_img = document.getElementById("query_image");
+		query_tp_img.src = new_img_src;
+		query_tp_img.style.height = 'min(500px, calc(50vh - 100px))'
+//		query_tp_img.height = 900
+		query_tp_img.style.left="20";
+//		$('#emo_image_display').zoom({url: query_tp_img.src});
 }
 	else {
-//		$('.title').remove();
-//		$('.zoomImg').remove();
+/*
 		var result_tp_img = document.getElementById("result_tp_img");
 		result_tp_img.src = new_img_src;
 		result_tp_img.style.right="20px";
 		$('#result_tp_display').zoom({url: result_tp_img.src});
+*/
+		var result_tp_img = document.getElementById("result_image");
+		result_tp_img.src = new_img_src;
+		query_tp_img.style.height = 'min(500px, calc(50vh - 100px))'
+//		result_tp_img.height = 900;
+		result_tp_img.style.right="20";
+//		$('#result_image_display').zoom({url: result_tp_img.src});
 	}
 }
 
@@ -252,11 +267,11 @@ function show_results(json) {
     var result_num = 0;
     var results = json;
     const provide_judgements = $('#provide_judgements').is(':checked');
-    const select_D_Mbs = $('#select_D_Mbs').is(':checked');
-    const select_D_Bs = $('#select_D_Bs').is(':checked');
-    const select_F_Pn = $('#select_F_Pn').is(':checked');
-    const select_GB_Lbl = $('#select_GB_Lbl').is(':checked');
-    const select_PL_Wn = $('#select_PL_Wn').is(':checked');
+//    const select_D_Mbs = $('#select_D_Mbs').is(':checked');
+//    const select_D_Bs = $('#select_D_Bs').is(':checked');
+//    const select_F_Pn = $('#select_F_Pn').is(':checked');
+//    const select_GB_Lbl = $('#select_GB_Lbl').is(':checked');
+//    const select_PL_Wn = $('#select_PL_Wn').is(':checked');
 
     if (json.length < 2) {
         console.log("No results for " + query_id + "!")
@@ -298,7 +313,7 @@ function show_results(json) {
             table_html +=
                 "<tr class='id_list_name' id='"+result_row_id
                 +"' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
-          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onclick='show_tp(\"" + target_id + "\","+true+")'></td>"
+          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + target_id + "\","+true+")'></td>"
           else table_html +=  "<td></td>" 
                 table_html += "<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
                + "<td>"
@@ -324,7 +339,7 @@ function show_results(json) {
             table_html +=
                 "<tr class='id_list_name' id='"+result_row_id
                 + "' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
-          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onclick='show_tp(\"" + target_id + "\","+false+")'></td>"
+          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + target_id + "\","+false+")'></td>"
           else table_html +=  "<td></td>" 
                 table_html += "<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
                 + "<td>"
@@ -405,7 +420,8 @@ function load_result_image(id, rank, percent) {
 
 //    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' />";
     document.getElementById("result_image_display").style.maxHeight='1000px';
-    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='"+BASE_IMG_URL+image+"' />";
+//    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='"+BASE_IMG_URL+image+"' />";
+    document.getElementById("result_image_display").innerHTML = "<img id='result_image' src='"+BASE_IMG_URL+image+"' />";
     highlight_result_row(rank);
     $('#result_image_display').zoom();
     document.getElementById("query_id").value = id;

@@ -100,8 +100,6 @@ function get_or_set_user_id() {
 }
 
 function load_page_query(id) {
-    // $('#search_controls').addClass('d-none');
-    // $('#emo_browser_buttons').addClass('d-none');
     clear_result_divs();
 
     document.getElementById("query_id").value = id;
@@ -114,6 +112,14 @@ function load_page_query(id) {
 //show_tp(id,true);
     // $('#search_controls').removeClass('d-none');
     // $('#emo_browser_buttons').removeClass('d-none');
+}
+
+function reload_page_query(id) {
+    document.getElementById("query_id").value = id;
+    image = id + ".jpg";
+    document.getElementById("emo_image_display").style.maxHeight="1000px";
+    document.getElementById("emo_image_display").innerHTML = "<img id='query_image' src='"+BASE_IMG_URL+image+"' role=\"presentation\"/>";
+    $('#emo_image_display').zoom();
 }
 
 function get_query_from_id(id) {
@@ -217,32 +223,20 @@ function show_tp(id,isquery) {
 		}
 	}
 	if(isquery) {
-/*
-		var query_tp_img = document.getElementById("query_tp_img");
-		query_tp_img.src = new_img_src;
-		query_tp_img.style.left="20px";
-		$('#query_tp_display').zoom({url: query_tp_img.src});
-*/
 		var query_tp_img = document.getElementById("query_image");
 		query_tp_img.src = new_img_src;
 		query_tp_img.style.height = 'min(500px, calc(50vh - 100px))'
-//		query_tp_img.height = 900
+		query_tp_img.style.width = 'min(600px, calc(50hw - 100px))'
 		query_tp_img.style.left="20";
-//		$('#emo_image_display').zoom({url: query_tp_img.src});
+		$('#emo_image_display').zoom({url: query_tp_img.src});
 }
 	else {
-/*
-		var result_tp_img = document.getElementById("result_tp_img");
-		result_tp_img.src = new_img_src;
-		result_tp_img.style.right="20px";
-		$('#result_tp_display').zoom({url: result_tp_img.src});
-*/
 		var result_tp_img = document.getElementById("result_image");
 		result_tp_img.src = new_img_src;
-		query_tp_img.style.height = 'min(500px, calc(50vh - 100px))'
-//		result_tp_img.height = 900;
+		result_tp_img.style.height = 'min(500px, calc(50vh - 100px))'
+		result_tp_img.style.width = 'min(600px, calc(50hw - 100px))'
 		result_tp_img.style.right="20";
-//		$('#result_image_display').zoom({url: result_tp_img.src});
+		$('#result_image_display').zoom({url: result_tp_img.src});
 	}
 }
 
@@ -309,11 +303,12 @@ function show_results(json) {
 
         const rank_percentage = (rank_factor * 100).toFixed(2);
 
-        if(corpus_search_mode && results[q].id == query_id) {
+        if(corpus_search_mode && results[q].id == query_id) { // query
             table_html +=
                 "<tr class='id_list_name' id='"+result_row_id
                 +"' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
-          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + target_id + "\","+true+")'></td>"
+          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + query_id + "\","+true+")' onmouseup='reload_page_query(\"" + query_id + "\")'></td>"
+//          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + query_id + "\","+true+")'></td>"
           else table_html +=  "<td></td>" 
                 table_html += "<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
                + "<td>"
@@ -335,7 +330,7 @@ function show_results(json) {
             }
             table_html += "</tr>";
 
-        } else {
+        } else {  // results
             table_html +=
                 "<tr class='id_list_name' id='"+result_row_id
                 + "' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
@@ -426,6 +421,19 @@ function load_result_image(id, rank, percent) {
     $('#result_image_display').zoom();
     document.getElementById("query_id").value = id;
     //                load_lyrics(id, false);
+}
+
+function reload_result_image(id) {
+    if (!id) {
+        document.getElementById("result_id_msg").innerHTML = "";
+        document.getElementById("result_image_display").innerHTML = "";
+        return false;
+    }
+    let image = id + ".jpg";
+
+    document.getElementById("result_image_display").style.maxHeight='1000px';
+    document.getElementById("result_image_display").innerHTML = "<img id='result_image' src='"+BASE_IMG_URL+image+"' />";
+    $('#result_image_display').zoom();
 }
 
 // Load emo_ids at startup

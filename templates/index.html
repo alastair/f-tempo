@@ -566,12 +566,10 @@ function ngram_array(str, n) {
 	 document.getElementById('select_all').innerHTML="Select All"
 	 update_colls_to_search()
 	}
-
 	//And a test for whether the All button is on:
 	function allIsSelected(){
 	 return all_checked;
 	}
-
 	//So the onClick callback for the All button would be:
 	function selectAllToggledCallback(event){
 	 var el = event.target;
@@ -582,7 +580,6 @@ function ngram_array(str, n) {
 	 }
 	 update_colls_to_search()
 	}
-	
 	function collSelectToggledCallback(event){
 	collections_to_search.push(event.target.id.substring(7).replace("_","-"));
 	 var el = event.target;
@@ -602,6 +599,7 @@ function ngram_array(str, n) {
 		$('#collection_select_table tr').each(function(){
 			$(this).find('td input').each(function(){
 			   if(this.checked) {
+		console.log(this.id)
 				if(!collections_to_search.includes(this.id.substring(7).replace("_","-"))) {
 					collections_to_search.push(this.id.substring(7).replace("_","-"))
 				}
@@ -620,7 +618,7 @@ function ngram_array(str, n) {
 						 <label class="form-check-label" for="select_D_Mbs">D-Mbs</label>
 					</td>
 					<td>
-						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" onclick="collSelectToggledCallback(event)" id="select_D_Bs" checked>
+						 <input padding-left="15px" type="checkbox" class="form-check-input coll_select" onclick="collSelectToggledCallback(event)" id="select_D_Bsb" checked>
 						 <label class="form-check-label" for="select_D_Bsb">D-Bsb</label>
 					</td>
 				</tr>

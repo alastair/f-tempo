@@ -107,7 +107,8 @@ function load_page_query(id) {
     document.getElementById("query_id").value = id;
     image = id + ".jpg";
     document.getElementById("q_page_display").innerHTML = "Query page: " + id;
-    document.getElementById("emo_image_display").style.maxHeight="1000px";
+//    document.getElementById("emo_image_display").style.maxHeight="1000px";
+    document.getElementById("emo_image_display").style.maxWidth="700px";
 //    document.getElementById("emo_image_display").innerHTML = "<img class='img-fluid' id='query_image' src='"+BASE_IMG_URL+image+"' role=\"presentation\"/>";
     var emo_im_disp_width = '100%';
     document.getElementById("emo_image_display").innerHTML = "<img id='query_image' src='"+BASE_IMG_URL+image+"' width="+emo_im_disp_width+" role=\"presentation\"/>";
@@ -120,8 +121,8 @@ function load_page_query(id) {
 function reload_page_query(id) {
     document.getElementById("query_id").value = id;
     image = id + ".jpg";
-    document.getElementById("emo_image_display").style.maxHeight="1000px";
-    document.getElementById("emo_image_display").innerHTML = "<img id='query_image' src='"+BASE_IMG_URL+image+"' role=\"presentation\"/>";
+//    document.getElementById("emo_image_display").style.maxHeight="1000px";
+    document.getElementById("emo_image_display").style.maxWidth="700px";    document.getElementById("emo_image_display").innerHTML = "<img id='query_image' src='"+BASE_IMG_URL+image+"' role=\"presentation\"/>";
     $('#emo_image_display').zoom();
 }
 
@@ -713,8 +714,8 @@ function load_result_image(id, rank, percent) {
     }
 
 //    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' />";
-    $('#result_image_display').trigger('zoom.destroy');
-    document.getElementById("result_image_display").style.maxHeight='1000px';
+//    document.getElementById("result_image_display").style.maxHeight='1000px';
+    document.getElementById("result_image_display").style.maxWidth='700px';
 //    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='"+BASE_IMG_URL+image+"' />";
     document.getElementById("result_image_display").innerHTML = "<img id='result_image' width='100%' alt='... image loading!' src='"+BASE_IMG_URL+image+"' />";
     highlight_result_row(rank);
@@ -731,8 +732,9 @@ function reload_result_image(id) {
     }
     let image = id + ".jpg";
 
-    document.getElementById("result_image_display").style.maxHeight='1000px';
-    document.getElementById("result_image_display").innerHTML = "<img id='result_image' alt='... image loading!' src='"+BASE_IMG_URL+image+"' />";
+//    document.getElementById("result_image_display").style.maxHeight='1000px';
+    document.getElementById("result_image_display").style.maxHeight='700px';
+    document.getElementById("result_image_display").innerHTML = "<img id='result_image' src='"+BASE_IMG_URL+image+"' />";
     $('#result_image_display').zoom();
 }
 
@@ -972,11 +974,7 @@ ports_to_search = get_colls_ports(collections_to_search);
 
 
 
-// Get library siglum, book siglum and page_code from id
-// The book siglum is the section of the id following the RISM siglum
-// NB The style of underscore-separation differs between collections
 function parse_id(id) {
-//console.log("ID: "+id)
 	let parsed_id = {};
 	let segment = id.split("_");   
 // The library RISM siglum is always the prefix to the id,
@@ -984,16 +982,12 @@ function parse_id(id) {
 	parsed_id.RISM=segment[0];
 	switch (parsed_id.RISM) {
 		case "D-Mbs":
-		case "D-Bsb":
 		case "PL-Wn":
 			parsed_id.book = segment[1];
 			parsed_id.page = segment[2];
 			break;
-        case "F-Pn":
-//           	parsed_id.book = segment[1];
-//			parsed_id.page = segment[2]+"_"+segment[3];
-//            break;
-        case "GB-Lbl": 
+        	case "F-Pn":
+        	case "GB-Lbl": 
 			if (segment.length == 4) { 
 				parsed_id.book = segment[1];
 				parsed_id.page = segment[2]+"_"+segment[3];
@@ -1003,9 +997,19 @@ function parse_id(id) {
 				parsed_id.page = segment[3]+"_"+segment[4];
 			  }          
 			break;
+		case "D-Bsb":
+			if(segment.length == 6) {
+				parsed_id.book = segment[1]+"_"+segment[2]+"_"+segment[3];
+				parsed_id.page = segment[4]+"_"+segment[5];	
+			}
+			if(segment.length == 7) {
+				parsed_id.book = segment[1]+"_"+segment[2]+"_"+segment[3];
+				parsed_id.page = segment[4]+"_"+segment[5]+"_"+segment[6];	
+			}
 	}   
 	return parsed_id;
 }
+
 
 
 // Client-side, though this needs to interact with server, as book data will be on server, not client

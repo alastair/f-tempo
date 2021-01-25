@@ -8,9 +8,11 @@ const express = require('express');
 const fileUpload = require('express-fileupload');
 const fs = require('fs');
 const mustacheExpress = require('mustache-express');
-const path_app = require('path');
+const path = require('path');
 const request = require('request');
-const utils = require('./static/src/utils.js');
+const utils = require('../static/src/utils.js');
+const url = require('url');
+var cors = require('cors');
 var	argv = require('minimist')(process.argv.slice(2));
 
 /*******************************************************************************
@@ -42,6 +44,7 @@ var MAWS_DB = './data/latest_maws';
 var DIAT_MEL_DB = './data/latest_diat_mel_strs'; 
 //const DIAT_MEL_DB = './data/latest_diat_mel_strs_corrIDs_30Sep2019.txt'; 
 const EMO_IDS = []; // all ids in the system
+const sorted_EMO_IDS = [];
 const EMO_IDS_DIAT_MELS = {}; // keys are ids, values are the diat_int_code for that id
 var EMO_IDS_MAWS = {}; // keys are ids, values are an array of maws for that id
 const MAWS_to_IDS = {}; // keys are maws, values are an array of all ids for which that maw appears
@@ -56,6 +59,7 @@ const tp_jpgs = []; // URLs to title-pages (NB only for D-Mbs!)
 
 var search_ids = []; // list of ids to search - constructed from EMO_IDS as required
 var collections_to_search;
+var ALL_PORTS = ["8011","8001","8004","8015","8007","8017","8016","8006","8003","8027","8021","8008","8026","8009","8010","8014","8005","8002","8012","8018","8022","8024","8013","8020","8019","8023","8025"]; // default - all 27 ports 
 
 const word_totals = []; // total words per id, used for normalization
 const word_ngram_totals = []; // total words per id, used for normalization
@@ -88,7 +92,8 @@ var DB_PREFIX_LIST = []; // Array of prefixes to F_TEMPO data collections
 //const BASE_IMG_URL = '/img/jpg/';
 //const BASE_MEI_URL = '/img/mei/';
 const BASE_IMG_URL = 'http://f-tempo-mbs.rism-ch.org/img/jpg/';
-const BASE_MEI_URL = 'http://f-tempo-mbs.rism-ch.org/img/mei/';
+//const BASE_MEI_URL = 'http://f-tempo-mbs.rism-ch.org/img/mei/';
+const BASE_MEI_URL = '/var/www/f-tempo/static/img/mei/';
 
 // flags to say whether the current id comes from D-Mbs or elsewhere (in app.get('/compare' ..., below)
 // If true, page-image MEI files are local; otherwise they need to be downloaded via http 
@@ -175,7 +180,7 @@ if((!DB_PREFIX_LIST.length)||((DB_PREFIX_LIST.length==1)&&(DB_PREFIX_LIST[0]=="t
 //		}
 		if(DB_PREFIX_LIST[m].startsWith("D-Mbs")) var maws_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/maws";
 		else var maws_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/all/maws";
-		load_file(maws_db, parse_maws_db,DB_PREFIX_LIST[m]);
+//		load_file(maws_db, parse_maws_db,DB_PREFIX_LIST[m]);
 
 		if(DB_PREFIX_LIST[m].startsWith("D-Mbs")) var diat_mel_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/codestrings";
 		else var diat_mel_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/all/codestrings";
@@ -202,6 +207,35 @@ app.listen(
     () => console.log('EMO app listening on port 8000!') // success callback
 );
 
+// Set up middleware to redirect external queries to server's localhost
+// Middleware for distributing search to multiple ports (see multi_search)
+const {createProxyMiddleware} = require('http-proxy-middleware');
+var curr_req_path = "";
+app.use('/api/query_*', createProxyMiddleware({
+	pathRewrite: rewriteFunction,
+	target: 'http://localhost',
+	router: rewriteRouterFunction,
+	changeOrigin: true,
+}));
+function rewriteFunction(path){
+	var newpath = "/api/query";
+	return newpath; 
+}
+function rewriteRouterFunction(req) {
+	let newport = req.url.substr(-4);
+	return 'http://localhost:' + newport;
+	}
+
+// for getting codestrings from an id
+/*
+app.use('/api/get_codestring', createProxyMiddleware({
+	target: 'http://localhost',
+	router: 'http://localhost:8500',
+	method: 'POST',
+	pathRewrite: {'/api/get_codestring': '/api/id'},
+	changeOrigin: true,
+}));
+*/
 app.engine('html', mustacheExpress()); // render html templates using Mustache
 app.set('view engine', 'html');
 app.set('views', './templates');
@@ -218,7 +252,6 @@ app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x
 app.get('/', function (req, res) {
     res.render('index');
 });
-
 
 app.get('/id_searches', function (req, res) {
     const data = { id_searches: true };
@@ -255,6 +288,7 @@ app.get('/compare', function (req, res) {
     const q_jpg_url = base_img_url + q_id + img_ext;
     const m_jpg_url = base_img_url + m_id + img_ext;
 
+
 //    Get both MEI files
     const mei_ext = '.mei';
     const base_mei_url = BASE_MEI_URL;
@@ -263,11 +297,11 @@ app.get('/compare', function (req, res) {
 */
     var q_mei_url = base_mei_url + q_id + mei_ext;
     var m_mei_url = base_mei_url + m_id + mei_ext;
+console.log("q_mei_url: "+q_mei_url)
 
-    //EMO_IDS_DIAT_MELS lists ids and codestrings;
-    // this finds the line of the query and result pages
     const q_diat_str = EMO_IDS_DIAT_MELS[q_id];
     const m_diat_str = EMO_IDS_DIAT_MELS[m_id];
+
     if (!q_diat_str) { return res.status(400).send('Could not find melody string for this q_id '+q_id); }
     if (!m_diat_str) { return res.status(400).send('Could not find melody string for this m_id: '+m_id); }
     
@@ -358,38 +392,13 @@ app.get('/compare', function (req, res) {
     // TODO(ra) probably expose this in the frontend like this...
 //	const show_top_ngrams = req.body.show_top_ngrams;
 //	const show_top_ngrams = true;
-    const show_top_ngrams = false;
-    const [q_index_to_colour, m_index_to_colour] = generate_index_to_colour_maps(q_diat_str, m_diat_str, show_top_ngrams);
+//    const show_top_ngrams = false;
+//    const [q_index_to_colour, m_index_to_colour] = generate_index_to_colour_maps(q_diat_str, m_diat_str, show_top_ngrams);
 
-	let q_mei = "";
-	let m_mei = "";
+	let q_mei = get_mei(q_mei_url);
+	let m_mei = get_mei(m_mei_url);
 	var ok = false;
-	if(q_Mbs) {
-//		q_mei_url = "static"+q_mei_url;
-		q_mei = load_file_sync(q_mei_url);
-		if(!q_mei.length) return res.status(400).send('Could not find the MEI file '+q_mei_url);
-	}
-	else {
-		request(q_mei_url, function (error, response, q_mei) { 
-			if (!error && response.statusCode == 200) {
-				ok = true;
-			}
-			else  return res.status(400).send('Could not find the MEI file '+q_mei_url);
-		});
-	}
-	if(m_Mbs) {
-//		m_mei_url = "static"+m_mei_url;
-		m_mei = load_file_sync(m_mei_url);
-		if(!m_mei.length) return res.status(400).send('Could not find the MEI file '+m_mei_url);
-	}
-	else {
-		request(m_mei_url, function (error, response, m_mei) { 
-			if (!error && response.statusCode == 200) {
-				ok = true;
-			}
-			else  return res.status(400).send('Could not find the MEI file '+q_mei_url);
-		});
-	}
+
 	const  data = {
 		q_id,
 		m_id,
@@ -403,51 +412,253 @@ app.get('/compare', function (req, res) {
 	  }
 	res.render('compare', data);
 });
+function got_mei(data){};
 
 var q_diat_str;
 var q_diat_url;
 
+app.get('/api/get_maws_from_id', function (req, res) { 
+	let num_ports = ALL_PORTS.length;
+	let id=req.url.substring(req.url.indexOf('=')+1);
+	let json="\'{\"id\": \""+id+"\"}\'";
+//console.log("MAWs request for " + json)
+//	if(req.body.id !== undefined) { id = req.body.id;}
+	
+	let result="";
+	
+	for(var i=0;i<num_ports;i++) {
+		var port = parseInt(ALL_PORTS[i]);
+		let url = 'http://localhost:'+port.toString()+"/api/maws_from_id";
+		let command="curl -s -d "+json+" -H 'Content-Type: application/json'  -X POST "+url;
+//console.log(command)
+		
+//		let command="curl -s "+url;	
+		result =  cp.execSync(command);
+		if(result.length) break;
+		}
+	if(result.length) res.send(JSON.parse(result).join(" ")); 
+//	if(result.length) res.send("MAWs for id "+id+" :<br>"+JSON.parse(result).join(" ")); 
+	else res.send("MAWs for id "+id+" not found!!"); 
+});
+
 // Returns the number of all emo ids
-app.get('/api/num_emo_ids', function (req, res) { res.send(EMO_IDS.length+" pages in database"); });
+app.get('/api/num_emo_ids', function (req, res) { 
+	let num_ports = ALL_PORTS.length;
+	var total_ids = 0; // total number in all d/bs
+	for(var i=0;i<num_ports;i++) {
+		var port = parseInt(ALL_PORTS[i]);
+		let url = 'http://localhost:'+port.toString()+"/api/num_emo_ids"
+		let command="curl -s "+url + " | awk '{print $1}'";	
+		var result =  cp.execSync(command);
+		total_ids += parseInt(result.toString().split(" ")[0]);
+		}
+	res.send(total_ids+" pages in database"); 
+});
 
 // Returns an array of all emo ids
 app.get('/api/emo_ids', function (req, res) { res.send(EMO_IDS); });
 
+// Returns a random id from the database
+app.get('/api/random_id', function (req, res) { 
+	res.send( EMO_IDS[Math.floor(Math.random()*EMO_IDS.length)]); 
+});
+
+// Returns a new id (next/previous page/book) in response to that in the request
+app.get('/api/next_id', function (req, res) {
+// NB FIXME!! This does not work properly with F-Pn IDs, as the 'book' part of the ID is scrambled!
+	var next = true; // default to finding next ...
+	var page = true; // page
+	if(req.query.next !== "undefined") {
+		if(req.query.next=="true") next = true;
+		else if(req.query.next=="false") next = false;	
+	}
+	if(req.query.page !== "undefined") {
+		if(req.query.page=="true") page = true;	
+		else if(req.query.page=="false") page = false;	
+	}
+	var start_id = req.query.id;
+	var new_id = "";
+//console.log("next is "+next);
+	var found = EMO_IDS.indexOf(start_id);
+	if(found == -1) res.send("ID "+start_id+" not found!");
+//console.log("found = "+found)
+	
+	if(page==true) {
+		// finding adjacent ID/page
+		if(next==true) {
+			found+=1;
+		} 
+		else found-=1;
+//	console.log("new found = "+found);
+	// TODO handle end and beginning of EMO_IDS properly!! Maybe as simple as ...
+		if((found>=EMO_IDS.length)||(found<0)) res.send(start_id);
+		new_id = EMO_IDS[found];
+//	console.log("ID: "+start_id+" new ID: "+new_id+" ("+next+")");
+	}
+	else {
+		var parsed_id=parse_id(start_id)
+		var this_book = parsed_id.book;
+		// find next book
+//	console.log("Found this_book: "+this_book)
+		var new_id = "";
+		var new_book = "";
+		if(next==true) {
+			for(var i=found;i<EMO_IDS.length;i++) {
+				new_id = EMO_IDS[i];
+				new_book=parse_id(new_id).book;
+				if(new_book != this_book) {
+					break;
+				}
+			}
+//	console.log(i+": '"+EMO_IDS[i]+"'");
+//	console.log("Found next book: "+new_book)
+		}
+		else {
+		// find previous book]
+			for(i=found;i>0;i--) {
+				new_id = EMO_IDS[i].trim();
+				new_book = parse_id(new_id).book;
+				if(new_book != this_book) {
+					// now we are at the last image of the previous book
+					// so find the book before that one and go to next
+					// image - it will be the first of the book we want
+					this_book = new_book;
+					for(;i>0;i--) {
+						new_id = EMO_IDS[i].trim();
+						new_book = parse_id(new_id).book;
+						if(new_book != this_book) {
+							if(i>0) i++; // Don't go to next if at first book
+							new_id = EMO_IDS[i].trim();
+							break;
+						}
+					}
+					break;
+				}
+			}
+//	console.log("Found previous book: "+new_book)
+		}
+	}
+			
+	res.send(new_id); 
+});
+
 // Returns an array of all title-page jpg urls
 app.get('/api/title-pages', function (req, res) { res.send(tp_jpgs); });
 
-// Handle a query
+
+app.get('/api/get_codestring', function (req, res) {
+	let id = '';
+	id=req.url.substring(req.url.indexOf('=')+1);
+//	console.log(req.url+ " id is "+id)
+	if (typeof id == undefined) {
+		// res.send(req.url+" : Can't read the id")
+		return false;
+	}
+	else {
+		let json="\'{\"id\": \""+id+"\"}\'";
+// console.log(json)
+		let command="curl -s -d "+json+" -H 'Content-Type: application/json'  -X POST http://localhost:8500/api/id";
+//		console.log("command = "+command)
+		let codestring = cp.execSync(command);
+//		console.log("Try to get codestring: \n"+codestring);
+		res.send(JSON.stringify(codestring.toString().trim()));
+	}
+});
+
+// Handle a remote query
+// Multi-search version; sends identical search to all requested servers on their ports
 app.post('/api/query', function (req, res) {
+
     // Defaults
     let num_results = 20;
     let jaccard = true;
     let threshold = false;
     let ngram = false;
-    collections_to_search = ["D-Bsb","D-Mbs","F-Pn","GB-Lbl","PL-Wn"];
+    let ports_to_search = ALL_PORTS; // default - all 27 ports 
 
     // Set values if given in query
     if (req.body.jaccard !== undefined) { jaccard = req.body.jaccard; }
     if (req.body.num_results !== undefined) { num_results = req.body.num_results; }
     if (req.body.threshold !== undefined) { threshold = req.body.threshold; }
     if (req.body.ngram_search !== undefined) { ngram = req.body.ngram_search; }
-    if (req.body.collections_to_search !== undefined) { collections_to_search = req.body.collections_to_search; }
+    if (req.body.ports !== undefined) { ports_to_search = req.body.ports; }
     let result;
-    if(req.body.qstring) {
-        // console.log('Querying by string...');
-        const query = req.body.qstring;
-        result = search('words', query, jaccard, num_results, threshold, ngram, collections_to_search);
-    } else if(req.body.id) {
-      //   console.log('Querying by id... '+ngram);
-        if(ngram) result = search('id', req.body.id, jaccard, num_results, threshold, ngram, collections_to_search);
-        else result = search('id', req.body.id, jaccard, num_results, threshold, ngram, collections_to_search);
+    if(req.body.id) {
+        var codestring = get_codestring(req.body.id);
+console.log("'"+codestring+"'")
+        if(codestring.length <= 2) {
+console.log("No codestring found for id: "+req.body.id)
+		   res.send(req.body.id+" not found!!");
+        }
+        else {
+		   codestring = "'" + codestring + "'";
+		   result = multi_search(codestring, jaccard, num_results, threshold, ngram, ports_to_search);
+        }
 
-    } else if(req.body.diat_int_code) {
-        result = search_with_code(req.body.diat_int_code, jaccard, num_results, threshold, ngram, collections_to_search);
-    }
+    } else if(req.body.codestring) {
+		let multi_result = multi_search(req.body.codestring, jaccard, num_results, threshold, ngram, ports_to_search);
+     }
 
-    res.send(result);
+	var num_ports_to_search;
+	var num_ports_searched = 0;
+	var multi_results_array = [];
+
+	function search_ports(query,ports,num_results) {
+		num_ports_to_search = ports.length
+		for(var i=0;i<num_ports_to_search;i++) {
+			var port = parseInt(ports[i]);
+			let url = 'http://localhost:'+port.toString()+"/api/query"
+			let command="curl -s -d "+JSON.stringify(query)+" -H 'Content-Type: application/json'  -X POST "+url;	
+			var result =  cp.exec(command,(error,stdout,stderr) => {
+			  if (error) {
+			    console.error(`exec error: ${error}`);
+			    return;
+			  }
+			handle_multi_results(`${stdout}`,num_results);
+			});
+		}
+			if(result)   return multi_results_array;
+	}
+
+	// Multiple remote search function. Repeats identical search for each port.
+	// NB Results are dynamically concatenated into multi_results_array
+	// - see function handle_multi_results
+	 function multi_search(id, jaccard, search_num_results, threshold, ngram_search, ports_to_search) {
+
+	    let codestring = "";
+	    // Options for multi_search are by id or by codestring; also by 'word' but we are most unlikely to do that one
+	    // crude test whether it's an id or a codestring:
+	    if(!EMO_IDS.includes(id)) codestring = id;
+	    else codestring = get_codestring(id);
+
+	    let search_data = "";
+	    let diat_int_str = codestring;
+	    let num_results = search_num_results;
+	    search_data = JSON.stringify({ codestring, jaccard, num_results, threshold, ngram_search});
+	    let result = search_ports(search_data, ports_to_search,num_results);
+	    return result;
+	}
+
+	function handle_multi_results(json,trunc_num) {
+		num_ports_searched++;
+		if(!json.length) return;
+		var this_result = "";
+		this_result = JSON.parse(json);
+		var this_result_array=this_result
+		for(var i=0;i<this_result_array.length;i++) {
+			let result_line = this_result_array[i];
+			multi_results_array=multi_results_array.concat(result_line)
+		}
+		multi_results_array.sort((a, b) => { return a.jaccard - b.jaccard; });
+		multi_results_array.length = trunc_num;
+		if(num_ports_searched == num_ports_to_search) {
+			res.send(multi_results_array);
+		}
+	}
+
 });
 
+/*
 var working_path;
 // Handle image uploads
 app.post('/api/image_query', function(req, res) {
@@ -492,6 +703,193 @@ app.post('/api/image_query', function(req, res) {
         }
     });
 });
+*/
+
+// Handle a remote image-upload query
+// Multi-search version; sends identical search to all requested servers on their ports
+app.post('/api/image_query', function (req, res) {
+
+    if (!req.files) { return res.status(400).send('No files were uploaded.'); }
+    
+    let working_path;
+    // Defaults
+    let num_results = 20;
+    let jaccard = true;
+    let threshold = false;
+    let ngram = false;
+    let ports_to_search = ALL_PORTS; // default - all 27 ports 
+
+    // Set values if given in query
+    if (req.body.jaccard !== undefined) { jaccard = req.body.jaccard; }
+    if (req.body.num_results !== undefined) { num_results = req.body.num_results; }
+    if (req.body.threshold !== undefined) { threshold = req.body.threshold; }
+// No ngram searches yet!
+//    if (req.body.ngram_search !== undefined) { ngram = req.body.ngram_search; }
+    ngram = false;
+    if (req.body.ports_to_search !== undefined) { ports_to_search = req.body.ports; }
+    
+        // this needs to stay in sync with the name given to the FormData object in the front end
+    let user_image = req.files.user_image_file;
+    const user_id = req.body.user_id;
+    const new_filename = user_image.name.replace(/ /g, '_');
+
+    // TODO: this probably breaks silently if the user uploads two files with the
+    // same name -- they'll end up in the working directory, which may cause
+    // problems for Aruspix
+    
+    let next_working_dir;
+    const user_path = './run/' + user_id + '/';
+    if (fs.existsSync(user_path)){
+        dirs = fs.readdirSync(user_path);
+
+        // dirs is an array of strings, which we want to sort as ints
+        dirs.sort((a, b) => parseInt(a) - parseInt(b));
+        last_dir = parseInt(dirs[dirs.length - 1]);
+        next_working_dir = last_dir + 1;
+    } else {
+        fs.mkdirSync(user_path);
+        next_working_dir = 0;
+    }
+
+//    const working_path = user_path + next_working_dir + '/';
+	working_path = user_path + next_working_dir + '/';
+    fs.mkdirSync(working_path);
+
+    // Use the mv() method to save the file there
+    user_image.mv(working_path + new_filename, (err) => {
+        if (err) { return res.status(500).send(err); }
+        else {
+// console.log("Uploaded file saved as " + working_path + new_filename);
+            const ngram_search = ngram;
+            const result = run_multi_image_query(user_id, new_filename, working_path, ngram_search);
+ //           if (result) { res.send(result); }
+ //           if(!result) { return res.status(422).send('Could not process this file.'); }
+        }
+    });
+
+    var image_codestring;
+    let multi_result = [];
+    
+    function run_multi_image_query(user_id, new_filename, working_path, ngram_search) {
+		multi_result.length = 0;
+	    let query_data;
+	    let query;
+	    if(!ngram_search) {
+			  query_data = cp.execSync('./shell_scripts/image_to_codestring.sh ' + new_filename + ' ' + working_path );
+			  image_codestring = String(query_data); 
+//console.log("image_codestring is: '"+image_codestring+"'")
+		   multi_result = multi_search(image_codestring, jaccard, num_results, threshold, false, ports_to_search);
+	    }
+/* Not yet!
+	    else {
+		   try {
+			  query_data = cp.execSync('./shell_scripts/image_to_ngrams.sh ' + user_image_filename + ' ' + the_working_path + ' ' + '9');
+			  query = String(query_data);
+		   } catch (err) { return; } // something broke in the shell script...
+		   if (query) { multi_result = multi_search(image_codestring, jaccard, num_results, threshold, ngram, ports_to_search); }
+	    }
+*/
+	}
+
+	let num_ports_to_search;
+	let num_ports_searched = 0;
+	var multi_results_array = [];
+
+	function search_ports(query,ports,num_results) {
+
+		multi_results_array.length=0;
+		
+		num_ports_to_search = ports.length
+		for(var i=0;i<num_ports_to_search;i++) {
+			var port = parseInt(ports[i]);
+			let url = 'http://localhost:'+port.toString()+"/api/query"
+			let command="curl -s -d "+JSON.stringify(query)+" -H 'Content-Type: application/json'  -X POST "+url;	
+			var result =  cp.exec(command,(error,stdout,stderr) => {
+			  if (error) {
+			    console.error(`exec error: ${error}`);
+			    return;
+			  }
+			handle_multi_results(`${stdout}`,num_results);
+			});
+		}
+			if(result)   return multi_results_array;
+	}
+
+	// Multiple remote search function. Repeats identical search for each port.
+	// NB Results are dynamically concatenated into multi_results_array
+	// - see function handle_multi_results
+	 function multi_search(codestring, jaccard, search_num_results, threshold, ngram_search, ports_to_search) {
+	    let search_data = "";
+//	    let diat_int_str = codestring;
+	    let num_results = search_num_results;
+	    search_data = { codestring, jaccard, num_results, threshold, ngram_search};
+//console.log(search_data)
+	    let result = search_ports(JSON.stringify(search_data), ports_to_search,num_results);
+	    return result;
+	}
+
+	function handle_multi_results(json,trunc_num) {
+		num_ports_searched++;
+		if(!json.length) return;
+		var this_result = "";
+		this_result = JSON.parse(json);
+		var this_result_array=this_result
+		for(var i=0;i<this_result_array.length;i++) {
+			let result_line = this_result_array[i];
+//			multi_results_array=multi_results_array.concat(JSON.stringify(result_line))
+			multi_results_array=multi_results_array.concat(result_line)
+		}
+		multi_results_array.sort((a, b) => { return a.jaccard - b.jaccard; });
+		multi_results_array.length = trunc_num;
+		if(num_ports_searched == num_ports_to_search) {
+//console.log("Sending result: "+multi_results_array)
+			res.send(JSON.stringify(multi_results_array));
+//			return multi_results_array;
+		}
+	}
+
+});
+
+app.get('/api/get_coll_ports', function(req,res) {
+	    var file = "static/src/coll_port_list";
+	    var colls = req.originalUrl.substring(req.originalUrl.indexOf('=')+1);
+//console.log(req.originalUrl)
+//	    if(colls.length)  console.log("colls requested: "+colls);
+	    let  ports_to_search = [];
+	    fs.readFile(file, 'utf8', (err, data) => {
+		   if (err) { throw err; }
+		   if (!data.length) {
+			  console.log("No data in seg_server_list!");
+		   } else {
+			  ports_to_search = parse_ports(data,colls);
+//			  console.log("ports_to_search now: "+ports_to_search)
+			  res.send(ports_to_search);
+		   }
+	    });
+
+	function parse_ports(data_str,colls) {
+		var ports = []; 
+	    if(colls.length) {
+			var coll_array = colls.split(",");
+			let lines = data_str.split("\n");
+//			console.log("Getting search ports for " + coll_array.length + " data-segments");
+			for (let line of lines) {
+			   if (line) {
+				const words = line.split(" "); // splits on whitespace
+				// words[0] is the collection RISM siglum
+				var coll = words[0];
+				if(coll_array.includes(coll))
+					for(var i=1;i<words.length;i++) {
+						ports.push(words[i]);
+					}
+			   }
+			}
+	   }
+//	    console.log("ports parsed = " + ports);
+	    return ports;
+	}
+});
+
 
 app.post('/api/log', function(req, res) {
     const log_entry = req.body.log_entry;
@@ -600,19 +998,11 @@ function get_result_from_words(words, signature_to_ids_dict, jaccard, num_result
         // console.log("Not enough words in query.");
         return [];
     }
-console.time("search");
-// console.log("Words: \n"+words)
 // Safety check that the words are all unique:    
     const uniq_words = Array.from(new Set(words));
     const scores = get_scores(uniq_words, signature_to_ids_dict, ngram, collections_to_search);
-console.log(uniq_words.length+" words")
-console.log(Object.keys(scores).length+" scores to prune");
-console.time("pruning")
     const scores_pruned = get_pruned_and_sorted_scores(scores, uniq_words.length, jaccard,ngram);
-console.timeEnd("pruning")
-console.log("Now pruned to "+scores_pruned.length);
     const result = gate_scores_by_threshold(scores_pruned, threshold, jaccard, num_results);
-console.timeEnd("search");
     return result;
 }
 
@@ -778,7 +1168,7 @@ function parse_maws_db(data_str,source) {
         }
        process.stdout.write((("  "+line_count/lines.length)*100).toFixed(2)+"%"+"\r") 
     }
-
+    EMO_IDS.sort();
     console.log(EMO_IDS.length + " lines of MAW data loaded!");
     console.log(EMO_IDS_MAWS.length + " ids with MAWs data loaded!");
     console.log(Object.keys(MAWS_to_IDS).length + " unique MAWs!");
@@ -794,6 +1184,7 @@ function parse_diat_mels_db(data_str,source) {
         if (line) {
             const [id, diat_mels_str] = line.split(/ (.+)/); // splits on first match of whitespace
             if(typeof diat_mels_str != "undefined") EMO_IDS_DIAT_MELS[id] = diat_mels_str;
+            EMO_IDS.push(id);
             line_count++;
         }
         process.stdout.write((("  "+line_count/lines.length)*100).toFixed(2)+"%"+"\r") 
@@ -832,15 +1223,15 @@ function load_ngrams_from_diat_mels (ng_len) {
 	fs.writeFile(NGRAM_ID_BASE+ng_len+".json",
 		JSON.stringify(NGRAMS_to_IDS),
 		(err) => {
-		Â Â if (err) throw err;
-		Â Â console.log('The ngram_id_dict has been saved!');
+		ÊÊif (err) throw err;
+		ÊÊconsole.log('The ngram_id_dict has been saved!');
 		}
 	);
 	fs.writeFile(ID_NGRAM_BASE+ng_len+".json",
 		JSON.stringify(EMO_IDS_NGRAMS),
 		(err) => {
-		Â Â if (err) throw err;
-		Â Â console.log('The id_ngram_dict has been saved!');
+		ÊÊif (err) throw err;
+		ÊÊconsole.log('The id_ngram_dict has been saved!');
 		}
 	);
 */
@@ -879,7 +1270,6 @@ function load_file_sync(file) {
 
 function load_current_query_diat_str(q_diat_url) { load_file(q_diat_url, get_diat_str); }
 
-
 function load_image_query_diat_str(q_diat_url) {
 	var datastr = load_file_sync(q_diat_url); 
 	get_diat_str(datastr);
@@ -896,6 +1286,19 @@ console.log("url for mel str is "+q_diat_url);
 /*******************************************************************************
  * Helpers
  ******************************************************************************/
+
+function get_codestring(id) {
+	let json="\'{\"id\": \""+id+"\"}\'";
+	let command="curl -s -d "+json+" -H 'Content-Type: application/json'  -X POST http://localhost:8500/api/id";
+	let codestring_found = cp.execSync(command);
+	return codestring_found;
+}
+
+function get_mei(file) {
+//	console.log("Getting MEI from: "+ file)
+	var found_mei = fs.readFileSync(file, 'utf8');
+	return found_mei;
+}
 
 // Gets library RISM siglum from beginning of id
 function get_collection_from_id(id) {

@@ -16,6 +16,10 @@
     padding: 0px 10px 2px 10px !important;
 }
 
+.emo_image_display {
+	width: 750px;
+}
+
 .drop_downs {
   width: 96px;
   font-size: 10px;

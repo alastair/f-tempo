@@ -1,0 +1,3 @@
+procs=$(sudo lsof -nP -iTCP -sTCP:LISTEN | grep tim | awk '{printf(" %s",$2)}');
+echo "Killing "$procs
+kill $procs

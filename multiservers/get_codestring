@@ -1,0 +1,6 @@
+curl -s -d '{"id": "'$1'"}' -H "Content-Type: application/json" -X POST http://localhost:8500/api/id
+echo;exit;
+ jq -r  ".[] |
+ [.id, .jaccard] |
+@tsv";
+

@@ -109,8 +109,7 @@ function load_page_query(id) {
     document.getElementById("q_page_display").innerHTML = "Query page: " + id;
     document.getElementById("emo_image_display").style.maxHeight="1000px";
 //    document.getElementById("emo_image_display").innerHTML = "<img class='img-fluid' id='query_image' src='"+BASE_IMG_URL+image+"' role=\"presentation\"/>";
-    var emo_im_disp_width = '100%';
-    document.getElementById("emo_image_display").innerHTML = "<img id='query_image' src='"+BASE_IMG_URL+image+"' width="+emo_im_disp_width+" role=\"presentation\"/>";
+    document.getElementById("emo_image_display").innerHTML = "<img id='query_image' src='"+BASE_IMG_URL+image+"' role=\"presentation\"/>";
     $('#emo_image_display').zoom();
 //show_tp(id,true);
     // $('#search_controls').removeClass('d-none');
@@ -125,14 +124,13 @@ function reload_page_query(id) {
     $('#emo_image_display').zoom();
 }
 
-/*
 function get_query_from_id(id) {
     for(var i=0;i<emo_ids.length;i++) {
         if((emo_ids[i].startsWith(">"+id))||(emo_ids[i].startsWith(id))) return emo_ids[i];
     }
     return false
 }
-*/
+
 ngr_len = 5;
 // Canvas needs to be created and supplied!
 function lineAt(canvas,startx,starty,colour) {
@@ -174,35 +172,6 @@ function display_cosine_sim_line(json) {
 	}
 }
 
-function display_cosine_sim_line_multi(json) {            
-//	var results = json;
-	var q_str = query_codestring;
-	for(let q = 1; q < json.length; q++) {
-		let progID = 'progress'+q;
-		let progRect = document.getElementById(progID).getBoundingClientRect();
-		let canWidth = progRect.width;
-		let canHeight = progRect.height;
-		let canTop = progRect.top;
-		let canLeft = progRect.left;
-		let canID = 'canvas'+q;
-		let canv = document.createElement('canvas');
-		canv.id = canID;
-		document.getElementById(progID).parentNode.appendChild(canv);
-//		document.getElementById(progID).parentNode.insertBefore(canv,document.getElementById(progID).nextSibling);
-		canv.style.position="absolute";
-		canv.style.zIndex="2";
-		canv.width=canWidth;
-//		canv.height=canHeight;
-		canv.height="5";
-		canv.top=(canTop-canHeight)+"px";
-		canv.left=canLeft;
-		m_str = json[q].codestring;
-		var cos_sim = textCosineSimilarity(ngram_array(q_str,ngr_len).join(' '), ngram_array(m_str,ngr_len).join(' '));
-		var line_x = cos_sim * canv.width;
-		lineAt(canv,line_x,0,"red");
-	}
-}
-
 // Basic remote search function.
 function search(id, jaccard, num_results, ngram_search, collections_to_search) {
     search_data = JSON.stringify({ id, jaccard, num_results, threshold, ngram_search, collections_to_search});
@@ -219,124 +188,43 @@ $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in 
 
 var multi_results_array = [];
 
-function get_codestring(id) {
-
-     var codestring = "";
-        $.ajax({
-        url: 'http://f-tempo-mbs.rism-ch.org/api/get_codestring?id='+id,
-        method: 'GET',
-        async: false,
-        id: id,
-//        contentType: 'application/text',
-        async: false,
-        success: function(response){codestring=JSON.parse(response)}
-	})
-      .fail((xhr, status) => alert(status)); // TODO: real error handling!
-
-//	console.log(id+" : codestring: "+codestring);
-	return codestring;
-}
-
-// Users may wish to revisit recent searches.
-// Globals 'searches' array stores the search-data for recent searches; it 
-// will die when page is restarted
-var searches = [];
-
 // Multiple remote search function. Repeats identical search for each port.
 // NB Results must be dynamically concatenated in the browser - see show_multi_results
-function multi_search(query, jaccard, search_num_results, ngram_search, ports, record) {
-	if(typeof record == "undefined") record = true;
-	var q_codestring = "";
-	var id = "";
-    // Options for multi_search are by id or by q_codestring; also by 'word' but we are most unlikely to do that one
-    
-    // Seriously crude test whether it's an id or a q_codestring:
-// All queries use underscore, but this is not part of the diat_int_str  code
-	if(query.indexOf("_") > 0) 
-		{
-			q_codestring = get_codestring(query);
-			id = query;
-		}
-	else q_codestring = query;
+function multi_search(id, jaccard, num_results, ngram_search, ports) {
 
-    if(q_codestring.length < 6) return false;
-
-    multi_results_array.length = 0;
-    let search_data = "";
-    let codestring = q_codestring;
-    search_data = JSON.stringify({ codestring, jaccard, search_num_results, threshold, ngram_search});
- //   console.log(search_data);
-    if(record) searches.push({"id" : id, "search_data": JSON.parse(search_data)});
- console.log(searches.length + " searches now in array")
-    
+    search_data = JSON.stringify({ id, jaccard, num_results, threshold, ngram_search, ports});
+    console.log(search_data);
     $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>'); 
 
 	// First clear results array before starting to build a new one
-	clear_multi_results();
-
-//console.log("ports_to_search: "+ports_to_search)
-	ports = ports_to_search;
-	for(var i=0;i<ports.length;i++) {
-	    curr_search = i;
+    clear_multi_results();
+// For testing only:
+ports = [8008];
+    for(var i=0;i<ports.length;i++) {
 	    var port = parseInt(ports[i]);
-	    var request = $.ajax({
+	    $.ajax({
+//		   url: 'http://localhost:'+port.toString()+'/api/query',
 		   url: 'api/query_'+port.toString(),
+//		   url: 'http://localhost:'+port.toString()+'/api/query',
 		   method: 'POST',
 		   data: search_data,
 		   contentType: 'application/json',
-		   async:true
-		}).always(show_multi_results);
-		 request.fail((xhr, status) => alert(status)); // TODO: real error handling!
+		}).done(show_multi_results)
+		 .fail((xhr, status) => alert(status)); // TODO: real error handling!
 	    }
 }
-
-// Repeat search n in the searches array - NB n starts at 0!!
-function repeat_search(n) {
-		document.getElementById("emo_image_display").innerHTML = "";
-		document.getElementById("q_page_display").innerHTML = "";
-		multi_search( 
-			searches[n].search_data.codestring,
-			searches[n].search_data.jaccard,
-			searches[n].search_data.search_num_results,
-			searches[n].search_data.ngram_search, 
-			ports_to_search,
-			false // don't record this as a new search!
-		);
-}
-
-var multi_results_array = [];
 
 function clear_multi_results() {
 	// Empty current concatenated results array
 	multi_results_array.length = 0;
 }
-var curr_search;
-function simline_if_done(num,json){ 
-	if(curr_search==ports_to_search.length-1) {
-		for(i=0;i<num;i++){
-			json[i].codestring=get_codestring(json[i].id)
-		}
-		display_cosine_sim_line(json);
-	}
-}
 
-var query_codestring="";
-var num_results_to_display;
 function show_multi_results(json) {
-    
-    if(!json.length) return;
-    imageSrcs.length = 0; // empty the cache altogether
-    
-    var this_result = false;
-    if(typeof json == "string") { 
-	    this_result = Object.values(JSON.parse(json));
-//	    console.log(typeof this_result);
-    }
-    else {this_result = json;}
-//console.log("this_result is "+typeof this_result+"\n"+ this_result)
+
+	imageSrcs.length = 0; // empty the cache altogether
 
     var result_num = 0;
-    multi_results_array = multi_results_array.concat(this_result);
+    var multi_results_array = multi_results_array.concat(json.JSON.parse());
     const provide_judgements = $('#provide_judgements').is(':checked');
 
     if (json.length < 2) {
@@ -344,56 +232,49 @@ function show_multi_results(json) {
         document.getElementById("result_id_msg").innerHTML = "<font color='red'>No results!!</font>";        
         return false;
     }
-	multi_results_array.sort((a, b) => { return a.jaccard - b.jaccard; });
-	num_results = multi_results_array.length;
-	num_results_to_display = document.getElementById("res_disp_select").value;
-	var shortened_result_array = multi_results_array.slice(0,(parseInt(num_results_to_display)))
+
+    num_results = multi_results_array.length;
 
     let table_html = "<thead><tr><th colspan=3>" + num_results + " results - "
-                 + shortened_result_array[0].num_words + " words in query</th></tr>"
-                 + "<tr>"
-                 + "<th></th>"
-                 + "<th>Page ID</th>"
+                 + multi_results_array[0].num_words + " words in query</th></tr>"
+                 + "<tr><th>Page ID</th>"
                  + "<th>Match Score</th>";
     if(provide_judgements) {
-        table_html += "<th></th><th>Judge Match</th>";
+        table_html += "<th>Judge Match</th>";
     }
         table_html += "</tr></thead>"
                  + "<tbody class='table_body'>";
 
-    for(let q = 0; q < shortened_result_array.length; q++) {
+    for(let q = 0; q < multi_results_array.length; q++) {
         let rank_factor;
 
         // NOTE: the else here is wrong if we don't assume that the
         // 0th result is the identity match
-        if (jaccard) { rank_factor = 1 - shortened_result_array[q].jaccard; }
-        else { rank_factor = results[q].num / shortened_result_array[0].num_words };
+        if (jaccard) { rank_factor = 1 - multi_results_array[q].jaccard; }
+        else { rank_factor = results[q].num / multi_results_array[0].num_words };
 
-        matched_words[q] = shortened_result_array[q].num;
-        words_in_page[q] = shortened_result_array[q].num_words;
+        matched_words[q] = multi_results_array[q].num;
+        words_in_page[q] = multi_results_array[q].num_words;
         var result_row_id = "result_row"+q;
-        var target_id = shortened_result_array[q].id;
+        var target_id = multi_results_array[q].id;
         var sim_choice_id = "sim_choice"+q;
         var sim_id = "sim"+q;
-        imageSrcs.push(BASE_IMG_URL+shortened_result_array[q].id+".jpg");
+        imageSrcs.push(BASE_IMG_URL+multi_results_array[q].id+".jpg");
 
         const rank_percentage = (rank_factor * 100).toFixed(2);
 
-        if(corpus_search_mode && shortened_result_array[q].id == query_id) { // query
-            query_codestring = get_codestring(query_id);
+        if(corpus_search_mode && multi_results_array[q].id == query_id) { // query
             table_html +=
                 "<tr class='id_list_name' id='"+result_row_id
                 +"' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
-//          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + query_id + "\","+true+")' onmouseup='reload_page_query(\"" + query_id + "\")'></td>"
-          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' onmousedown='show_tp(\"" + query_id + "\","+true+")' onmouseup='reload_page_query(\"" + query_id + "\")'></td>"
+          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + query_id + "\","+true+")' onmouseup='reload_page_query(\"" + query_id + "\")'></td>"
+//          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + query_id + "\","+true+")'></td>"
           else table_html +=  "<td></td>" 
                 table_html += "<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
                + "<td>"
                 + '<div class="progress">'
                 + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
-                + "</div>"
                 + "</td>";
-		table_html +=  "<td></td>";// empty cell here for query
             if (provide_judgements) {
                 table_html += "<td id='"+sim_choice_id+"'>"
                    +"<select class='drop_downs'"
@@ -420,7 +301,7 @@ function show_multi_results(json) {
                 + '<div class="progress" id="progress'+q+'">'
                 + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
                 + "</td>"
-                + "<td><img class='mag-glass' width='16' height='16' src='img/magnifying-glass.svg' onclick='compare(\""+query_id+"\",\""+shortened_result_array[q].id+"\")'/></td>";
+                + "<td><img class='mag-glass' width='16' height='16' src='img/magnifying-glass.svg' onclick='compare(\""+query_id+"\",\""+multi_results_array[q].id+"\")'/></td>";
             if (provide_judgements) {
                 table_html += "<td id='"+sim_choice_id+"'>"
                     + "<select  class='drop_downs'"
@@ -440,9 +321,7 @@ function show_multi_results(json) {
             table_html += "</tr>";
         }
     }
-	if(curr_search==ports_to_search.length-1) {
-//	    preloadImages(imageSrcs);
-    }
+    preloadImages(imageSrcs);
     table_html += "</tbody>";
 
     $('#results_table').html(table_html);
@@ -453,16 +332,10 @@ function show_multi_results(json) {
     else { top_result_rank_factor = multi_results_array[0].num / multi_results_array[0].num_words };
 
     load_result_image(top_result_id, 0, top_result_rank_factor);
-/*
-// This requires the diat_mel_str for each id to be loaded into the array
-   for(var r=0;r<shortened_result_array.length;r++){
-   	shortened_result_array[r].codestring = get_codestring(shortened_result_array[r].id);
-   }
-   
+
    if(query_id.length) {
-	   display_cosine_sim_line_multi({shortened_result_array});
+	   display_cosine_sim_line(json);
 	}
-*/
 }
 
 function code_search(diat_int_code, jaccard, num_results, collections_to_search) {
@@ -484,11 +357,8 @@ $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in 
     if (load_query_image) {
         load_page_query(query_id);
     }
-    var search_num_results=parseInt(document.getElementById("res_disp_select").value)
     update_colls_to_search();
-//    search(query_id, jaccard, num_results, ngram_search, collections_to_search);
-    multi_search(query_id, jaccard, search_num_results+50, change_search_method(), ports_to_search);
-    
+    search(query_id, jaccard, num_results, ngram_search, collections_to_search);
 }
 
 function show_tp(id,isquery) {
@@ -510,7 +380,7 @@ function show_tp(id,isquery) {
 		var query_tp_img = document.getElementById("query_image");
 		query_tp_img.src = new_img_src;
 		query_tp_img.style.height = 'min(500px, calc(50vh - 100px))'
-//		query_tp_img.style.width = 'min(600px, calc(50hw - 100px))'
+		query_tp_img.style.width = 'min(600px, calc(50hw - 100px))'
 		query_tp_img.style.left="20";
 		$('#emo_image_display').zoom({url: query_tp_img.src});
 }
@@ -518,7 +388,7 @@ function show_tp(id,isquery) {
 		var result_tp_img = document.getElementById("result_image");
 		result_tp_img.src = new_img_src;
 		result_tp_img.style.height = 'min(500px, calc(50vh - 100px))'
-//		result_tp_img.style.width = 'min(600px, calc(50hw - 100px))'
+		result_tp_img.style.width = 'min(600px, calc(50hw - 100px))'
 		result_tp_img.style.right="20";
 		$('#result_image_display').zoom({url: result_tp_img.src});
 	}
@@ -591,21 +461,16 @@ function show_results(json) {
             table_html +=
                 "<tr class='id_list_name' id='"+result_row_id
                 +"' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
-          if(target_id.startsWith("D-Mbs")) {
-			table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + query_id + "\","+true+")' onmouseup='reload_page_query(\"" + query_id + "\")'></td>";
-          }
-          else {
-			table_html +=  "<td></td>";
-          }
-          table_html += "<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>";
-          table_html +=  "<td>"
-                + '<div class="progress" width="15%">'
+          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + query_id + "\","+true+")' onmouseup='reload_page_query(\"" + query_id + "\")'></td>"
+//          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + query_id + "\","+true+")'></td>"
+          else table_html +=  "<td></td>" 
+                table_html += "<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
+               + "<td>"
+                + '<div class="progress">'
                 + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
                 + "</td>";
-                + "</div>";
-		table_html +=  "<td>empty</td>";// empty cell here
             if (provide_judgements) {
-                table_html += "<td></td><td id='"+sim_choice_id+"'>"
+                table_html += "<td id='"+sim_choice_id+"'>"
                    +"<select class='drop_downs'"
                     +"onchange='log_user_choice(\""+query_id+"\",\""
                     +target_id+"\","
@@ -626,8 +491,8 @@ function show_results(json) {
           if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + target_id + "\","+false+")'></td>"
           else table_html +=  "<td></td>" 
                 table_html += "<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
-                + "<td >"
-                + '<div class="progress" id="progress'+q+'" width="15%">'
+                + "<td>"
+                + '<div class="progress" id="progress'+q+'">'
                 + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
                 + "</td>"
                 + "<td><img class='mag-glass' width='16' height='16' src='img/magnifying-glass.svg' onclick='compare(\""+query_id+"\",\""+results[q].id+"\")'/></td>";
@@ -670,22 +535,12 @@ function show_results(json) {
 
 function compare(a,b) {
     var url="compare?qid="+a+"&mid="+b; 
-    window.open(url, "_blank",  
-  'width=1200, \
-   height=600, \
-   directories=no, \
-   location=no, \
-   menubar=no, \
-   resizable=no, \
-   scrollbars=1, \
-   status=no, \
-   toolbar=no')
+    window.open(url, "Compare pages","comp_win");
 }
 
 function highlight_result_row(rank) {
     let rowID;
-//    for(var i=0; i < num_results; i++) {
-    for(var i=0; i < parseInt(document.getElementById("res_disp_select").value); i++) {
+    for(var i=0; i < num_results; i++) {
         rowID = "result_row" + i;
         if (document.getElementById(rowID).style != null) {
             document.getElementById(rowID).style.backgroundColor = "White";
@@ -713,10 +568,9 @@ function load_result_image(id, rank, percent) {
     }
 
 //    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' />";
-    $('#result_image_display').trigger('zoom.destroy');
     document.getElementById("result_image_display").style.maxHeight='1000px';
 //    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='"+BASE_IMG_URL+image+"' />";
-    document.getElementById("result_image_display").innerHTML = "<img id='result_image' width='100%' alt='... image loading!' src='"+BASE_IMG_URL+image+"' />";
+    document.getElementById("result_image_display").innerHTML = "<img id='result_image' src='"+BASE_IMG_URL+image+"' />";
     highlight_result_row(rank);
     $('#result_image_display').zoom();
     document.getElementById("query_id").value = id;
@@ -732,7 +586,7 @@ function reload_result_image(id) {
     let image = id + ".jpg";
 
     document.getElementById("result_image_display").style.maxHeight='1000px';
-    document.getElementById("result_image_display").innerHTML = "<img id='result_image' alt='... image loading!' src='"+BASE_IMG_URL+image+"' />";
+    document.getElementById("result_image_display").innerHTML = "<img id='result_image' src='"+BASE_IMG_URL+image+"' />";
     $('#result_image_display').zoom();
 }
 
@@ -743,25 +597,22 @@ function get_emo_ids(){
         url: "api/emo_ids",
         success: (db_emo_ids) => {
             emo_ids = db_emo_ids;
-            console.log(emo_ids);
+            // console.log(emo_ids);
         }
     });
 }
 
-/*
-function get_colls_ports(colls){	  
+function get_colls_ports(){	  
 	  var result="";
 	  $.ajax({    
-	    url:'/api/get_coll_ports?colls='+colls,
+	    url:'/api/get_coll_ports',
 	    type: 'GET',
 	    success: function (data){
-		    console.log("Ports for "+colls+" are "+data);
-		    ports_to_search = data; 
 	    	result = data;
 	    }
   });
+  ports_to_search = JSON.parse(result); 
 }
-*/
 
 // Load title-page jpg urls at startup
 function get_tp_urls(){
@@ -914,7 +765,7 @@ function checkKey(e) {
                 return;
             }
         } else if (e.keyCode == '40') {    // down arrow
-            if (highlighted_result_row < num_results_to_display - 1) {
+            if (highlighted_result_row < num_results - 1) {
                 result_row += highlighted_result_row + 1;
             } else {
                 result_row = "result_row0";
@@ -930,12 +781,11 @@ function checkKey(e) {
         (shiftDown)? find_book_id(true) : find_page_id(true);
         query_id = document.getElementById("query_id").value;
     } else if (e.keyCode == '220') { // '\' for random query
-//        document.getElementById("query_id").value = emo_ids[getRandomIntInclusive(0, emo_ids.length)];
-        find_random_page();
+        document.getElementById("query_id").value = emo_ids[getRandomIntInclusive(0, emo_ids.length)];
         query_id = document.getElementById("query_id").value;    
         load_page_query(query_id);
     } else if (e.keyCode == '13') { // enter to search
-//console.log("Searching in "+collections_to_search); 
+console.log("Searching in "+collections_to_search); 
         query_id = document.getElementById("query_id").value;
         ngram_search = change_search_method();
         search_by_active_query_id(true, ngram_search, collections_to_search);
@@ -967,7 +817,6 @@ function update_colls_to_search() {
 	    })
 	})
 console.log("Searching: "+collections_to_search)
-ports_to_search = get_colls_ports(collections_to_search);
 }
 
 
@@ -1012,59 +861,170 @@ function parse_id(id) {
 // Book IDs are always at the beginning of the ID, following the library RISM siglum, which is itself followed by the first underscore char.
 // However, their format varies from library to library, so we need to take care of this.
 
+function old_find_book_id(next) {
+    var this_id = document.getElementById("query_id").value;
+    if(this_id == null) return false;
+    else {
+var parsed_id = parse_id(this_id);
+console.log("RISM: "+parsed_id.RISM+" book: "+parsed_id.book+" page: "+parsed_id.page)
+var i;
+        for( i=0;i<emo_ids.length;i++) {
+            if((emo_ids[i].startsWith(">"+this_id))||(emo_ids[i].startsWith(this_id))) {
+                break;
+            }
+        }
+        if(((i==0)&&(!next))||((i==emo_ids.length)&&(next))) return;
+        // now find next/prev item starting with a different id
+        var this_book = "";
+        var id_segs =  this_id.split("_");
+        var seg_from_end = this_id.startsWith("PL-Wn")? 2 : 3;
+        if(this_id.startsWith("F-Pn")) {
+        	if((p = this_id.indexOf("-0-")) >= 0) {
+        		seg_from_end = this_id.length - p + 1;
+        	}
+		console.log("length: "+this_id.length+" p: "+p)
+       }
+        for(j=0;j<id_segs.length-seg_from_end;j++) this_book+=id_segs[j]+"_";
+        this_book+=id_segs[j];
+        var new_id = "";
+        var new_book = "";
+        if(next) {
+            for(;i<emo_ids.length;i++) {
+                new_book = "";
+                new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
+                id_segs =  new_id.split("_");
+                for(j=0;j<id_segs.length-seg_from_end;j++) new_book+=id_segs[j]+"_";
+                new_book+=id_segs[j];
+                if(new_book.startsWith(">")) new_book = new_book.substring(1);
+                if(new_book != this_book) {
+                    break;
+                }
+            }
+        }
+        else {
+            for(;i>0;i--) {
+                // FIXME - stand by for messy recursion!!
+                new_book = "";
+                new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
+                id_segs =  new_id.split("_");
+                for(j=0;j<id_segs.length-seg_from_end;j++) new_book+=id_segs[j]+"_";
+                new_book+=id_segs[j];
+                if(new_book.startsWith(">")) new_book = new_book.substring(1);
+                if(new_book != this_book) {
+                    // now we are at last image of the previous book,
+                    // so find the book before that one
+                    // and go to next image - it will be the first of the book we want!
+                    this_book = new_book;
+                    for(;i>0;i--) {
+                        new_book = "";
+                        new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
+                        id_segs =  new_id.split("_");
+                        for(j=0;j<id_segs.length-seg_from_end;j++) new_book+=id_segs[j]+"_";
+                        new_book+=id_segs[j];
+                        if(new_book.startsWith(">")) new_book = new_book.substring(1);
+                        if(new_book != this_book) {
+                            if(i>0) i++; //Don't go to next if at first
+                            new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+if(new_book.length) {
+    new_id = emo_ids[i].split(/[ ,]+/).filter(Boolean)[0];
+}
+else return false;
+    if(new_id.startsWith(">")) new_id = new_id.substring(1);
+
+    query_id = new_id;
+    load_page_query(new_id);
+}
+
 function find_book_id(next) {
 	var this_id = document.getElementById("query_id").value.trim();
 	if(this_id == null) return false;
-	if(next==true) next="true";
-	if(next==false) next="false";
-
-     var new_id = "";
-        $.ajax({
-        url: 'http://f-tempo-mbs.rism-ch.org/api/next_id',
-        data: {id:this_id,page:"false",next: next},
-        method: 'GET',
-        async: false,
-        success: function(response){new_id=response}
-	})
-      .fail((xhr, status) => alert(status)); // TODO: real error handling!
-console.log("Random ID is: "+new_id)
-//	return new_id;
+	var parsed_id = parse_id(this_id.trim())
+//console.log("RISM: "+parsed_id.RISM+"; book: "+parsed_id.book+"; page: "+parsed_id.page);
+	var i;
+	for(i=0;i<emo_ids.length;i++) {
+		if(emo_ids[i].trim() == this_id) break;
+	}
+	if(((i==0)&&(!next))||((i==emo_ids.length)&&(next))) return;
+	// now find next/prev item from a different book
+	var this_book = parsed_id.book;
+console.log("Found this_book: "+this_book)
+	var new_id = "";
+	var new_book = "";
+	if(next) {
+		for(;i<emo_ids.length;i++) {
+			new_id = emo_ids[i];
+			new_book=parse_id(new_id).book;
+			if(new_book != this_book) {
+				break;
+			}
+		}
+console.log(i+": '"+emo_ids[i]+"'");
+console.log("Found next book: "+new_book)
+	}
+	else { 
+		for(;i>0;i--) {
+			new_id = emo_ids[i].trim();
+			new_book = parse_id(new_id).book;
+			if(new_book != this_book) {
+				// now we are at the last image of the previous book
+				// so find the book before that one and go to next
+				// image - it will be the first of the book we want
+				this_book = new_book;
+				for(;i>0;i--) {
+					new_id = emo_ids[i].trim();
+					new_book = parse_id(new_id).book;
+					if(new_book != this_book) {
+						if(i>0) i++; // Don't go to next if at first book
+						new_id = emo_ids[i].trim();
+						break;
+					}
+				}
+				break;
+			}
+		}
+console.log("Found previous book: "+new_book)
+	}
+	if(i < emo_ids.length) {
+		new_id = emo_ids[i].trim();
+	}
+	else new_id = emo_ids[i]
 	query_id = new_id;
 	load_page_query(new_id);
 }
+
 
 function find_page_id(next) {
-	var this_id = document.getElementById("query_id").value.trim();
-	if(this_id == null) return false;
-	if(next==true) next="true";
-	if(next==false) next="false";
-
-     var new_id = "";
-        $.ajax({
-        url: 'http://f-tempo-mbs.rism-ch.org/api/next_id',
-        data: {id:this_id,page:"true",next: next},
-        method: 'GET',
-        async: false,
-        success: function(response){new_id=response}
-	})
-      .fail((xhr, status) => alert(status)); // TODO: real error handling!
-// console.log("Started at "+this_id+" - now going to "+new_id)
-//	return new_id;
-	query_id = new_id;
-	load_page_query(new_id);
-}
-
-function find_random_page () {
-     var new_id = "";
-        $.ajax({
-        url: 'http://f-tempo-mbs.rism-ch.org/api/random_id',
-        method: 'GET',
-        async: false,
-        success: function(response){new_id=response}
-	})
-      .fail((xhr, status) => alert(status)); // TODO: real error handling!
-	query_id = new_id;
-	load_page_query(new_id);
+    var this_id = document.getElementById("query_id").value;
+    if(this_id == null) return false;
+    else {
+var parsed_id = parse_id(this_id);
+console.log("RISM: "+parsed_id.RISM+" book: "+parsed_id.book+" page: "+parsed_id.page)
+        for(var i=0;i<=emo_ids.length;i++) {
+            if(emo_ids[i] == this_id) {
+                break;
+            }
+        }
+        if(((i==0)&&(!next))||((i==emo_ids.length)&&(next))) return;
+        var new_id = "";
+        if(next) {
+            new_id = emo_ids[i+1];
+        }
+        else {
+            new_id = emo_ids[i-1];
+        }
+    }
+var new_page = parse_id(new_id).page;
+console.log("New page is: "+new_page)
+    query_id = new_id;
+    load_page_query(new_id)
 }
 
 
@@ -1086,10 +1046,8 @@ function clear_result_divs() {
 function show_example(example_id){
     load_page_query(example_id);
     update_colls_to_search();
-//    search(example_id, jaccard, num_results, collections_to_search);
-    var search_num_results=parseInt(document.getElementById("res_disp_select").value);
-        multi_search(example_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
-        $('#examples_div').collapse('hide');
+    search(example_id, jaccard, num_results, collections_to_search);
+    $('#examples_div').collapse('hide');
 }
 
 /*******************************************************************************
@@ -1130,9 +1088,6 @@ function show_user_image(user_image_file) {
 
 
 function submit_upload_form(user_image_file) {
-    
-	clear_multi_results();
-	
     const formData = new FormData();
     formData.append('user_image_file', user_image_file, user_image_file.name);
     formData.append('user_id', user_id);
@@ -1144,7 +1099,7 @@ function submit_upload_form(user_image_file) {
         contentType: false,
     }).done((data) => {
         $('#uploading_status').empty();
-        show_multi_results(data);
+        show_results(data);
     }).fail((xhr, status) => {
         $('#uploading_status').empty();
         alert(status)
@@ -1270,9 +1225,9 @@ if((typeof ports_to_search !== "undefined")&&(ports_to_search.length)) console.l
 else console.log("Couldn't get any ports to search!")
     
     get_or_set_user_id();
-//    get_emo_ids();
+    get_emo_ids();
     add_examples_list();
-    
+
     $('#image_display').zoom();
     $('#result_image_display').zoom();
 //    $('#tp_display').zoom();
@@ -1292,51 +1247,35 @@ else console.log("Couldn't get any ports to search!")
     $('#search_button').click(() => {
         query_id = document.getElementById("query_id").value;
         load_page_query(query_id);
-        var search_num_results=parseInt(document.getElementById("res_disp_select").value)
         update_colls_to_search();
-//        search(query_id,jaccard,num_results, change_search_methods, collections_to_search);       
-        multi_search(query_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
+        search(query_id,jaccard,num_results, change_search_methods, collections_to_search);       
     });
 
     $('#search_by_id_button').click(() => {
         query_id = document.getElementById("query_id").value;
         load_page_query(query_id);
-        var search_num_results=parseInt(document.getElementById("res_disp_select").value)
         update_colls_to_search();
-        multi_search(query_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
+        search(query_id,jaccard,num_results, change_search_method(), collections_to_search);
     });
 
     $('#search_by_code_button').click(() => {
         document.getElementById("emo_browser_col").style.visibility = "hidden";
         query_code = document.getElementById("query_code").value.trim();
-        var search_num_results=parseInt(document.getElementById("res_disp_select").value)
         if(!query_code.length) alert("You must enter some code!")
-        else multi_search(query_code,jaccard,search_num_results+50, change_search_method(), ports_to_search);
-     // code_search(query_code,jaccard,num_results, collections_to_search);
-
+        else code_search(query_code,jaccard,num_results, collections_to_search);
     });
 
     $('#multi-search-button').click(() => {
         query_id = document.getElementById("query_id").value;
         load_page_query(query_id);
-// console.log("Multi search for "+query_id)
         update_colls_to_search();
-        var search_num_results=parseInt(document.getElementById("res_disp_select").value)
-        multi_search(query_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
-    });
-    
-    $('#repeat-search-button').click(() => {
-//        query_id = document.getElementById("query_id").value;
-//        load_page_query(query_id);
-// console.log("Multi search for "+query_id)
-        update_colls_to_search();
-        var search_num_results=parseInt(document.getElementById("res_disp_select").value)
-//        multi_search(query_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
-		repeat_search(searches.length-1); // Should repeat last search actually done
+        multi_search(query_id,jaccard,num_results, change_search_method(), ports_to_search);
     });
 
     $('#random_page_button').click(() => {
-        find_random_page();
+        document.getElementById("query_id").value = emo_ids[getRandomIntInclusive(0, emo_ids.length)];
+        query_id = document.getElementById("query_id").value;
+        load_page_query(query_id);
     });
 
     $('#uploadForm').on('change', (event) => {
@@ -1347,7 +1286,7 @@ else console.log("Couldn't get any ports to search!")
 
     $('#uploadForm').on('submit', (event) => {
         event.preventDefault();
-        $('#uploading_status').text('Uploading - Please be patient! ...');
+        $('#uploading_status').text('Uploading...');
         const user_image_file = validate_file_upload();
         if (user_image_file) { submit_upload_form(user_image_file); }
     });

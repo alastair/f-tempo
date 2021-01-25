@@ -1,0 +1,2 @@
+code=$(~/get_codestring $1); 
+search_scripts/multi_code_search $code

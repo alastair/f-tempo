@@ -1,0 +1,5 @@
+port=$2;
+curl -s -d '{"id": "'$1'"}' -H "Content-Type: application/json" -X POST http://localhost:$2/api/query  |
+ jq -r  ".[] | 
+ [.id, .jaccard] |
+@tsv"

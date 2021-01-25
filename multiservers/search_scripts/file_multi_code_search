@@ -1,0 +1,11 @@
+code=$1;
+rm -r results 2> /dev/null;
+mkdir results 2> /dev/null
+cat ./seg_server_list | while read -a i; 
+ do 
+   port=${i[1]};
+#   rm results/result_multi_$port 2> /dev/null
+   search_scripts/codestring_port_search $code $port >> results/result_multi_$port; 
+ done;
+
+for i in results/*; do echo $(basename $i); head -n 5 $i;echo;done | less

@@ -5,7 +5,6 @@ RUN apt-get update \
       cmake \
       imagemagick \
       jq \
-      libsdsl-dev \
       libxml2-dev \
       uuid-dev \
     && rm -rf /var/lib/apt/lists/*
@@ -43,8 +42,9 @@ RUN cmake . -DimDir=../../im -DtorchDir=../../Torch3
 RUN make
 
 WORKDIR /tmp/aruspix/
-RUN git clone https://github.com/ryaanahmed/maw.git
+RUN git clone https://github.com/alastair/maw.git
 WORKDIR /tmp/aruspix/maw
+RUN ./pre-install.sh
 RUN make -f Makefile.64-bit.gcc && mv maw /usr/local/bin
 
 RUN mkdir /app

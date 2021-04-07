@@ -512,7 +512,7 @@ console.log("Set up working directory: "+working_path);
     const query_data = cp.execSync('./shell_scripts/codestring_to_maws.sh ' + diat_int_code + ' ' + working_path);
     const query_str = String(query_data); // a string of maws, preceded with an id
     var result = search('words', query_str, jaccard, num_results, threshold);
-fs.appendFileSync(working_path+"/log",result)
+    fs.appendFileSync(working_path + "/log", result.toString());
     return result;
 }
 

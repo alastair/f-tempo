@@ -2,7 +2,7 @@
   "name": "multiservers",
   "version": "1.0.0",
   "description": "Runs multiple servers on different ports",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "old_multi": "echo -n > seg_server_list && node codestring_server.js 8500 && node titlepage_url_server.js 8501 & node ../server_new.js /storage/ftempo/data_segments/DataSeg_2.json 8003 & node ../server_new.js /storage/ftempo/data_segments/DataSeg_0.json 8001 & node ../server_new.js /storage/ftempo/data_segments/DataSeg_1.json 8002",

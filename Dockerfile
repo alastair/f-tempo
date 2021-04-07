@@ -53,3 +53,5 @@ COPY package.json package-lock.json ./
 RUN npm install
 
 COPY . ./
+
+RUN mkdir -p /app/multiservers/run/codestring_queries

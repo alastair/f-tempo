@@ -1,4 +1,8 @@
 services:
   ftempo:
     build: .
-    command: node --max-old-space-size=8192 server.js test
+    command: ./start.sh
+    volumes:
+      - "/storage:/storage"
+    ports:
+      - "80:8000"

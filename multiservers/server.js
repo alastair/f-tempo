@@ -1223,15 +1223,15 @@ function load_ngrams_from_diat_mels (ng_len) {
 	fs.writeFile(NGRAM_ID_BASE+ng_len+".json",
 		JSON.stringify(NGRAMS_to_IDS),
 		(err) => {
-		  if (err) throw err;
-		  console.log('The ngram_id_dict has been saved!');
+		if (err) throw err;
+		console.log('The ngram_id_dict has been saved!');
 		}
 	);
 	fs.writeFile(ID_NGRAM_BASE+ng_len+".json",
 		JSON.stringify(EMO_IDS_NGRAMS),
 		(err) => {
-		  if (err) throw err;
-		  console.log('The id_ngram_dict has been saved!');
+		if (err) throw err;
+		console.log('The id_ngram_dict has been saved!');
 		}
 	);
 */

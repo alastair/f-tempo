@@ -1,0 +1,26 @@
+---
+- hosts: ftempo
+  user: alastair
+  become: yes
+  tasks:
+    - name: Add docker key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+    - name: Add docker repo
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+        state: present
+        filename: docker
+    - name: Add docker
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+        name: ['docker-ce=5:20.10.5~3-0~ubuntu-bionic', 'docker-ce-cli=5:20.10.5~3-0~ubuntu-bionic', 'containerd.io=1.4.4-1']
+        state: present
+    - name: Add docker-compose
+      get_url:
+        url: https://github.com/docker/compose/releases/download/1.29.0/docker-compose-Linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        checksum: sha256:65bf4d3dcc5ea5dcd4644434271879a2b47e98bcfa6ca958523079c17e5adb5c
+        mode: a+x

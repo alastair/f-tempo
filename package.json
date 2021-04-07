@@ -19,9 +19,11 @@
     "cors": "^2.8.5",
     "express": "^4.16.3",
     "express-fileupload": "^1.1.6",
+    "http-proxy-middleware": "^1.1.0",
     "minimist": "^1.2.5",
     "mustache-express": "^1.2.8",
-    "request": "^2.88.0"
+    "request": "^2.88.0",
+    "sync-request": "^6.1.0"
   },
   "devDependencies": {
     "eslint": "^5.14.1",

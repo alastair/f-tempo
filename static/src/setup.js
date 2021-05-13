@@ -78,8 +78,8 @@ var ports_to_search = [];
 
 //const BASE_IMG_URL = '/img/jpg/';
 //const BASE_MEI_URL = '/img/mei/';
-const BASE_IMG_URL = 'http://f-tempo-mbs.rism-ch.org/img/jpg/';
-const BASE_MEI_URL = 'http://f-tempo-mbs.rism-ch.org/img/mei/';
+const BASE_IMG_URL = 'https://uk-dev-ftempo.rism.digital/img/jpg/';
+const BASE_MEI_URL = 'https://uk-dev-ftempo.rism.digital/img/mei/';
 
 //let ngram_search = false;
 
@@ -224,7 +224,7 @@ function get_codestring(id) {
 
      var codestring = "";
         $.ajax({
-        url: 'http://f-tempo-mbs.rism-ch.org/api/get_codestring?id='+id,
+        url: 'https://uk-dev-ftempo.rism.digital/api/get_codestring?id='+id,
         method: 'GET',
         async: false,
         id: id,
@@ -1024,7 +1024,7 @@ function find_book_id(next) {
 
      var new_id = "";
         $.ajax({
-        url: 'http://f-tempo-mbs.rism-ch.org/api/next_id',
+        url: 'https://uk-dev-ftempo.rism.digital/api/next_id',
         data: {id:this_id,page:"false",next: next},
         method: 'GET',
         async: false,
@@ -1045,7 +1045,7 @@ function find_page_id(next) {
 
      var new_id = "";
         $.ajax({
-        url: 'http://f-tempo-mbs.rism-ch.org/api/next_id',
+        url: 'https://uk-dev-ftempo.rism.digital/api/next_id',
         data: {id:this_id,page:"true",next: next},
         method: 'GET',
         async: false,
@@ -1061,7 +1061,7 @@ function find_page_id(next) {
 function find_random_page () {
      var new_id = "";
         $.ajax({
-        url: 'http://f-tempo-mbs.rism-ch.org/api/random_id',
+        url: 'https://uk-dev-ftempo.rism.digital/api/random_id',
         method: 'GET',
         async: false,
         success: function(response){new_id=response}

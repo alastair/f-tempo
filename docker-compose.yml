@@ -1,3 +1,4 @@
+version: "3.4"
 services:
   ftempo:
     build: .
@@ -5,4 +6,11 @@ services:
     volumes:
       - "/storage:/storage"
     ports:
-      - "80:8000"
+      - 8000:8000
+    environment:
+      - VIRTUAL_HOST=uk-dev-ftempo.rism.digital
+      - VIRTUAL_PORT=8000
+      - LETSENCRYPT_HOST=uk-dev-ftempo.rism.digital
+      - LETSENCRYPT_EMAIL=alastair@porter.net.nz
+    network_mode: bridge
+

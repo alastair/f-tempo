@@ -7,6 +7,7 @@ RUN apt-get update \
       jq \
       libxml2-dev \
       uuid-dev \
+      vim \
     && rm -rf /var/lib/apt/lists/*
 
 # Aruspix
@@ -53,5 +54,7 @@ COPY package.json package-lock.json ./
 RUN npm install
 
 COPY . ./
+
+EXPOSE 8000
 
 RUN mkdir -p /app/multiservers/run/codestring_queries

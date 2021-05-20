@@ -93,7 +93,7 @@ var DB_PREFIX_LIST = []; // Array of prefixes to F_TEMPO data collections
 //const BASE_MEI_URL = '/img/mei/';
 const BASE_IMG_URL = 'http://f-tempo-mbs.rism-ch.org/img/jpg/';
 //const BASE_MEI_URL = 'http://f-tempo-mbs.rism-ch.org/img/mei/';
-const BASE_MEI_URL = '/var/www/f-tempo/static/img/mei/';
+const BASE_MEI_URL = '/storage/ftempo/locations/all/mei/';
 
 // flags to say whether the current id comes from D-Mbs or elsewhere (in app.get('/compare' ..., below)
 // If true, page-image MEI files are local; otherwise they need to be downloaded via http 

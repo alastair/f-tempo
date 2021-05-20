@@ -235,14 +235,6 @@ function ngram_array(str, n) {
   </button>
   <div class="collapse navbar-collapse" id="navbarNav">
     <ul class="navbar-nav">
-      <li id='corpus_search_link' class="nav-item active">
-          <a class="nav-link" href='#' onclick="set_corpus_search_mode()" >Search within Corpus</a>
-      </li>
-      <li id='image_search_link' class="nav-item">
-          <a class="nav-link" href='#' onclick="set_image_search_mode()" >Search with Image Upload</a>
-<!--          <a class="nav-link" href='#' onclick="alert('Image search currently disabled!')" >Search with Image Upload</a>
--->
-      </li>
  <!--
       <li id='code_search_link' class="nav-item">
           <a class="nav-link" href='#' onclick="set_code_search_mode()" >Search with Code</a>
@@ -430,35 +422,7 @@ function ngram_array(str, n) {
 <div class='col card text-center' id='emo_browser_col'>
 <div id='emo_browser_buttons'>
         <div class='btn-group d-inline'>
-            <button class="btn btn-outline-secondary btn-sm emo-nav-btn"
-                    id='show_prev_book'
-                    onclick="find_book_id(false)"
-                    title="Show previous book">
-                Previous Book
-            </button>
-            <button class="btn btn-outline-secondary btn-sm emo-nav-btn"
-                    id='show_prev_page'
-                    onclick='find_page_id(false);'
-                    title='Show previous page'>
-                Previous Page
-            </button>
-
             <button class='btn btn-secondary btn-sm emo-nav-btn' id="random_page_button" >Random Page</button>
-
-            <button class="btn btn-outline-secondary btn-sm emo-nav-btn"
-                         id='show_next_page'
-                         onclick="find_page_id(true)"
-                         src="img/next_page.png"
-                         title='Search for next page'>
-                        Next Page
-            </button>
-
-            <button class="btn btn-outline-secondary btn-sm emo-nav-btn"
-                    id='show_next_book'
-                    onclick="find_book_id(true)"
-                    title='Go to next book and search'>
-                Next Book
-            </button>
         </div>
     </div>
 
@@ -516,24 +480,6 @@ function ngram_array(str, n) {
             <button class="btn btn-primary btn-block" id="search_button">Search for Similar Pages</button>
             -->
 
-            <!--
-            -->
-            <div class='form-group mt-2 mb-0'>
-                <label for='search_select'>Search Type</label>
-                <select id="search_select" name="search_select" onchange="change_search_method();">
-                    <option value=0 selected>Minimum Absent Words</option>
-                    <option disabled value=1>5-grams</option>
-                </select>
-            </div>
-
-           <div class='form-group mt-2 mb-0'>
-                <label for='ranking_select'>Result Ranking</label>
-                <select id="ranking_select" name="num_to_disp" onchange="change_ranking_method();">
-                    <option value=0 selected>Jaccard Distance</option>
-                    <option disabled value=1>Basic</option>
-                </select>
-            </div>
-
             <div class='form-group'>
                 <label for='res_dis_select'>Results to display</label>
                 <select id="res_disp_select" name="num_to_disp" onchange="change_num_res();">
@@ -549,7 +495,7 @@ function ngram_array(str, n) {
 
 
             <div class="form-group form-check">
-                <input type="checkbox" class="form-check-input" id="provide_judgements">
+                <input type="checkbox" class="form-check-input" id="provide_judgements" checked disabled>
                 <label class="form-check-label" for="provide_judgements">Provide judgements to help improve the system</label>
             </div>
 <script>
@@ -685,9 +631,9 @@ function ngram_array(str, n) {
 			  </table>
             </div>
 <!-- -->
+			<div class="form-group form-check" id="progress"></div>
             <div class="form-group form-check" id="multi-search-panel">
             	<button id="multi-search-button">Search   <img id="../static/img/enter_key.svg" height="20"></button>
-            	<button id="repeat-search-button">Repeat last Search</button>
             </div>
 
         </div>

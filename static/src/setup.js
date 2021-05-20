@@ -112,6 +112,20 @@ function load_page_query(id) {
 //    document.getElementById("emo_image_display").innerHTML = "<img class='img-fluid' id='query_image' src='"+BASE_IMG_URL+image+"' role=\"presentation\"/>";
     var emo_im_disp_width = '100%';
     document.getElementById("emo_image_display").innerHTML = "<img id='query_image' src='"+BASE_IMG_URL+image+"' width="+emo_im_disp_width+" role=\"presentation\"/>";
+
+    try {
+        seen_items = JSON.parse(localStorage.getItem("gather_seen_items"));
+    } catch {
+        seen_items = [];
+    }
+    num_seen_items = seen_items.length;
+    if (num_seen_items === 200) {
+        extra = " Thank you for your help!"
+    } else {
+        extra = ""
+    }
+    document.getElementById("progress").innerHTML = "You have given feedback on " + num_seen_items + "/200 items." + extra;
+
     $('#emo_image_display').zoom();
 //show_tp(id,true);
     // $('#search_controls').removeClass('d-none');
@@ -224,7 +238,7 @@ function get_codestring(id) {
 
      var codestring = "";
         $.ajax({
-        url: 'https://uk-dev-ftempo.rism.digital/api/get_codestring?id='+id,
+        url: '/api/get_codestring?id='+id,
         method: 'GET',
         async: false,
         id: id,
@@ -925,13 +939,7 @@ function checkKey(e) {
         document.getElementById(result_row).click();
         return;
     }
-    if (e.keyCode == '37') {    // left arrow - Search previous page/book
-        (shiftDown)? find_book_id(false) : find_page_id(false);
-        query_id = document.getElementById("query_id").value;
-    } else if (e.keyCode == '39') {    // right arrow - Search next page/book
-        (shiftDown)? find_book_id(true) : find_page_id(true);
-        query_id = document.getElementById("query_id").value;
-    } else if (e.keyCode == '220') { // '\' for random query
+    if (e.keyCode == '220') { // '\' for random query
 //        document.getElementById("query_id").value = emo_ids[getRandomIntInclusive(0, emo_ids.length)];
         find_random_page();
         query_id = document.getElementById("query_id").value;    
@@ -1059,15 +1067,30 @@ function find_page_id(next) {
 }
 
 function find_random_page () {
-     var new_id = "";
-        $.ajax({
-        url: 'https://uk-dev-ftempo.rism.digital/api/random_id',
+    try {
+        seen_items = JSON.parse(localStorage.getItem("gather_seen_items"));
+    } catch {
+        seen_items = [];
+    }
+     var available_ids = [];
+     $.ajax({
+        url: '/gather-available-ids.json',
         method: 'GET',
+        dataType: 'json',
         async: false,
-        success: function(response){new_id=response}
+        success: function(response){available_ids=response}
 	})
       .fail((xhr, status) => alert(status)); // TODO: real error handling!
-	query_id = new_id;
+
+      seen_items_set = new Set(seen_items);
+      possible_ids = [];
+      $.each(available_ids, function(idx, value) {
+          if (!seen_items_set.has(value)) {
+              possible_ids.push(value);
+          }
+      });
+    new_id = possible_ids[Math.floor(Math.random()*possible_ids.length)]
+
 	load_page_query(new_id);
 }
 
@@ -1172,19 +1195,7 @@ function change_num_res() {
 }
 
 function change_search_method() {
-    const search_select = document.getElementById('search_select');
-    const v = search_select.options[search_select.selectedIndex].value;
-    if (v == 1) { ngram_search = true; }
-    else { ngram_search = false; }
-    return ngram_search;
-}
-
-function change_ranking_method() {
-    const ranking_select = document.getElementById('ranking_select');
-    const v = ranking_select.options[ranking_select.selectedIndex].value;
-    if (v == 0) { jaccard = true; }
-    else { jaccard = false; }
-    if (!$('#results_table').is(':empty')) { search_by_active_query_id(); }
+    return false;
 }
 
 function set_corpus_search_mode() {
@@ -1327,6 +1338,14 @@ else console.log("Couldn't get any ports to search!")
         update_colls_to_search();
         var search_num_results=parseInt(document.getElementById("res_disp_select").value)
         multi_search(query_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
+
+        try {
+            seen_items = JSON.parse(localStorage.getItem("gather_seen_items"));
+        } catch {
+            seen_items = [];
+        }
+        seen_items.push(query_id);
+        localStorage.setItem("gather_seen_items", JSON.stringify(seen_items));
     });
     
     $('#repeat-search-button').click(() => {
@@ -1356,7 +1375,6 @@ else console.log("Couldn't get any ports to search!")
         if (user_image_file) { submit_upload_form(user_image_file); }
     });
 
-    const initial_page_id = 'GB-Lbl_A103b_025_0'
-    load_page_query(initial_page_id);
+    find_random_page()
     
 });

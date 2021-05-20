@@ -91,8 +91,8 @@ var DB_PREFIX_LIST = []; // Array of prefixes to F_TEMPO data collections
 //const BASE_MEI_URL = 'http://doc.gold.ac.uk/~mas01tc/EMO_search/new_mei_pages/';
 //const BASE_IMG_URL = '/img/jpg/';
 //const BASE_MEI_URL = '/img/mei/';
-const BASE_IMG_URL = 'http://f-tempo-mbs.rism-ch.org/img/jpg/';
-//const BASE_MEI_URL = 'http://f-tempo-mbs.rism-ch.org/img/mei/';
+const BASE_IMG_URL = 'https://uk-dev-ftempo.rism.digital/img/jpg/';
+//const BASE_MEI_URL = 'https://uk-dev-ftempo.rism.digital/img/mei/';
 const BASE_MEI_URL = '/storage/ftempo/locations/all/mei/';
 
 // flags to say whether the current id comes from D-Mbs or elsewhere (in app.get('/compare' ..., below)

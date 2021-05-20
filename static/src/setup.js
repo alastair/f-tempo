@@ -101,6 +101,20 @@ function get_or_set_user_id() {
     // console.log("user_id is " + user_id);
 }
 
+function getSeenItems() {
+    try {
+        seen_items_storage = localStorage.getItem("gather_seen_items")
+        if (seen_items_storage) {
+            seen_items = JSON.parse(seen_items_storage);
+        } else {
+            seen_items = [];
+        }
+    } catch {
+        seen_items = [];
+    }
+    return seen_items;
+}
+
 function load_page_query(id) {
     clear_result_divs();
 
@@ -113,11 +127,7 @@ function load_page_query(id) {
     var emo_im_disp_width = '100%';
     document.getElementById("emo_image_display").innerHTML = "<img id='query_image' src='"+BASE_IMG_URL+image+"' width="+emo_im_disp_width+" role=\"presentation\"/>";
 
-    try {
-        seen_items = JSON.parse(localStorage.getItem("gather_seen_items"));
-    } catch {
-        seen_items = [];
-    }
+    seen_items = getSeenItems();
     num_seen_items = seen_items.length;
     if (num_seen_items === 200) {
         extra = " Thank you for your help!"
@@ -1067,11 +1077,7 @@ function find_page_id(next) {
 }
 
 function find_random_page () {
-    try {
-        seen_items = JSON.parse(localStorage.getItem("gather_seen_items"));
-    } catch {
-        seen_items = [];
-    }
+    seen_items = getSeenItems();
      var available_ids = [];
      $.ajax({
         url: '/gather-available-ids.json',
@@ -1339,11 +1345,7 @@ else console.log("Couldn't get any ports to search!")
         var search_num_results=parseInt(document.getElementById("res_disp_select").value)
         multi_search(query_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
 
-        try {
-            seen_items = JSON.parse(localStorage.getItem("gather_seen_items"));
-        } catch {
-            seen_items = [];
-        }
+        seen_items = getSeenItems();
         seen_items.push(query_id);
         localStorage.setItem("gather_seen_items", JSON.stringify(seen_items));
     });

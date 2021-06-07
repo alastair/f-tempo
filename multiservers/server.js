@@ -70,16 +70,16 @@ var ARG_LIST = [];
 
 console.log("argv is: " + argv)
 if(argv._.length) {
-	ARG_LIST = argv._; // Arguments on command-line
+    ARG_LIST = argv._; // Arguments on command-line
 console.log(argv._.length+" arguments")
 }
 else {
 console.log("No arguments")
-	var data = load_file_sync("static/src/startup_config")
-	var words = data.split(" ");
-	for(var i=0;i<words.length;i++) {
-		ARG_LIST.push(words[i]);
-	}
+    var data = load_file_sync("static/src/startup_config")
+    var words = data.split(" ");
+    for(var i=0;i<words.length;i++) {
+        ARG_LIST.push(words[i]);
+    }
 }
 console.log("ARG_LIST = "+ARG_LIST)
 /**/
@@ -101,34 +101,34 @@ var q_Mbs = true;
 var m_Mbs = true;
 
 while (ARG_LIST.length > 0) {
-		if(ARG_LIST[0].startsWith("Mbs")){
-			var suffix = ARG_LIST[0].substring(3);
-			switch (suffix) {
-				case "0":
-				case "1":
-				case "2":
-				case "3":
-				case "4":
-				case "5":
-				case "6":
-				case "7":
-				case "_all":
-					DB_PREFIX_LIST.push(ARG_LIST.shift());
-					break;
-				default:
-					ARG_LIST.shift(); // Throw away garbage/illegal arguments
-					break;
-			}
-		}
-		else {
-			DB_PREFIX_LIST.push(ARG_LIST.shift().trim());
-		}
+        if(ARG_LIST[0].startsWith("Mbs")){
+            var suffix = ARG_LIST[0].substring(3);
+            switch (suffix) {
+                case "0":
+                case "1":
+                case "2":
+                case "3":
+                case "4":
+                case "5":
+                case "6":
+                case "7":
+                case "_all":
+                    DB_PREFIX_LIST.push(ARG_LIST.shift());
+                    break;
+                default:
+                    ARG_LIST.shift(); // Throw away garbage/illegal arguments
+                    break;
+            }
+        }
+        else {
+            DB_PREFIX_LIST.push(ARG_LIST.shift().trim());
+        }
 }
 for(i=0;i<DB_PREFIX_LIST.length;i++) {
-	if(DB_PREFIX_LIST[i].startsWith("Mbs")) {
-		if(DB_PREFIX_LIST[i]=="Mbs_all") DB_PREFIX_LIST[i] = "all"
-		DB_PREFIX_LIST[i]="D-Mbs/"+DB_PREFIX_LIST[i];
-	}
+    if(DB_PREFIX_LIST[i].startsWith("Mbs")) {
+        if(DB_PREFIX_LIST[i]=="Mbs_all") DB_PREFIX_LIST[i] = "all"
+        DB_PREFIX_LIST[i]="D-Mbs/"+DB_PREFIX_LIST[i];
+    }
 console.log(DB_PREFIX_LIST[i]);
 }
 
@@ -143,59 +143,59 @@ load_file(TP_JPG_LIST,parse_tp_jpgs);
 function parse_tp_jpgs(data_str) {
         let lines = data_str.split("\n");
     for (let line of lines) {
-	var linecount;
+    var linecount;
         if (line) {
-		tp_jpgs.push(line);
+        tp_jpgs.push(line);
         }
     }
     console.log(Object.keys(tp_jpgs).length+" title-page urls loaded!");
 }
 
 function parse_Mbs_paths(data_str) {
-	let lines = data_str.split("\n");
-	for (let line of lines) {
-		if(line) {
-			D_MBS_ID_PATHS[Mbs_segment] += line+" ";
-		}
-	}
-	return data_str.length;
+    let lines = data_str.split("\n");
+    for (let line of lines) {
+        if(line) {
+            D_MBS_ID_PATHS[Mbs_segment] += line+" ";
+        }
+    }
+    return data_str.length;
 }
 var Mbs_segment;
 
 if((!DB_PREFIX_LIST.length)||((DB_PREFIX_LIST.length==1)&&(DB_PREFIX_LIST[0]=="test"))) {
-	test = true;
-	MAWS_DB = '../../test_data/maws/all'; 
-	DIAT_MEL_DB = '../../test_data/codestrings/all'; 
-	load_maws(); // load the MAWS
-	load_diat_mels(); // load the diatonic melodies
+    test = true;
+    MAWS_DB = '../../test_data/maws/all'; 
+    DIAT_MEL_DB = '../../test_data/codestrings/all'; 
+    load_maws(); // load the MAWS
+    load_diat_mels(); // load the diatonic melodies
 }else {
-	console.log(DB_PREFIX_LIST.length+" Databases to load: "+DB_PREFIX_LIST);
-	for (var m=0;m<DB_PREFIX_LIST.length;m++) {
-		console.log(m)
+    console.log(DB_PREFIX_LIST.length+" Databases to load: "+DB_PREFIX_LIST);
+    for (var m=0;m<DB_PREFIX_LIST.length;m++) {
+        console.log(m)
 // Comment out the next 5 lines on the 'real' server, where D-Mbs files will be present.
-//		if(DB_PREFIX_LIST[m].startsWith("D-Mbs")) {
-//			console.log("D-Mbs not available on this server");
-//			process.exit();
-//			continue;
-//		}
-		if(DB_PREFIX_LIST[m].startsWith("D-Mbs")) var maws_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/maws";
-		else var maws_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/all/maws";
-//		load_file(maws_db, parse_maws_db,DB_PREFIX_LIST[m]);
+//        if(DB_PREFIX_LIST[m].startsWith("D-Mbs")) {
+//            console.log("D-Mbs not available on this server");
+//            process.exit();
+//            continue;
+//        }
+        if(DB_PREFIX_LIST[m].startsWith("D-Mbs")) var maws_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/maws";
+        else var maws_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/all/maws";
+//        load_file(maws_db, parse_maws_db,DB_PREFIX_LIST[m]);
 
-		if(DB_PREFIX_LIST[m].startsWith("D-Mbs")) var diat_mel_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/codestrings";
-		else var diat_mel_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/all/codestrings";
-		console.log("diat_mel_db is "+diat_mel_db);
-		load_file(diat_mel_db, parse_diat_mels_db, DB_PREFIX_LIST[m]);
-	}
+        if(DB_PREFIX_LIST[m].startsWith("D-Mbs")) var diat_mel_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/codestrings";
+        else var diat_mel_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/all/codestrings";
+        console.log("diat_mel_db is "+diat_mel_db);
+        load_file(diat_mel_db, parse_diat_mels_db, DB_PREFIX_LIST[m]);
+    }
 }
 
 if(DB_PREFIX_LIST.includes("D-Mbs")) {
-	var total_size = 0;
-	for(Mbs_segment=0;Mbs_segment<=7;Mbs_segment++) {
-		let path_file = "/storage/ftempo/locations/Mbs/Mbs"+Mbs_segment;
-		total_size += parse_Mbs_paths(load_file_sync(path_file));
-	}
-	console.log(D_MBS_ID_PATHS.length+" Mbs segments loaded; total size: "+total_size);
+    var total_size = 0;
+    for(Mbs_segment=0;Mbs_segment<=7;Mbs_segment++) {
+        let path_file = "/storage/ftempo/locations/Mbs/Mbs"+Mbs_segment;
+        total_size += parse_Mbs_paths(load_file_sync(path_file));
+    }
+    console.log(D_MBS_ID_PATHS.length+" Mbs segments loaded; total size: "+total_size);
 
 }
 // This doesn't work, as loading is asynchronous!
@@ -305,154 +305,153 @@ console.log("q_mei_url: "+q_mei_url)
     if (!q_diat_str) { return res.status(400).send('Could not find melody string for this q_id '+q_id); }
     if (!m_diat_str) { return res.status(400).send('Could not find melody string for this m_id: '+m_id); }
     
-	function ngram_string(str, n) {
-	// Returns array of ngrams of length n
-		if(!str.length) return false;
-		ngrams = [];
-		if(str.length<n) {
-			ngrams.push(str + "%");
-		}
-		else if (str.length==n) {
-			ngrams.push(str);
-			}
-			else {  
-				for(i=0; i+n <= str.length; i++) {
-					ngrams.push(str.substr(i,n));
-				}
-			}
-		return ngrams;
-	}
-	function isInArray(value, array) {
-	  return array.indexOf(value) > -1;
-	}
-	function exists(search,arr ) {
-		return arr.some(row => row.includes(search));
-	}
+    function ngram_string(str, n) {
+    // Returns array of ngrams of length n
+        if(!str.length) return false;
+        ngrams = [];
+        if(str.length<n) {
+            ngrams.push(str + "%");
+        }
+        else if (str.length==n) {
+            ngrams.push(str);
+            }
+            else {  
+                for(i=0; i+n <= str.length; i++) {
+                    ngrams.push(str.substr(i,n));
+                }
+            }
+        return ngrams;
+    }
+    function isInArray(value, array) {
+      return array.indexOf(value) > -1;
+    }
+    function exists(search,arr ) {
+        return arr.some(row => row.includes(search));
+    }
 
-	function allIndexOf(str, findThis) {
-		var indices = [];
-		for(var pos = str.indexOf(findThis); pos !== -1; pos = str.indexOf(findThis, pos + 1)) {
-			indices.push(pos);
-		}
-		return indices;
-	}
+    function allIndexOf(str, findThis) {
+        var indices = [];
+        for(var pos = str.indexOf(findThis); pos !== -1; pos = str.indexOf(findThis, pos + 1)) {
+            indices.push(pos);
+        }
+        return indices;
+    }
 
-	function ngrams_in_common(q_str,m_str,n,query) {
-	// Records all locations of each ngram common to query and match
-		let q_com_ng_loc = [];
-		let m_com_ng_loc = [];
-		let q_ngrams = ngram_string(q_str, n);
-		let m_ngrams = ngram_string(m_str, n);
-		let qcount = mcount = -1;
-		let mlocs = [];
-		let qlocs = [];
-		for(var i=0;i<=q_ngrams.length;i++) {
-			qlocs = allIndexOf(m_str,q_ngrams[i]);
-			for(j=0;j<=qlocs.length;j++ ) {
-				if(qlocs[j]>=0) {
-					if(!exists(qlocs[j],q_com_ng_loc)) {
-						if(typeof q_com_ng_loc[i] === "undefined") {
-							q_com_ng_loc[i]=[];
-						}
-						var entry = {};
-						entry.q_ind = i;
-						entry.m_ind = qlocs[j];
-						q_com_ng_loc[i].push(entry);
-					}
-				}
-			}
-		}
-		for( i=0;i<=m_ngrams.length;i++) {
-			mlocs = allIndexOf(q_str,m_ngrams[i]);
-			for(j=0;j<=mlocs.length;j++ ) {
-				if(mlocs[j]>=0) {
-					if(!exists(mlocs[j],m_com_ng_loc)) {
-						if(typeof m_com_ng_loc[i] === "undefined") {
-							m_com_ng_loc[i]=[];
-						}
-						var entry = {};
-						entry.m_ind = i;
-						entry.q_ind = mlocs[j];
-						m_com_ng_loc[i].push(entry);
-					}
-				}
-			}
-		}
+    function ngrams_in_common(q_str,m_str,n,query) {
+    // Records all locations of each ngram common to query and match
+        let q_com_ng_loc = [];
+        let m_com_ng_loc = [];
+        let q_ngrams = ngram_string(q_str, n);
+        let m_ngrams = ngram_string(m_str, n);
+        let qcount = mcount = -1;
+        let mlocs = [];
+        let qlocs = [];
+        for(var i=0;i<=q_ngrams.length;i++) {
+            qlocs = allIndexOf(m_str,q_ngrams[i]);
+            for(j=0;j<=qlocs.length;j++ ) {
+                if(qlocs[j]>=0) {
+                    if(!exists(qlocs[j],q_com_ng_loc)) {
+                        if(typeof q_com_ng_loc[i] === "undefined") {
+                            q_com_ng_loc[i]=[];
+                        }
+                        var entry = {};
+                        entry.q_ind = i;
+                        entry.m_ind = qlocs[j];
+                        q_com_ng_loc[i].push(entry);
+                    }
+                }
+            }
+        }
+        for( i=0;i<=m_ngrams.length;i++) {
+            mlocs = allIndexOf(q_str,m_ngrams[i]);
+            for(j=0;j<=mlocs.length;j++ ) {
+                if(mlocs[j]>=0) {
+                    if(!exists(mlocs[j],m_com_ng_loc)) {
+                        if(typeof m_com_ng_loc[i] === "undefined") {
+                            m_com_ng_loc[i]=[];
+                        }
+                        var entry = {};
+                        entry.m_ind = i;
+                        entry.q_ind = mlocs[j];
+                        m_com_ng_loc[i].push(entry);
+                    }
+                }
+            }
+        }
 
-		if(query) return q_com_ng_loc.filter(Boolean); //remove null entries
-		else return m_com_ng_loc.filter(Boolean); //remove null entries
-	}
+        if(query) return q_com_ng_loc.filter(Boolean); //remove null entries
+        else return m_com_ng_loc.filter(Boolean); //remove null entries
+    }
 
-	var q_comm = ngrams_in_common(q_diat_str,m_diat_str,ngram_length,true);
-	var m_comm = ngrams_in_common(q_diat_str,m_diat_str,ngram_length,false);
+    var q_comm = ngrams_in_common(q_diat_str,m_diat_str,ngram_length,true);
+    var m_comm = ngrams_in_common(q_diat_str,m_diat_str,ngram_length,false);
 
-	const sorted_q_comm = q_comm.sort(function(a, b){return a[0].q_ind - b[0].q_ind});
-	const sorted_m_comm = m_comm.sort(function(a, b){return a[0].m_ind - b[0].m_ind});
+    const sorted_q_comm = q_comm.sort(function(a, b){return a[0].q_ind - b[0].q_ind});
+    const sorted_m_comm = m_comm.sort(function(a, b){return a[0].m_ind - b[0].m_ind});
 
     // TODO(ra) probably expose this in the frontend like this...
-//	const show_top_ngrams = req.body.show_top_ngrams;
-//	const show_top_ngrams = true;
+//    const show_top_ngrams = req.body.show_top_ngrams;
+//    const show_top_ngrams = true;
 //    const show_top_ngrams = false;
 //    const [q_index_to_colour, m_index_to_colour] = generate_index_to_colour_maps(q_diat_str, m_diat_str, show_top_ngrams);
 
-	let q_mei = get_mei(q_mei_url);
-	let m_mei = get_mei(m_mei_url);
-	var ok = false;
+    let q_mei = get_mei(q_mei_url);
+    let m_mei = get_mei(m_mei_url);
+    var ok = false;
 
-	const  data = {
-		q_id,
-		m_id,
-		q_jpg_url,
-		m_jpg_url,
-		q_mei: q_mei.replace(/(\r\n|\n|\r)/gm,''), // strip newlines
-		m_mei: m_mei.replace(/(\r\n|\n|\r)/gm,''), // strip newlines
-		q_diat_str: JSON.stringify(q_diat_str),
-		m_diat_str: JSON.stringify(m_diat_str),
-		ng_len: ngram_length,
-	  }
-	res.render('compare', data);
+    const  data = {
+        q_id,
+        m_id,
+        q_jpg_url,
+        m_jpg_url,
+        q_mei: q_mei.replace(/(\r\n|\n|\r)/gm,''), // strip newlines
+        m_mei: m_mei.replace(/(\r\n|\n|\r)/gm,''), // strip newlines
+        q_diat_str: JSON.stringify(q_diat_str),
+        m_diat_str: JSON.stringify(m_diat_str),
+        ng_len: ngram_length,
+      }
+    res.render('compare', data);
 });
-function got_mei(data){};
 
 var q_diat_str;
 var q_diat_url;
 
 app.get('/api/get_maws_from_id', function (req, res) { 
-	let num_ports = ALL_PORTS.length;
-	let id=req.url.substring(req.url.indexOf('=')+1);
-	let json="\'{\"id\": \""+id+"\"}\'";
+    let num_ports = ALL_PORTS.length;
+    let id=req.url.substring(req.url.indexOf('=')+1);
+    let json="\'{\"id\": \""+id+"\"}\'";
 //console.log("MAWs request for " + json)
-//	if(req.body.id !== undefined) { id = req.body.id;}
-	
-	let result="";
-	
-	for(var i=0;i<num_ports;i++) {
-		var port = parseInt(ALL_PORTS[i]);
-		let url = 'http://localhost:'+port.toString()+"/api/maws_from_id";
-		let command="curl -s -d "+json+" -H 'Content-Type: application/json'  -X POST "+url;
+//    if(req.body.id !== undefined) { id = req.body.id;}
+    
+    let result="";
+    
+    for(var i=0;i<num_ports;i++) {
+        var port = parseInt(ALL_PORTS[i]);
+        let url = 'http://localhost:'+port.toString()+"/api/maws_from_id";
+        let command="curl -s -d "+json+" -H 'Content-Type: application/json'  -X POST "+url;
 //console.log(command)
-		
-//		let command="curl -s "+url;	
-		result =  cp.execSync(command);
-		if(result.length) break;
-		}
-	if(result.length) res.send(JSON.parse(result).join(" ")); 
-//	if(result.length) res.send("MAWs for id "+id+" :<br>"+JSON.parse(result).join(" ")); 
-	else res.send("MAWs for id "+id+" not found!!"); 
+        
+//        let command="curl -s "+url;    
+        result =  cp.execSync(command);
+        if(result.length) break;
+        }
+    if(result.length) res.send(JSON.parse(result).join(" ")); 
+//    if(result.length) res.send("MAWs for id "+id+" :<br>"+JSON.parse(result).join(" ")); 
+    else res.send("MAWs for id "+id+" not found!!"); 
 });
 
 // Returns the number of all emo ids
 app.get('/api/num_emo_ids', function (req, res) { 
-	let num_ports = ALL_PORTS.length;
-	var total_ids = 0; // total number in all d/bs
-	for(var i=0;i<num_ports;i++) {
-		var port = parseInt(ALL_PORTS[i]);
-		let url = 'http://localhost:'+port.toString()+"/api/num_emo_ids"
-		let command="curl -s "+url + " | awk '{print $1}'";	
-		var result =  cp.execSync(command);
-		total_ids += parseInt(result.toString().split(" ")[0]);
-		}
-	res.send(total_ids+" pages in database"); 
+    let num_ports = ALL_PORTS.length;
+    var total_ids = 0; // total number in all d/bs
+    for(var i=0;i<num_ports;i++) {
+        var port = parseInt(ALL_PORTS[i]);
+        let url = 'http://localhost:'+port.toString()+"/api/num_emo_ids"
+        let command="curl -s "+url + " | awk '{print $1}'";    
+        var result =  cp.execSync(command);
+        total_ids += parseInt(result.toString().split(" ")[0]);
+        }
+    res.send(total_ids+" pages in database"); 
 });
 
 // Returns an array of all emo ids
@@ -581,42 +580,42 @@ app.post('/api/query', function (req, res) {
 console.log("'"+codestring+"'")
         if(codestring.length <= 2) {
 console.log("No codestring found for id: "+req.body.id)
-		   res.send(req.body.id+" not found!!");
+           res.send(req.body.id+" not found!!");
         }
         else {
-		   codestring = "'" + codestring + "'";
-		   result = multi_search(codestring, jaccard, num_results, threshold, ngram, ports_to_search);
+           codestring = "'" + codestring + "'";
+           result = multi_search(codestring, jaccard, num_results, threshold, ngram, ports_to_search);
         }
 
     } else if(req.body.codestring) {
-		let multi_result = multi_search(req.body.codestring, jaccard, num_results, threshold, ngram, ports_to_search);
+        let multi_result = multi_search(req.body.codestring, jaccard, num_results, threshold, ngram, ports_to_search);
      }
 
-	var num_ports_to_search;
-	var num_ports_searched = 0;
-	var multi_results_array = [];
+    var num_ports_to_search;
+    var num_ports_searched = 0;
+    var multi_results_array = [];
 
-	function search_ports(query,ports,num_results) {
-		num_ports_to_search = ports.length
-		for(var i=0;i<num_ports_to_search;i++) {
-			var port = parseInt(ports[i]);
-			let url = 'http://localhost:'+port.toString()+"/api/query"
-			let command="curl -s -d "+JSON.stringify(query)+" -H 'Content-Type: application/json'  -X POST "+url;	
-			var result =  cp.exec(command,(error,stdout,stderr) => {
-			  if (error) {
-			    console.error(`exec error: ${error}`);
-			    return;
-			  }
-			handle_multi_results(`${stdout}`,num_results);
-			});
-		}
-			if(result)   return multi_results_array;
-	}
+    function search_ports(query,ports,num_results) {
+        num_ports_to_search = ports.length
+        for(var i=0;i<num_ports_to_search;i++) {
+            var port = parseInt(ports[i]);
+            let url = 'http://localhost:'+port.toString()+"/api/query"
+            let command="curl -s -d "+JSON.stringify(query)+" -H 'Content-Type: application/json'  -X POST "+url;    
+            var result =  cp.exec(command,(error,stdout,stderr) => {
+              if (error) {
+                console.error(`exec error: ${error}`);
+                return;
+              }
+            handle_multi_results(`${stdout}`,num_results);
+            });
+        }
+            if(result)   return multi_results_array;
+    }
 
-	// Multiple remote search function. Repeats identical search for each port.
-	// NB Results are dynamically concatenated into multi_results_array
-	// - see function handle_multi_results
-	 function multi_search(id, jaccard, search_num_results, threshold, ngram_search, ports_to_search) {
+    // Multiple remote search function. Repeats identical search for each port.
+    // NB Results are dynamically concatenated into multi_results_array
+    // - see function handle_multi_results
+     function multi_search(id, jaccard, search_num_results, threshold, ngram_search, ports_to_search) {
 
         let codestring = "";
         // Options for multi_search are by id or by codestring; also by 'word' but we are most unlikely to do that one
@@ -629,30 +628,30 @@ console.log("No codestring found for id: "+req.body.id)
             });
         }
 
-	    let search_data = "";
-	    let diat_int_str = codestring;
-	    let num_results = search_num_results;
-	    search_data = JSON.stringify({ codestring, jaccard, num_results, threshold, ngram_search});
-	    let result = search_ports(search_data, ports_to_search,num_results);
-	    return result;
-	}
+        let search_data = "";
+        let diat_int_str = codestring;
+        let num_results = search_num_results;
+        search_data = JSON.stringify({ codestring, jaccard, num_results, threshold, ngram_search});
+        let result = search_ports(search_data, ports_to_search,num_results);
+        return result;
+    }
 
-	function handle_multi_results(json,trunc_num) {
-		num_ports_searched++;
-		if(!json.length) return;
-		var this_result = "";
-		this_result = JSON.parse(json);
-		var this_result_array=this_result
-		for(var i=0;i<this_result_array.length;i++) {
-			let result_line = this_result_array[i];
-			multi_results_array=multi_results_array.concat(result_line)
-		}
-		multi_results_array.sort((a, b) => { return a.jaccard - b.jaccard; });
-		multi_results_array.length = trunc_num;
-		if(num_ports_searched == num_ports_to_search) {
-			res.send(multi_results_array);
-		}
-	}
+    function handle_multi_results(json,trunc_num) {
+        num_ports_searched++;
+        if(!json.length) return;
+        var this_result = "";
+        this_result = JSON.parse(json);
+        var this_result_array=this_result
+        for(var i=0;i<this_result_array.length;i++) {
+            let result_line = this_result_array[i];
+            multi_results_array=multi_results_array.concat(result_line)
+        }
+        multi_results_array.sort((a, b) => { return a.jaccard - b.jaccard; });
+        multi_results_array.length = trunc_num;
+        if(num_ports_searched == num_ports_to_search) {
+            res.send(multi_results_array);
+        }
+    }
 
 });
 
@@ -686,7 +685,7 @@ app.post('/api/image_query', function(req, res) {
     }
 
 //    const working_path = user_path + next_working_dir + '/';
-	working_path = user_path + next_working_dir + '/';
+    working_path = user_path + next_working_dir + '/';
     fs.mkdirSync(working_path);
 
     // Use the mv() method to save the file there
@@ -750,7 +749,7 @@ app.post('/api/image_query', function (req, res) {
     }
 
 //    const working_path = user_path + next_working_dir + '/';
-	working_path = user_path + next_working_dir + '/';
+    working_path = user_path + next_working_dir + '/';
     fs.mkdirSync(working_path);
 
     // Use the mv() method to save the file there
@@ -769,123 +768,123 @@ app.post('/api/image_query', function (req, res) {
     let multi_result = [];
     
     function run_multi_image_query(user_id, new_filename, working_path, ngram_search) {
-		multi_result.length = 0;
-	    let query_data;
-	    let query;
-	    if(!ngram_search) {
-			  query_data = cp.execSync('./shell_scripts/image_to_codestring.sh ' + new_filename + ' ' + working_path );
-			  image_codestring = String(query_data); 
+        multi_result.length = 0;
+        let query_data;
+        let query;
+        if(!ngram_search) {
+              query_data = cp.execSync('./shell_scripts/image_to_codestring.sh ' + new_filename + ' ' + working_path );
+              image_codestring = String(query_data); 
 //console.log("image_codestring is: '"+image_codestring+"'")
-		   multi_result = multi_search(image_codestring, jaccard, num_results, threshold, false, ports_to_search);
-	    }
+           multi_result = multi_search(image_codestring, jaccard, num_results, threshold, false, ports_to_search);
+        }
 /* Not yet!
-	    else {
-		   try {
-			  query_data = cp.execSync('./shell_scripts/image_to_ngrams.sh ' + user_image_filename + ' ' + the_working_path + ' ' + '9');
-			  query = String(query_data);
-		   } catch (err) { return; } // something broke in the shell script...
-		   if (query) { multi_result = multi_search(image_codestring, jaccard, num_results, threshold, ngram, ports_to_search); }
-	    }
+        else {
+           try {
+              query_data = cp.execSync('./shell_scripts/image_to_ngrams.sh ' + user_image_filename + ' ' + the_working_path + ' ' + '9');
+              query = String(query_data);
+           } catch (err) { return; } // something broke in the shell script...
+           if (query) { multi_result = multi_search(image_codestring, jaccard, num_results, threshold, ngram, ports_to_search); }
+        }
 */
-	}
+    }
 
-	let num_ports_to_search;
-	let num_ports_searched = 0;
-	var multi_results_array = [];
+    let num_ports_to_search;
+    let num_ports_searched = 0;
+    var multi_results_array = [];
 
-	function search_ports(query,ports,num_results) {
+    function search_ports(query,ports,num_results) {
 
-		multi_results_array.length=0;
-		
-		num_ports_to_search = ports.length
-		for(var i=0;i<num_ports_to_search;i++) {
-			var port = parseInt(ports[i]);
-			let url = 'http://localhost:'+port.toString()+"/api/query"
-			let command="curl -s -d "+JSON.stringify(query)+" -H 'Content-Type: application/json'  -X POST "+url;	
-			var result =  cp.exec(command,(error,stdout,stderr) => {
-			  if (error) {
-			    console.error(`exec error: ${error}`);
-			    return;
-			  }
-			handle_multi_results(`${stdout}`,num_results);
-			});
-		}
-			if(result)   return multi_results_array;
-	}
+        multi_results_array.length=0;
+        
+        num_ports_to_search = ports.length
+        for(var i=0;i<num_ports_to_search;i++) {
+            var port = parseInt(ports[i]);
+            let url = 'http://localhost:'+port.toString()+"/api/query"
+            let command="curl -s -d "+JSON.stringify(query)+" -H 'Content-Type: application/json'  -X POST "+url;    
+            var result =  cp.exec(command,(error,stdout,stderr) => {
+              if (error) {
+                console.error(`exec error: ${error}`);
+                return;
+              }
+            handle_multi_results(`${stdout}`,num_results);
+            });
+        }
+            if(result)   return multi_results_array;
+    }
 
-	// Multiple remote search function. Repeats identical search for each port.
-	// NB Results are dynamically concatenated into multi_results_array
-	// - see function handle_multi_results
-	 function multi_search(codestring, jaccard, search_num_results, threshold, ngram_search, ports_to_search) {
-	    let search_data = "";
-//	    let diat_int_str = codestring;
-	    let num_results = search_num_results;
-	    search_data = { codestring, jaccard, num_results, threshold, ngram_search};
+    // Multiple remote search function. Repeats identical search for each port.
+    // NB Results are dynamically concatenated into multi_results_array
+    // - see function handle_multi_results
+     function multi_search(codestring, jaccard, search_num_results, threshold, ngram_search, ports_to_search) {
+        let search_data = "";
+//        let diat_int_str = codestring;
+        let num_results = search_num_results;
+        search_data = { codestring, jaccard, num_results, threshold, ngram_search};
 //console.log(search_data)
-	    let result = search_ports(JSON.stringify(search_data), ports_to_search,num_results);
-	    return result;
-	}
+        let result = search_ports(JSON.stringify(search_data), ports_to_search,num_results);
+        return result;
+    }
 
-	function handle_multi_results(json,trunc_num) {
-		num_ports_searched++;
-		if(!json.length) return;
-		var this_result = "";
-		this_result = JSON.parse(json);
-		var this_result_array=this_result
-		for(var i=0;i<this_result_array.length;i++) {
-			let result_line = this_result_array[i];
-//			multi_results_array=multi_results_array.concat(JSON.stringify(result_line))
-			multi_results_array=multi_results_array.concat(result_line)
-		}
-		multi_results_array.sort((a, b) => { return a.jaccard - b.jaccard; });
-		multi_results_array.length = trunc_num;
-		if(num_ports_searched == num_ports_to_search) {
+    function handle_multi_results(json,trunc_num) {
+        num_ports_searched++;
+        if(!json.length) return;
+        var this_result = "";
+        this_result = JSON.parse(json);
+        var this_result_array=this_result
+        for(var i=0;i<this_result_array.length;i++) {
+            let result_line = this_result_array[i];
+//            multi_results_array=multi_results_array.concat(JSON.stringify(result_line))
+            multi_results_array=multi_results_array.concat(result_line)
+        }
+        multi_results_array.sort((a, b) => { return a.jaccard - b.jaccard; });
+        multi_results_array.length = trunc_num;
+        if(num_ports_searched == num_ports_to_search) {
 //console.log("Sending result: "+multi_results_array)
-			res.send(JSON.stringify(multi_results_array));
-//			return multi_results_array;
-		}
-	}
+            res.send(JSON.stringify(multi_results_array));
+//            return multi_results_array;
+        }
+    }
 
 });
 
 app.get('/api/get_coll_ports', function(req,res) {
-	    var file = "static/src/coll_port_list";
-	    var colls = req.originalUrl.substring(req.originalUrl.indexOf('=')+1);
+        var file = "static/src/coll_port_list";
+        var colls = req.originalUrl.substring(req.originalUrl.indexOf('=')+1);
 //console.log(req.originalUrl)
-//	    if(colls.length)  console.log("colls requested: "+colls);
-	    let  ports_to_search = [];
-	    fs.readFile(file, 'utf8', (err, data) => {
-		   if (err) { throw err; }
-		   if (!data.length) {
-			  console.log("No data in seg_server_list!");
-		   } else {
-			  ports_to_search = parse_ports(data,colls);
-//			  console.log("ports_to_search now: "+ports_to_search)
-			  res.send(ports_to_search);
-		   }
-	    });
+//        if(colls.length)  console.log("colls requested: "+colls);
+        let  ports_to_search = [];
+        fs.readFile(file, 'utf8', (err, data) => {
+           if (err) { throw err; }
+           if (!data.length) {
+              console.log("No data in seg_server_list!");
+           } else {
+              ports_to_search = parse_ports(data,colls);
+//              console.log("ports_to_search now: "+ports_to_search)
+              res.send(ports_to_search);
+           }
+        });
 
-	function parse_ports(data_str,colls) {
-		var ports = []; 
-	    if(colls.length) {
-			var coll_array = colls.split(",");
-			let lines = data_str.split("\n");
-//			console.log("Getting search ports for " + coll_array.length + " data-segments");
-			for (let line of lines) {
-			   if (line) {
-				const words = line.split(" "); // splits on whitespace
-				// words[0] is the collection RISM siglum
-				var coll = words[0];
-				if(coll_array.includes(coll))
-					for(var i=1;i<words.length;i++) {
-						ports.push(words[i]);
-					}
-			   }
-			}
-	   }
-//	    console.log("ports parsed = " + ports);
-	    return ports;
-	}
+    function parse_ports(data_str,colls) {
+        var ports = []; 
+        if(colls.length) {
+            var coll_array = colls.split(",");
+            let lines = data_str.split("\n");
+//            console.log("Getting search ports for " + coll_array.length + " data-segments");
+            for (let line of lines) {
+               if (line) {
+                const words = line.split(" "); // splits on whitespace
+                // words[0] is the collection RISM siglum
+                var coll = words[0];
+                if(coll_array.includes(coll))
+                    for(var i=1;i<words.length;i++) {
+                        ports.push(words[i]);
+                    }
+               }
+            }
+       }
+//        console.log("ports parsed = " + ports);
+        return ports;
+    }
 });
 
 
@@ -1009,33 +1008,33 @@ function get_result_from_words(words, signature_to_ids_dict, jaccard, num_result
 // NB The style of underscore-separation differs between collections
 function parse_id(id) {
 //console.log("ID: "+id)
-	let parsed_id = {};
-	let segment = id.split("_");   
+    let parsed_id = {};
+    let segment = id.split("_");   
 // The library RISM siglum is always the prefix to the id,
 // followed by the first underscore in the id.
-	parsed_id.RISM=segment[0];
-	switch (parsed_id.RISM) {
-		case "D-Mbs":
-		case "PL-Wn":
-			parsed_id.book = segment[1];
-			parsed_id.page = segment[2];
-			break;
+    parsed_id.RISM=segment[0];
+    switch (parsed_id.RISM) {
+        case "D-Mbs":
+        case "PL-Wn":
+            parsed_id.book = segment[1];
+            parsed_id.page = segment[2];
+            break;
         case "F-Pn":
-//           	parsed_id.book = segment[1];
-//			parsed_id.page = segment[2]+"_"+segment[3];
+//               parsed_id.book = segment[1];
+//            parsed_id.page = segment[2]+"_"+segment[3];
 //            break;
         case "GB-Lbl": 
-			if (segment.length == 4) { 
-				parsed_id.book = segment[1];
-				parsed_id.page = segment[2]+"_"+segment[3];
-			  }
-			  else {
-				parsed_id.book = segment[1]+"_"+segment[2];
-				parsed_id.page = segment[3]+"_"+segment[4];
-			  }          
-			break;
-	}   
-	return parsed_id;
+            if (segment.length == 4) { 
+                parsed_id.book = segment[1];
+                parsed_id.page = segment[2]+"_"+segment[3];
+              }
+              else {
+                parsed_id.book = segment[1]+"_"+segment[2];
+                parsed_id.page = segment[3]+"_"+segment[4];
+              }          
+            break;
+    }   
+    return parsed_id;
 }
 
 function get_scores(words, signature_to_ids_dict, ngram, collections_to_search) {
@@ -1046,17 +1045,17 @@ console.time("get_scores")
         const ids = signature_to_ids_dict[word]
         if (!ids) { continue; }
         for(const id of ids) {
-		   if(!collections_to_search.includes(parse_id(id).RISM)) continue;
-		   if(typeof id_list == "undefined"){
-		   	if (!scores[id]) { scores[id] = 0; }
-			scores[id]++;
-		   }
-		   else {
-		   	if(id_list.includes(id)) {
-				if (!scores[id]) { scores[id] = 0; }
-				scores[id]++;		   		
-		   	}
-		   }
+           if(!collections_to_search.includes(parse_id(id).RISM)) continue;
+           if(typeof id_list == "undefined"){
+               if (!scores[id]) { scores[id] = 0; }
+            scores[id]++;
+           }
+           else {
+               if(id_list.includes(id)) {
+                if (!scores[id]) { scores[id] = 0; }
+                scores[id]++;                   
+               }
+           }
         }
     }
 console.timeEnd("get_scores")
@@ -1150,12 +1149,12 @@ function parse_maws_db(data_str,source) {
             }
 
             EMO_IDS.push(id);
-	var uniq_words = Array.from(new Set(words));
+    var uniq_words = Array.from(new Set(words));
 
            EMO_IDS_MAWS[id] = uniq_words;
             if(uniq_words.length < 10) {
-            	short_maws_ids.push(id);
-            	continue;
+                short_maws_ids.push(id);
+                continue;
             }
             word_totals[id] = uniq_words.length;
             for (const word of uniq_words) {
@@ -1175,7 +1174,7 @@ function parse_maws_db(data_str,source) {
 }
 
 function parse_diat_mels_db(data_str,source) {
-	let lines = data_str.split("\n");
+    let lines = data_str.split("\n");
     console.log(lines.length + " lines of diatonic melody strings to read from "+source+" ...");
     var line_count = 0;
     for (let line of lines) {
@@ -1192,46 +1191,46 @@ function parse_diat_mels_db(data_str,source) {
 }
 
 function load_ngrams_from_diat_mels (ng_len) {
-	for(let id in EMO_IDS_DIAT_MELS) {
-		if((typeof EMO_IDS_DIAT_MELS[id] != "undefined")&&(EMO_IDS_DIAT_MELS[id].length > ng_len)) {
-			EMO_IDS_NGRAMS[id] = utils.ngram_array_as_set(EMO_IDS_DIAT_MELS[id],ng_len);
-		}
-	}
-	var id_total = Object.keys(EMO_IDS_NGRAMS).length;
-	var id_count = 0;
-	console.log("Generated "+ng_len+"-grams for "+id_total+" IDs.");
-	var id_keys = Object.keys(EMO_IDS_NGRAMS);
-	var ngram_array = Object.values(EMO_IDS_NGRAMS);
-	for(id in id_keys) {
-		var ngrams = ngram_array[id];
-		word_ngram_totals[id_keys[id]] = ngrams.length;
-		for (var ngram in ngrams) {
-			if(!NGRAMS_to_IDS[ngrams[ngram]]) { 
-				NGRAMS_to_IDS[ngrams[ngram]] = [];
-			}
-			NGRAMS_to_IDS[ngrams[ngram]].push(id_keys[id]);
-		}
-		id_count++;
-		process.stdout.write((("  "+id_count/id_total)*100).toFixed(2)+"%"+"\r") 
-	}
-	console.log("There are "+Object.keys(NGRAMS_to_IDS).length+" unique "+ng_len+"-grams");
+    for(let id in EMO_IDS_DIAT_MELS) {
+        if((typeof EMO_IDS_DIAT_MELS[id] != "undefined")&&(EMO_IDS_DIAT_MELS[id].length > ng_len)) {
+            EMO_IDS_NGRAMS[id] = utils.ngram_array_as_set(EMO_IDS_DIAT_MELS[id],ng_len);
+        }
+    }
+    var id_total = Object.keys(EMO_IDS_NGRAMS).length;
+    var id_count = 0;
+    console.log("Generated "+ng_len+"-grams for "+id_total+" IDs.");
+    var id_keys = Object.keys(EMO_IDS_NGRAMS);
+    var ngram_array = Object.values(EMO_IDS_NGRAMS);
+    for(id in id_keys) {
+        var ngrams = ngram_array[id];
+        word_ngram_totals[id_keys[id]] = ngrams.length;
+        for (var ngram in ngrams) {
+            if(!NGRAMS_to_IDS[ngrams[ngram]]) { 
+                NGRAMS_to_IDS[ngrams[ngram]] = [];
+            }
+            NGRAMS_to_IDS[ngrams[ngram]].push(id_keys[id]);
+        }
+        id_count++;
+        process.stdout.write((("  "+id_count/id_total)*100).toFixed(2)+"%"+"\r") 
+    }
+    console.log("There are "+Object.keys(NGRAMS_to_IDS).length+" unique "+ng_len+"-grams");
 
 /*
-	// Write out the two arrays to disk
-	fs.writeFile(NGRAM_ID_BASE+ng_len+".json",
-		JSON.stringify(NGRAMS_to_IDS),
-		(err) => {
-		if (err) throw err;
-		console.log('The ngram_id_dict has been saved!');
-		}
-	);
-	fs.writeFile(ID_NGRAM_BASE+ng_len+".json",
-		JSON.stringify(EMO_IDS_NGRAMS),
-		(err) => {
-		if (err) throw err;
-		console.log('The id_ngram_dict has been saved!');
-		}
-	);
+    // Write out the two arrays to disk
+    fs.writeFile(NGRAM_ID_BASE+ng_len+".json",
+        JSON.stringify(NGRAMS_to_IDS),
+        (err) => {
+        if (err) throw err;
+        console.log('The ngram_id_dict has been saved!');
+        }
+    );
+    fs.writeFile(ID_NGRAM_BASE+ng_len+".json",
+        JSON.stringify(EMO_IDS_NGRAMS),
+        (err) => {
+        if (err) throw err;
+        console.log('The id_ngram_dict has been saved!');
+        }
+    );
 */
 }
 
@@ -1249,35 +1248,35 @@ function load_file(file, data_callback,source) {
 }
 
 function load_file_sync(file) {
-	if(file.startsWith("http")) {
-		var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-		var request = new XMLHttpRequest();
-		request.open('GET', file, false);  // `false` makes the request synchronous
-		request.send(null);
-		if (request.status === 200) {
-		  return request.responseText;
-		}
-	}
-	else {
-//	console.log("Loading " + file + " synchronously");
-		var data = fs.readFileSync(file, 'utf8');
-	}
-//	console.log("    "+data.length);
-	return data;
+    if(file.startsWith("http")) {
+        var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+        var request = new XMLHttpRequest();
+        request.open('GET', file, false);  // `false` makes the request synchronous
+        request.send(null);
+        if (request.status === 200) {
+          return request.responseText;
+        }
+    }
+    else {
+//    console.log("Loading " + file + " synchronously");
+        var data = fs.readFileSync(file, 'utf8');
+    }
+//    console.log("    "+data.length);
+    return data;
 }
 
 function load_current_query_diat_str(q_diat_url) { load_file(q_diat_url, get_diat_str); }
 
 function load_image_query_diat_str(q_diat_url) {
-	var datastr = load_file_sync(q_diat_url); 
-	get_diat_str(datastr);
+    var datastr = load_file_sync(q_diat_url); 
+    get_diat_str(datastr);
 }
 
 function get_diat_str(data_str) {
 console.log("url for mel str is "+q_diat_url);
     const lines = data_str.split("\n");
     console.log("Query string loaded!");
-    q_diat_str =  lines[1];	// we want the second line of page.txt
+    q_diat_str =  lines[1];    // we want the second line of page.txt
 }
 
 
@@ -1285,22 +1284,34 @@ console.log("url for mel str is "+q_diat_url);
  * Helpers
  ******************************************************************************/
 
-function get_codestring(id) {
-	let json="\'{\"id\": \""+id+"\"}\'";
-	let command="curl -s -d "+json+" -H 'Content-Type: application/json'  -X POST http://localhost:8500/api/id";
-	let codestring_found = cp.execSync(command);
-	return codestring_found;
+async function get_codestring(id) {
+    return new Promise((resolve,reject)=> {
+        const client = solr.createClient({host: "host.docker.internal", port: "8983", "core": "ftempo"});
+        const query = client.createQuery().q('siglum:"' + id + '"').fl('codestring');
+        client.search(query, function (err, obj) {
+            if (err) {
+                reject(obj);
+            } else {
+                console.log(obj);
+                if (obj.response.numFound >= 1) {
+                    const doc = obj.response.docs[0];
+                    resolve(doc.codestring);
+                }
+                resolve("");
+            }
+        });
+    });
 }
 
 function get_mei(file) {
-//	console.log("Getting MEI from: "+ file)
-	var found_mei = fs.readFileSync(file, 'utf8');
-	return found_mei;
+//    console.log("Getting MEI from: "+ file)
+    var found_mei = fs.readFileSync(file, 'utf8');
+    return found_mei;
 }
 
 // Gets library RISM siglum from beginning of id
 function get_collection_from_id(id) {
-	return id.substr(0,id.indexOf("_"));
+    return id.substr(0,id.indexOf("_"));
 }
 
 function jacc_delta (array, n) {

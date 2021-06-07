@@ -1,1 +1,1 @@
-echo -n > seg_server_list && node codestring_server.js 8500 && node titlepage_url_server.js 8501 & ./start_servers
+echo -n > seg_server_list && node titlepage_url_server.js 8501 & ./start_servers

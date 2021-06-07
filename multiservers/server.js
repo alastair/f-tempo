@@ -460,109 +460,99 @@ app.get('/api/emo_ids', function (req, res) { res.send(EMO_IDS); });
 
 // Returns a random id from the database
 app.get('/api/random_id', function (req, res) { 
-	res.send( EMO_IDS[Math.floor(Math.random()*EMO_IDS.length)]); 
+    res.send( EMO_IDS[Math.floor(Math.random()*EMO_IDS.length)]); 
 });
 
 // Returns a new id (next/previous page/book) in response to that in the request
 app.get('/api/next_id', function (req, res) {
 // NB FIXME!! This does not work properly with F-Pn IDs, as the 'book' part of the ID is scrambled!
-	var next = true; // default to finding next ...
-	var page = true; // page
-	if(req.query.next !== "undefined") {
-		if(req.query.next=="true") next = true;
-		else if(req.query.next=="false") next = false;	
-	}
-	if(req.query.page !== "undefined") {
-		if(req.query.page=="true") page = true;	
-		else if(req.query.page=="false") page = false;	
-	}
-	var start_id = req.query.id;
-	var new_id = "";
+    var next = true; // default to finding next ...
+    var page = true; // page
+    if(req.query.next !== "undefined") {
+        if(req.query.next=="true") next = true;
+        else if(req.query.next=="false") next = false;    
+    }
+    if(req.query.page !== "undefined") {
+        if(req.query.page=="true") page = true;    
+        else if(req.query.page=="false") page = false;    
+    }
+    var start_id = req.query.id;
+    var new_id = "";
 //console.log("next is "+next);
-	var found = EMO_IDS.indexOf(start_id);
-	if(found == -1) res.send("ID "+start_id+" not found!");
+    var found = EMO_IDS.indexOf(start_id);
+    if(found == -1) res.send("ID "+start_id+" not found!");
 //console.log("found = "+found)
-	
-	if(page==true) {
-		// finding adjacent ID/page
-		if(next==true) {
-			found+=1;
-		} 
-		else found-=1;
-//	console.log("new found = "+found);
-	// TODO handle end and beginning of EMO_IDS properly!! Maybe as simple as ...
-		if((found>=EMO_IDS.length)||(found<0)) res.send(start_id);
-		new_id = EMO_IDS[found];
-//	console.log("ID: "+start_id+" new ID: "+new_id+" ("+next+")");
-	}
-	else {
-		var parsed_id=parse_id(start_id)
-		var this_book = parsed_id.book;
-		// find next book
-//	console.log("Found this_book: "+this_book)
-		var new_id = "";
-		var new_book = "";
-		if(next==true) {
-			for(var i=found;i<EMO_IDS.length;i++) {
-				new_id = EMO_IDS[i];
-				new_book=parse_id(new_id).book;
-				if(new_book != this_book) {
-					break;
-				}
-			}
-//	console.log(i+": '"+EMO_IDS[i]+"'");
-//	console.log("Found next book: "+new_book)
-		}
-		else {
-		// find previous book]
-			for(i=found;i>0;i--) {
-				new_id = EMO_IDS[i].trim();
-				new_book = parse_id(new_id).book;
-				if(new_book != this_book) {
-					// now we are at the last image of the previous book
-					// so find the book before that one and go to next
-					// image - it will be the first of the book we want
-					this_book = new_book;
-					for(;i>0;i--) {
-						new_id = EMO_IDS[i].trim();
-						new_book = parse_id(new_id).book;
-						if(new_book != this_book) {
-							if(i>0) i++; // Don't go to next if at first book
-							new_id = EMO_IDS[i].trim();
-							break;
-						}
-					}
-					break;
-				}
-			}
-//	console.log("Found previous book: "+new_book)
-		}
-	}
-			
-	res.send(new_id); 
+    
+    if(page==true) {
+        // finding adjacent ID/page
+        if(next==true) {
+            found+=1;
+        } 
+        else found-=1;
+//    console.log("new found = "+found);
+    // TODO handle end and beginning of EMO_IDS properly!! Maybe as simple as ...
+        if((found>=EMO_IDS.length)||(found<0)) res.send(start_id);
+        new_id = EMO_IDS[found];
+//    console.log("ID: "+start_id+" new ID: "+new_id+" ("+next+")");
+    }
+    else {
+        var parsed_id=parse_id(start_id)
+        var this_book = parsed_id.book;
+        // find next book
+//    console.log("Found this_book: "+this_book)
+        var new_id = "";
+        var new_book = "";
+        if(next==true) {
+            for(var i=found;i<EMO_IDS.length;i++) {
+                new_id = EMO_IDS[i];
+                new_book=parse_id(new_id).book;
+                if(new_book != this_book) {
+                    break;
+                }
+            }
+//    console.log(i+": '"+EMO_IDS[i]+"'");
+//    console.log("Found next book: "+new_book)
+        }
+        else {
+        // find previous book]
+            for(i=found;i>0;i--) {
+                new_id = EMO_IDS[i].trim();
+                new_book = parse_id(new_id).book;
+                if(new_book != this_book) {
+                    // now we are at the last image of the previous book
+                    // so find the book before that one and go to next
+                    // image - it will be the first of the book we want
+                    this_book = new_book;
+                    for(;i>0;i--) {
+                        new_id = EMO_IDS[i].trim();
+                        new_book = parse_id(new_id).book;
+                        if(new_book != this_book) {
+                            if(i>0) i++; // Don't go to next if at first book
+                            new_id = EMO_IDS[i].trim();
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+//    console.log("Found previous book: "+new_book)
+        }
+    }
+            
+    res.send(new_id); 
 });
 
 // Returns an array of all title-page jpg urls
 app.get('/api/title-pages', function (req, res) { res.send(tp_jpgs); });
 
 
-app.get('/api/get_codestring', function (req, res) {
-	let id = '';
-	id=req.url.substring(req.url.indexOf('=')+1);
-//	console.log(req.url+ " id is "+id)
-	if (typeof id == undefined) {
-		// res.send(req.url+" : Can't read the id")
-		return false;
-	}
-	else {
-		let json="\'{\"id\": \""+id+"\"}\'";
-// console.log(json)
-		let command="curl -s -d "+json+" -H 'Content-Type: application/json'  -X POST http://localhost:8500/api/id";
-//		console.log("command = "+command)
-		let codestring = cp.execSync(command);
-//		console.log("Try to get codestring: \n"+codestring);
-		res.send(JSON.stringify(codestring.toString().trim()));
-	}
+app.get('/api/get_codestring', async function (req, res) {
+    const id = req.query.id;
+    if (typeof id === undefined) {
+        return false;
+    }
+    const searchResult = await get_codestring(id)
+    res.send(JSON.stringify(searchResult));
 });
 
 // Handle a remote query
@@ -584,7 +574,10 @@ app.post('/api/query', function (req, res) {
     if (req.body.ports !== undefined) { ports_to_search = req.body.ports; }
     let result;
     if(req.body.id) {
-        var codestring = get_codestring(req.body.id);
+        let codestring;
+        get_codestring(req.body.id).then(function(cs) {
+            codestring = cs;
+        });
 console.log("'"+codestring+"'")
         if(codestring.length <= 2) {
 console.log("No codestring found for id: "+req.body.id)
@@ -625,11 +618,16 @@ console.log("No codestring found for id: "+req.body.id)
 	// - see function handle_multi_results
 	 function multi_search(id, jaccard, search_num_results, threshold, ngram_search, ports_to_search) {
 
-	    let codestring = "";
-	    // Options for multi_search are by id or by codestring; also by 'word' but we are most unlikely to do that one
-	    // crude test whether it's an id or a codestring:
-	    if(!EMO_IDS.includes(id)) codestring = id;
-	    else codestring = get_codestring(id);
+        let codestring = "";
+        // Options for multi_search are by id or by codestring; also by 'word' but we are most unlikely to do that one
+        // crude test whether it's an id or a codestring:
+        if(!EMO_IDS.includes(id)) {
+            codestring = id;
+        } else {
+            get_codestring(id).then(function(cs) {
+               codestring = cs;
+            });
+        }
 
 	    let search_data = "";
 	    let diat_int_str = codestring;

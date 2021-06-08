@@ -1,16 +1,26 @@
 version: "3.4"
+
+volumes:
+  solr:
+
 services:
   ftempo:
     build: .
-    command: ./start.sh
+    command: npm run multi
     volumes:
-      - "/storage:/storage"
+      - ./storage:/storage
+      - .:/app
     ports:
       - 8000:8000
-    environment:
-      - VIRTUAL_HOST=uk-dev-ftempo.rism.digital
-      - VIRTUAL_PORT=8000
-      - LETSENCRYPT_HOST=uk-dev-ftempo.rism.digital
-      - LETSENCRYPT_EMAIL=alastair@porter.net.nz
-    network_mode: bridge
-
+  solr:
+    image: solr:8.8.2
+    ports:
+      - "8983:8983"
+    volumes:
+      - ./solr/ftempo:/myconfig
+      - solr:/var/solr/data
+    entrypoint:
+      - docker-entrypoint.sh
+      - solr-precreate
+      - ftempo
+      - /myconfig

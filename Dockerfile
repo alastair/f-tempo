@@ -6,6 +6,7 @@ RUN apt-get update \
       imagemagick \
       jq \
       libxml2-dev \
+      python3-pip \
       uuid-dev \
       vim \
     && rm -rf /var/lib/apt/lists/*
@@ -43,13 +44,19 @@ RUN cmake . -DimDir=../../im -DtorchDir=../../Torch3
 RUN make
 
 WORKDIR /tmp/aruspix/
+ARG MAW_COMMIT=96b5642454
 RUN git clone https://github.com/alastair/maw.git
 WORKDIR /tmp/aruspix/maw
+RUN git checkout $MAW_COMMIT
 RUN ./pre-install.sh
 RUN make -f Makefile.64-bit.gcc && mv maw /usr/local/bin
 
 RUN mkdir /app
 WORKDIR /app
+
+COPY ./solr/requirements.txt ./
+RUN pip3 install --no-cache-dir -r requirements.txt
+
 COPY package.json package-lock.json ./
 RUN npm install
 

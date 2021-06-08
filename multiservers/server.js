@@ -12,32 +12,15 @@ const path = require('path');
 const request = require('request');
 const utils = require('../static/src/utils.js');
 const url = require('url');
+const solr = require('solr-client');
 var cors = require('cors');
-var	argv = require('minimist')(process.argv.slice(2));
+var    argv = require('minimist')(process.argv.slice(2));
 
 /*******************************************************************************
  * Globals / init
  ******************************************************************************/
-const dp_prefix = {};
-dp_prefix["D-Bsb_"] = "/storage/ftempo/locations/D-Bsb/";
-dp_prefix["D-Mbs_"] = "/storage/ftempo/locations/D-Mbs/";
-dp_prefix["F-Pn_"] = "/storage/ftempo/locations/F-Pn/";
-dp_prefix["GB-Lbl_"] = "/storage/ftempo/locations/GB-Lbl/";
-dp_prefix["PL-Wn_"] = "/storage/ftempo/locations/PL_Wn/";
-
 const D_MBS_ID_PATHS = [];
 
-// This function returns the path to the correct subdirectory of D-Mbs data
-function get_datapath(id) {
-	if(id.startsWith("D-Mbs_")){
-		for(var x=0;x<=7;x++) {
-			if(D_MBS_ID_PATHS[x].includes(id)) return "D-Mbs/Mbs"+x+"/"+id;
-		}
-	}
-	else {
-		return Object.keys(dp_prefix)[id.substr(0,id.indexOf("_")+1)];
-	}
-}
 var test = false;
 var MAWS_DB = './data/latest_maws'; 
 //const MAWS_DB = './data/latest_maws_corrIDs_30Sep2019.txt'; 
@@ -185,7 +168,7 @@ if((!DB_PREFIX_LIST.length)||((DB_PREFIX_LIST.length==1)&&(DB_PREFIX_LIST[0]=="t
         if(DB_PREFIX_LIST[m].startsWith("D-Mbs")) var diat_mel_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/codestrings";
         else var diat_mel_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/all/codestrings";
         console.log("diat_mel_db is "+diat_mel_db);
-        load_file(diat_mel_db, parse_diat_mels_db, DB_PREFIX_LIST[m]);
+        //load_file(diat_mel_db, parse_diat_mels_db, DB_PREFIX_LIST[m]);
     }
 }
 
@@ -209,36 +192,11 @@ app.listen(
 
 // Set up middleware to redirect external queries to server's localhost
 // Middleware for distributing search to multiple ports (see multi_search)
-const {createProxyMiddleware} = require('http-proxy-middleware');
-var curr_req_path = "";
-app.use('/api/query_*', createProxyMiddleware({
-	pathRewrite: rewriteFunction,
-	target: 'http://localhost',
-	router: rewriteRouterFunction,
-	changeOrigin: true,
-}));
-function rewriteFunction(path){
-	var newpath = "/api/query";
-	return newpath; 
-}
-function rewriteRouterFunction(req) {
-	let newport = req.url.substr(-4);
-	return 'http://localhost:' + newport;
-	}
 
-// for getting codestrings from an id
-/*
-app.use('/api/get_codestring', createProxyMiddleware({
-	target: 'http://localhost',
-	router: 'http://localhost:8500',
-	method: 'POST',
-	pathRewrite: {'/api/get_codestring': '/api/id'},
-	changeOrigin: true,
-}));
-*/
 app.engine('html', mustacheExpress()); // render html templates using Mustache
 app.set('view engine', 'html');
 app.set('views', './templates');
+app.set('view cache', false);
 
 app.use(express.static('static')); // serve static files out of /static
 app.use(fileUpload()); // file upload stuff
@@ -250,7 +208,7 @@ app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x
  ******************************************************************************/
 
 app.get('/', function (req, res) {
-    res.render('index');
+    res.render('index', {cache: false});
 });
 
 app.get('/id_searches', function (req, res) {
@@ -542,7 +500,9 @@ app.get('/api/next_id', function (req, res) {
 });
 
 // Returns an array of all title-page jpg urls
-app.get('/api/title-pages', function (req, res) { res.send(tp_jpgs); });
+app.get('/api/title-pages', function (req, res) {
+    res.send(tp_jpgs);
+});
 
 
 app.get('/api/get_codestring', async function (req, res) {
@@ -554,108 +514,241 @@ app.get('/api/get_codestring', async function (req, res) {
     res.send(JSON.stringify(searchResult));
 });
 
-// Handle a remote query
-// Multi-search version; sends identical search to all requested servers on their ports
-app.post('/api/query', function (req, res) {
+
+/**
+ * Perform a search
+ *
+ *
+ * POST a json document with content-type application/json with the following structure
+ * { id: if set, perform a search using the document with this siglum
+ *   codestring: if set, perform a search with this codestring
+ *   jaccard: if true, rank results with jaccard distance, otherwise by number of matching words
+ *   threshold:
+ *   }
+ */
+app.post('/api/query', async function (req, res) {
+    if (req.body === undefined) {
+        return res.status(400).send("requires a body");
+    }
 
     // Defaults
     let num_results = 20;
     let jaccard = true;
     let threshold = false;
-    let ngram = false;
-    let ports_to_search = ALL_PORTS; // default - all 27 ports 
 
     // Set values if given in query
-    if (req.body.jaccard !== undefined) { jaccard = req.body.jaccard; }
-    if (req.body.num_results !== undefined) { num_results = req.body.num_results; }
-    if (req.body.threshold !== undefined) { threshold = req.body.threshold; }
-    if (req.body.ngram_search !== undefined) { ngram = req.body.ngram_search; }
-    if (req.body.ports !== undefined) { ports_to_search = req.body.ports; }
-    let result;
-    if(req.body.id) {
-        let codestring;
-        get_codestring(req.body.id).then(function(cs) {
-            codestring = cs;
-        });
-console.log("'"+codestring+"'")
-        if(codestring.length <= 2) {
-console.log("No codestring found for id: "+req.body.id)
-           res.send(req.body.id+" not found!!");
-        }
-        else {
-           codestring = "'" + codestring + "'";
-           result = multi_search(codestring, jaccard, num_results, threshold, ngram, ports_to_search);
-        }
-
-    } else if(req.body.codestring) {
-        let multi_result = multi_search(req.body.codestring, jaccard, num_results, threshold, ngram, ports_to_search);
-     }
-
-    var num_ports_to_search;
-    var num_ports_searched = 0;
-    var multi_results_array = [];
-
-    function search_ports(query,ports,num_results) {
-        num_ports_to_search = ports.length
-        for(var i=0;i<num_ports_to_search;i++) {
-            var port = parseInt(ports[i]);
-            let url = 'http://localhost:'+port.toString()+"/api/query"
-            let command="curl -s -d "+JSON.stringify(query)+" -H 'Content-Type: application/json'  -X POST "+url;    
-            var result =  cp.exec(command,(error,stdout,stderr) => {
-              if (error) {
-                console.error(`exec error: ${error}`);
-                return;
-              }
-            handle_multi_results(`${stdout}`,num_results);
-            });
-        }
-            if(result)   return multi_results_array;
+    if (req.body.jaccard !== undefined) {
+        jaccard = req.body.jaccard;
+    }
+    if (req.body.num_results !== undefined) {
+        num_results = req.body.num_results;
+    }
+    if (req.body.threshold !== undefined) {
+        threshold = req.body.threshold;
     }
 
-    // Multiple remote search function. Repeats identical search for each port.
-    // NB Results are dynamically concatenated into multi_results_array
-    // - see function handle_multi_results
-     function multi_search(id, jaccard, search_num_results, threshold, ngram_search, ports_to_search) {
-
-        let codestring = "";
-        // Options for multi_search are by id or by codestring; also by 'word' but we are most unlikely to do that one
-        // crude test whether it's an id or a codestring:
-        if(!EMO_IDS.includes(id)) {
-            codestring = id;
-        } else {
-            get_codestring(id).then(function(cs) {
-               codestring = cs;
-            });
-        }
-
-        let search_data = "";
-        let diat_int_str = codestring;
-        let num_results = search_num_results;
-        search_data = JSON.stringify({ codestring, jaccard, num_results, threshold, ngram_search});
-        let result = search_ports(search_data, ports_to_search,num_results);
-        return result;
+    let result = {};
+    if (req.body.id) {
+        result = await search_by_id(req.body.id, jaccard, num_results, threshold);
+    } else if (req.body.codestring) {
+        console.log("codestring is: " + req.body.codestring);
+        result = await search_by_codestring(req.body.codestring, jaccard, num_results, threshold);
     }
-
-    function handle_multi_results(json,trunc_num) {
-        num_ports_searched++;
-        if(!json.length) return;
-        var this_result = "";
-        this_result = JSON.parse(json);
-        var this_result_array=this_result
-        for(var i=0;i<this_result_array.length;i++) {
-            let result_line = this_result_array[i];
-            multi_results_array=multi_results_array.concat(result_line)
-        }
-        multi_results_array.sort((a, b) => { return a.jaccard - b.jaccard; });
-        multi_results_array.length = trunc_num;
-        if(num_ports_searched == num_ports_to_search) {
-            res.send(multi_results_array);
-        }
-    }
-
+    return res.send(result);
 });
 
-/*
+function quote(str) {
+    return `"${str}"`;
+}
+
+function get_maws_for_siglum(siglum) {
+    return new Promise((resolve, reject)=> {
+        const client = solr.createClient({host: "host.docker.internal", port: "8983", "core": "ftempo"});
+        const query = client.createQuery().q('siglum:' + quote(siglum)).fl('maws');
+        client.search(query, function (err, obj) {
+            if (err) {
+                reject(obj);
+            } else {
+                console.log(obj);
+                if (obj.response.numFound >= 1) {
+                    const doc = obj.response.docs[0];
+                    resolve(doc.maws);
+                }
+                resolve([]);
+            }
+        });
+    });
+}
+
+async function get_maws_for_codestring(codestring) {
+    let maws_output;
+    const inputstr = `>input:\n${codestring}\n`;
+    const maws = cp.spawn("/usr/local/bin/maw", ["-a", "PROT", "-i", "-", "-o", "-", "-k", "4", "-K", "8"]);
+    maws.stdout.on('data', (data) => {
+        console.log(typeof data)
+        maws_output = data.toString().split("\n")
+        // Return any empty lines and the first sentinel line that starts with >
+        maws_output = maws_output.filter(val => val && !val.startsWith(">"))
+    });
+    maws.stdin.write(inputstr);
+    maws.stdin.end();
+
+    await once(maws, 'close');
+    return maws_output;
+}
+
+async function search_maws_solr(maws) {
+    maws = maws.map(quote);
+    return new Promise((resolve, reject)=> {
+        const client = solr.createClient({host: "host.docker.internal", port: "8983", "core": "ftempo"});
+        const query = client.createQuery().defType('dismax').q(maws.join(" ")).qf({maws:1}).mm(1);
+        client.search(query, function (err, obj) {
+            if (err) {
+                reject(obj);
+            } else {
+                if (obj.response.numFound >= 1) {
+                    resolve(obj.response.docs);
+                }
+                resolve([]);
+            }
+        });
+    });
+}
+
+async function search_by_id(id, jaccard, num_results, threshold) {
+    const maws = await get_maws_for_siglum(id);
+    return await search(maws, jaccard, num_results, threshold);
+}
+
+async function search_by_codestring(codestring, jaccard, num_results, threshold) {
+    const maws = await get_maws_for_codestring(codestring);
+    console.log(`maws is ${maws}`)
+    return await search(maws, jaccard, num_results, threshold);
+}
+
+function set_intersection(setA, setB) {
+    let _intersection = new Set()
+    for (let elem of setB) {
+        if (setA.has(elem)) {
+            _intersection.add(elem)
+        }
+    }
+    return _intersection
+}
+
+/**
+ * Search for
+ * @param words: array of MAWs to search for
+ * @param jaccard: True if sort by jaccard similarity, otherwise sort by number of matching tokens
+ * @param num_results: Filter by this many results
+ * @param threshold
+ * @returns {boolean|[]|*[]|*}
+ */
+async function search(words, jaccard, num_results, threshold) {
+    if (words.length < 6) { // TODO: Need to report to frontend
+        // console.log("Not enough words in query.");
+        return [];
+    }
+    //console.time("search");
+
+    // Safety check that the words are all unique:
+    const search_uniq_words = new Set(words);
+
+    const maws_results = await search_maws_solr(words);
+    const maws_with_scores = maws_results.map(doc => {
+        const unique_maws = new Set(doc.maws);
+        const num_matched_words = set_intersection(unique_maws, search_uniq_words).size;
+        return {
+            // ID of the document
+            id: doc.siglum,
+            codestring: doc.codestring,
+            // Number of words in common between search term and document
+            num: num_matched_words,
+            // Number of unique words in the document
+            num_words: unique_maws.size,
+            // Jaccard similarity
+            jaccard: 1 - (num_matched_words / (unique_maws.size + search_uniq_words.size - num_matched_words))
+        }
+    });
+
+    if (jaccard) {
+        // Ascending, as 0 is identity match
+        maws_with_scores.sort((a, b) => {
+            return a.jaccard - b.jaccard;
+        });
+    } else {
+        // Descending
+        maws_with_scores.sort((a, b) => {
+            return b.num - a.num;
+        });
+    }
+
+    //console.timeEnd("pruning")
+    const result = gate_scores_by_threshold(maws_with_scores, threshold, jaccard, num_results);
+    //console.timeEnd("search");
+    console.log(result)
+    return result;
+}
+
+/**
+ *
+ * @param scores_pruned
+ * @param threshold: "median" to threshold by the median score, otherwise a float value
+ * @param jaccard
+ * @param num_results
+ * @returns {*[]|*}
+ */
+function gate_scores_by_threshold(scores_pruned, threshold, jaccard, num_results) {
+    // if threshold is set in URL, stop returning results when delta < threshold
+    if (threshold) {
+        const out_array = [];
+        out_array[0] = scores_pruned[0];  // the identity match, or at least the best we have
+        for (let p = 1; p < scores_pruned.length; p++) {
+            let delta = 0;
+            if (jaccard) {
+                delta = jacc_delta(scores_pruned, p);
+            } else {
+                delta = scores_pruned[p - 1].num_matched_words - scores_pruned[p].num_matched_words;
+            }
+            if (threshold === "median") {
+                threshold = getMedian(scores_pruned, jaccard);
+            }
+            if (delta >= threshold) {
+                out_array[p] = scores_pruned[p];
+                out_array[p].delta = delta;
+            } else {
+                num_results = p - 1;
+                break;
+            }
+        }
+        return out_array;
+    } else {
+        // return the first num_results results
+        return scores_pruned.slice(0, num_results);
+    }
+}
+
+function jacc_delta(array, n) {
+    return array[n].jaccard - array[n - 1].jaccard;
+}
+
+function getMedian(array, jaccard) {
+    var values = [];
+    if (jaccard === "true") {
+        for (let i = 0; i < array.length; i++) {
+            values.push(array[i].jaccard);
+        }
+    } else {
+        for (let i = 0; i < array.length; i++) {
+            values.push(array[i].num);
+        }
+    }
+    values.sort((a, b) => a - b);
+    let median = (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2;
+    return median;
+}
+
+
 var working_path;
 // Handle image uploads
 app.post('/api/image_query', function(req, res) {
@@ -700,193 +793,6 @@ app.post('/api/image_query', function(req, res) {
         }
     });
 });
-*/
-
-// Handle a remote image-upload query
-// Multi-search version; sends identical search to all requested servers on their ports
-app.post('/api/image_query', function (req, res) {
-
-    if (!req.files) { return res.status(400).send('No files were uploaded.'); }
-    
-    let working_path;
-    // Defaults
-    let num_results = 20;
-    let jaccard = true;
-    let threshold = false;
-    let ngram = false;
-    let ports_to_search = ALL_PORTS; // default - all 27 ports 
-
-    // Set values if given in query
-    if (req.body.jaccard !== undefined) { jaccard = req.body.jaccard; }
-    if (req.body.num_results !== undefined) { num_results = req.body.num_results; }
-    if (req.body.threshold !== undefined) { threshold = req.body.threshold; }
-// No ngram searches yet!
-//    if (req.body.ngram_search !== undefined) { ngram = req.body.ngram_search; }
-    ngram = false;
-    if (req.body.ports_to_search !== undefined) { ports_to_search = req.body.ports; }
-    
-        // this needs to stay in sync with the name given to the FormData object in the front end
-    let user_image = req.files.user_image_file;
-    const user_id = req.body.user_id;
-    const new_filename = user_image.name.replace(/ /g, '_');
-
-    // TODO: this probably breaks silently if the user uploads two files with the
-    // same name -- they'll end up in the working directory, which may cause
-    // problems for Aruspix
-    
-    let next_working_dir;
-    const user_path = './run/' + user_id + '/';
-    if (fs.existsSync(user_path)){
-        dirs = fs.readdirSync(user_path);
-
-        // dirs is an array of strings, which we want to sort as ints
-        dirs.sort((a, b) => parseInt(a) - parseInt(b));
-        last_dir = parseInt(dirs[dirs.length - 1]);
-        next_working_dir = last_dir + 1;
-    } else {
-        fs.mkdirSync(user_path);
-        next_working_dir = 0;
-    }
-
-//    const working_path = user_path + next_working_dir + '/';
-    working_path = user_path + next_working_dir + '/';
-    fs.mkdirSync(working_path);
-
-    // Use the mv() method to save the file there
-    user_image.mv(working_path + new_filename, (err) => {
-        if (err) { return res.status(500).send(err); }
-        else {
-// console.log("Uploaded file saved as " + working_path + new_filename);
-            const ngram_search = ngram;
-            const result = run_multi_image_query(user_id, new_filename, working_path, ngram_search);
- //           if (result) { res.send(result); }
- //           if(!result) { return res.status(422).send('Could not process this file.'); }
-        }
-    });
-
-    var image_codestring;
-    let multi_result = [];
-    
-    function run_multi_image_query(user_id, new_filename, working_path, ngram_search) {
-        multi_result.length = 0;
-        let query_data;
-        let query;
-        if(!ngram_search) {
-              query_data = cp.execSync('./shell_scripts/image_to_codestring.sh ' + new_filename + ' ' + working_path );
-              image_codestring = String(query_data); 
-//console.log("image_codestring is: '"+image_codestring+"'")
-           multi_result = multi_search(image_codestring, jaccard, num_results, threshold, false, ports_to_search);
-        }
-/* Not yet!
-        else {
-           try {
-              query_data = cp.execSync('./shell_scripts/image_to_ngrams.sh ' + user_image_filename + ' ' + the_working_path + ' ' + '9');
-              query = String(query_data);
-           } catch (err) { return; } // something broke in the shell script...
-           if (query) { multi_result = multi_search(image_codestring, jaccard, num_results, threshold, ngram, ports_to_search); }
-        }
-*/
-    }
-
-    let num_ports_to_search;
-    let num_ports_searched = 0;
-    var multi_results_array = [];
-
-    function search_ports(query,ports,num_results) {
-
-        multi_results_array.length=0;
-        
-        num_ports_to_search = ports.length
-        for(var i=0;i<num_ports_to_search;i++) {
-            var port = parseInt(ports[i]);
-            let url = 'http://localhost:'+port.toString()+"/api/query"
-            let command="curl -s -d "+JSON.stringify(query)+" -H 'Content-Type: application/json'  -X POST "+url;    
-            var result =  cp.exec(command,(error,stdout,stderr) => {
-              if (error) {
-                console.error(`exec error: ${error}`);
-                return;
-              }
-            handle_multi_results(`${stdout}`,num_results);
-            });
-        }
-            if(result)   return multi_results_array;
-    }
-
-    // Multiple remote search function. Repeats identical search for each port.
-    // NB Results are dynamically concatenated into multi_results_array
-    // - see function handle_multi_results
-     function multi_search(codestring, jaccard, search_num_results, threshold, ngram_search, ports_to_search) {
-        let search_data = "";
-//        let diat_int_str = codestring;
-        let num_results = search_num_results;
-        search_data = { codestring, jaccard, num_results, threshold, ngram_search};
-//console.log(search_data)
-        let result = search_ports(JSON.stringify(search_data), ports_to_search,num_results);
-        return result;
-    }
-
-    function handle_multi_results(json,trunc_num) {
-        num_ports_searched++;
-        if(!json.length) return;
-        var this_result = "";
-        this_result = JSON.parse(json);
-        var this_result_array=this_result
-        for(var i=0;i<this_result_array.length;i++) {
-            let result_line = this_result_array[i];
-//            multi_results_array=multi_results_array.concat(JSON.stringify(result_line))
-            multi_results_array=multi_results_array.concat(result_line)
-        }
-        multi_results_array.sort((a, b) => { return a.jaccard - b.jaccard; });
-        multi_results_array.length = trunc_num;
-        if(num_ports_searched == num_ports_to_search) {
-//console.log("Sending result: "+multi_results_array)
-            res.send(JSON.stringify(multi_results_array));
-//            return multi_results_array;
-        }
-    }
-
-});
-
-app.get('/api/get_coll_ports', function(req,res) {
-        var file = "static/src/coll_port_list";
-        var colls = req.originalUrl.substring(req.originalUrl.indexOf('=')+1);
-//console.log(req.originalUrl)
-//        if(colls.length)  console.log("colls requested: "+colls);
-        let  ports_to_search = [];
-        fs.readFile(file, 'utf8', (err, data) => {
-           if (err) { throw err; }
-           if (!data.length) {
-              console.log("No data in seg_server_list!");
-           } else {
-              ports_to_search = parse_ports(data,colls);
-//              console.log("ports_to_search now: "+ports_to_search)
-              res.send(ports_to_search);
-           }
-        });
-
-    function parse_ports(data_str,colls) {
-        var ports = []; 
-        if(colls.length) {
-            var coll_array = colls.split(",");
-            let lines = data_str.split("\n");
-//            console.log("Getting search ports for " + coll_array.length + " data-segments");
-            for (let line of lines) {
-               if (line) {
-                const words = line.split(" "); // splits on whitespace
-                // words[0] is the collection RISM siglum
-                var coll = words[0];
-                if(coll_array.includes(coll))
-                    for(var i=1;i<words.length;i++) {
-                        ports.push(words[i]);
-                    }
-               }
-            }
-       }
-//        console.log("ports parsed = " + ports);
-        return ports;
-    }
-});
-
 
 app.post('/api/log', function(req, res) {
     const log_entry = req.body.log_entry;
@@ -908,58 +814,6 @@ to log ${log}.`
 /*******************************************************************************
  * Query functions
  ******************************************************************************/
-// method can be 'id' or 'words'
-// query is a string, either holding the id a id+maws line
-function search(method, query, jaccard, num_results, threshold, ngram, collections_to_search) {
-    if (ngram === undefined) { ngram = false; }
-
-    if(!query) { // Need to report this back to browser/user
-        console.log("No query provided!");
-        return false;
-    }
-//console.log(method+"\nquery: "+query+"\njaccard: "+jaccard+"\nnum_results: "+num_results+"\nthreshold: "+threshold+"\nngram: "+ngram+"\ncollections: "+collections_to_search)
-    let words;
-    if (method === 'id') {
-        if (!(query in EMO_IDS_MAWS)) { // TODO: need to report to frontend
- console.log("ID " + query + " not found in F-TEMPO data!");
-            return;
-        }
-// console.log((ngram=="true")? "NGRAM search":"MAWs search")
-        words = ngram? EMO_IDS_NGRAMS[query] : EMO_IDS_MAWS[query];
-    } else if (method === 'words') {
-        parsed_line = parse_id_maws_line(query);
-        words = parsed_line.words;
-    }
-
-//console.log(ngram? "NGRAM search: " : "MAW search: "+words);
-//console.log("Searching ")+ collections_to_search
-    let signature_to_ids_dict;
-    if (ngram) { signature_to_ids_dict = NGRAMS_to_IDS; }
-    else { signature_to_ids_dict = MAWS_to_IDS; }
-    return get_result_from_words(words, signature_to_ids_dict, jaccard, num_results, threshold, ngram,collections_to_search);
-}
-
-// ** TODO NB: this only supports MAW-based searches at present
-function search_with_code(diat_int_code, jaccard, num_results, threshold, collections_to_search) {
-    const codestring_path = './run/codestring_queries/';
-    let next_working_dir;
-    if (!fs.existsSync(codestring_path)){
-        fs.mkdirSync(codestring_path);
-        next_working_dir = 0;
-    } else {
-        dirs = fs.readdirSync(codestring_path);
-        dirs.sort((a, b) => parseInt(a) - parseInt(b));
-        last_dir = parseInt(dirs[dirs.length - 1]);
-        next_working_dir = last_dir + 1;
-    }
-    working_path = codestring_path + next_working_dir + '/';
-    if (!fs.existsSync(working_path)){ fs.mkdirSync(working_path); }
-
-    const query_data = cp.execSync('./shell_scripts/codestring_to_maws.sh ' + diat_int_code + ' ' + working_path);
-    const query_str = String(query_data); // a string of maws, preceded with an id
-    const result = search('words', query_str, jaccard, num_results, threshold, collections_to_search);
-    return result;
-}
 
 // ** TODO NB: this only supports MAW-based searches at present
 function run_image_query(user_id, user_image_filename, the_working_path, ngram_search) {
@@ -987,19 +841,6 @@ function run_image_query(user_id, user_image_filename, the_working_path, ngram_s
         if (query) { result = search('words', query, jaccard, num_results, threshold, true,collections_to_search); }
     }
 
-    return result;
-}
-
-function get_result_from_words(words, signature_to_ids_dict, jaccard, num_results, threshold, ngram, collections_to_search) {
-    if (words.length < 6) { // TODO: Need to report to frontend
-        // console.log("Not enough words in query.");
-        return [];
-    }
-// Safety check that the words are all unique:    
-    const uniq_words = Array.from(new Set(words));
-    const scores = get_scores(uniq_words, signature_to_ids_dict, ngram, collections_to_search);
-    const scores_pruned = get_pruned_and_sorted_scores(scores, uniq_words.length, jaccard,ngram);
-    const result = gate_scores_by_threshold(scores_pruned, threshold, jaccard, num_results);
     return result;
 }
 
@@ -1036,92 +877,6 @@ function parse_id(id) {
     }   
     return parsed_id;
 }
-
-function get_scores(words, signature_to_ids_dict, ngram, collections_to_search) {
-    var res = false;
-    var scores = {};
-console.time("get_scores")
-    for (const word of words) {
-        const ids = signature_to_ids_dict[word]
-        if (!ids) { continue; }
-        for(const id of ids) {
-           if(!collections_to_search.includes(parse_id(id).RISM)) continue;
-           if(typeof id_list == "undefined"){
-               if (!scores[id]) { scores[id] = 0; }
-            scores[id]++;
-           }
-           else {
-               if(id_list.includes(id)) {
-                if (!scores[id]) { scores[id] = 0; }
-                scores[id]++;                   
-               }
-           }
-        }
-    }
-console.timeEnd("get_scores")
-    return scores;
-}
-
-function get_pruned_and_sorted_scores(scores, wds_in_q, jaccard, ngram) {
-    var scores_pruned = [];
-
-    // Prune
-    for (var id in scores) {
-        if (!scores.hasOwnProperty(id)) { continue; }
-        const num = scores[id];
-        if(num > 1) {
-            result = {};
-
-            const num_words = ngram? word_ngram_totals[id] : word_totals[id];
-            result.id = id;
-            result.num = num;
-            result.num_words = num_words;
-            result.codestring = EMO_IDS_DIAT_MELS[id];
-
-            result.jaccard = 1 - (num / (num_words + wds_in_q - num));
-if((result.jaccard < 0)&&(num > num_words)) console.log("num: "+num+" : num_words: "+num_words+" : jaccard: "+result.jaccard)
-            scores_pruned.push(result);
-        }
-    }
-console.time("sort")
-    // Sort
-    if (jaccard) {
-        // Ascending, as 0 is identity match
-        scores_pruned.sort((a, b) => { return a.jaccard - b.jaccard; });
-    }
-    else {
-        // Descending
-        scores_pruned.sort((a, b) => { return b.num - a.num; });
-    }
-console.timeEnd("sort")
-    return scores_pruned;
-}
-
-function gate_scores_by_threshold(scores_pruned, threshold, jaccard, num_results) {
-    // if threshold is set in URL, stop returning results when delta < threshold
-    if (threshold) {
-        const out_array = [];
-        out_array[0] = scores_pruned[0];  // the identity match, or at least the best we have
-        for(var p = 1; p < scores_pruned.length; p++) {
-            var delta = 0;
-            if (jaccard) { delta = jacc_delta(scores_pruned, p); }
-            else { delta = scores_pruned[p - 1].num - scores_pruned[p].num; }
-            if (threshold == "median") { threshold = 0 + getMedian(scores_pruned, jaccard); }
-            if (delta >= threshold) {
-                out_array[p] = scores_pruned[p];
-                out_array[p].delta = delta;
-            } else {
-                num_results = p - 1;
-                break;
-            }
-        }
-        return out_array;
-    } else {
-        // return the first num_results results
-        return scores_pruned.slice(0, num_results);
-    }
-}
-
 
 /*******************************************************************************
  * Data loading
@@ -1214,24 +969,6 @@ function load_ngrams_from_diat_mels (ng_len) {
         process.stdout.write((("  "+id_count/id_total)*100).toFixed(2)+"%"+"\r") 
     }
     console.log("There are "+Object.keys(NGRAMS_to_IDS).length+" unique "+ng_len+"-grams");
-
-/*
-    // Write out the two arrays to disk
-    fs.writeFile(NGRAM_ID_BASE+ng_len+".json",
-        JSON.stringify(NGRAMS_to_IDS),
-        (err) => {
-        if (err) throw err;
-        console.log('The ngram_id_dict has been saved!');
-        }
-    );
-    fs.writeFile(ID_NGRAM_BASE+ng_len+".json",
-        JSON.stringify(EMO_IDS_NGRAMS),
-        (err) => {
-        if (err) throw err;
-        console.log('The id_ngram_dict has been saved!');
-        }
-    );
-*/
 }
 
 function load_file(file, data_callback,source) {
@@ -1561,4 +1298,3 @@ function generate_index_to_colour_maps(q_diat_str, m_diat_str, show_top_ngrams) 
 
     return [q_index_to_colour, m_index_to_colour];
 }
- 

@@ -513,10 +513,6 @@ function ngram_array(str, n) {
             {{/code_searches}}
 
             <!--
-            <button class="btn btn-primary btn-block" id="search_button">Search for Similar Pages</button>
-            -->
-
-            <!--
             -->
             <div class='form-group mt-2 mb-0'>
                 <label for='search_select'>Search Type</label>
@@ -560,14 +556,12 @@ function ngram_array(str, n) {
 	 $('.coll_select').attr('checked', 'checked');
 	 all_checked=true;
 	 document.getElementById('select_all').innerHTML="UnSelect All"
-	 update_colls_to_search()
 	}
 	function unselectAll(){
 	console.log("Unselect All")
 	 $('.coll_select').removeAttr('checked');
 	 all_checked=false;
 	 document.getElementById('select_all').innerHTML="Select All"
-	 update_colls_to_search()
 	}
 	//And a test for whether the All button is on:
 	function allIsSelected(){
@@ -597,33 +591,8 @@ function ngram_array(str, n) {
 
 	var all_checked=false;
 
-	function get_colls_ports(colls){	  
-	var result = "";
-		  $.ajax({    
-		    url:'/api/get_coll_ports?colls='+colls,
-		    type: 'GET',
-		    dataType: "json",
-		    success: function (data){
-		    	result = data;
-//		    	console.log("Ports for "+colls+" are "+result);
-		    },
-		    async: false
-		  });
-		  return result;
-	}
-/*
-	function get_colls_ports(colls){	  
-		var result;
-		$.get('https://uk-dev-ftempo.rism.digital/api/get_coll_ports?colls='+colls,function(data){
-			result = data;
-			console.log("Ports for "+colls+" are "+result);
-			return result;
-		});
-	}
-*/
-
 	function update_colls_to_search() {
-		collections_to_search.length=0; // clear the list first
+		collections_to_search = [];
 		$('#collection_select_table tr').each(function(){
 			$(this).find('td input').each(function(){
 			   if(this.checked) {
@@ -633,27 +602,7 @@ function ngram_array(str, n) {
 			   }
 		    })
 		})
-//		console.log("Searching: "+collections_to_search);
-		window.ports_to_search = get_colls_ports(collections_to_search);
-//		console.log("ports_to_search: "+window.ports_to_search)
 	}
-
-/*
-	function update_colls_to_search() {
-		collections_to_search.length=0; // clear the list first
-		$('#collection_select_table tr').each(function(){
-			$(this).find('td input').each(function(){
-			   if(this.checked) {
-		console.log(this.id)
-				if(!collections_to_search.includes(this.id.substring(7).replace("_","-"))) {
-					collections_to_search.push(this.id.substring(7).replace("_","-"))
-				}
-			   }
-		    })
-		})
-	console.log("Searching: "+collections_to_search)
-	}
-*/
 
 </script>
             <div class="form-group form-check">Collections to search<br>

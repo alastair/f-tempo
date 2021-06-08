@@ -205,8 +205,8 @@ function display_cosine_sim_line_multi(json) {
 }
 
 // Basic remote search function.
-function search(id, jaccard, num_results, ngram_search, collections_to_search) {
-    search_data = JSON.stringify({ id, jaccard, num_results, threshold, ngram_search, collections_to_search});
+function search(id, jaccard, num_results, collections_to_search) {
+    search_data = JSON.stringify({ id, jaccard, num_results, threshold, collections_to_search});
 console.log(search_data)
 $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>'); 
     $.ajax({
@@ -243,54 +243,6 @@ function get_codestring(id) {
 // will die when page is restarted
 var searches = [];
 
-// Multiple remote search function. Repeats identical search for each port.
-// NB Results must be dynamically concatenated in the browser - see show_multi_results
-function multi_search(query, jaccard, search_num_results, ngram_search, ports, record) {
-	if(typeof record == "undefined") record = true;
-	var q_codestring = "";
-	var id = "";
-    // Options for multi_search are by id or by q_codestring; also by 'word' but we are most unlikely to do that one
-    
-    // Seriously crude test whether it's an id or a q_codestring:
-// All queries use underscore, but this is not part of the diat_int_str  code
-	if(query.indexOf("_") > 0) 
-		{
-			q_codestring = get_codestring(query);
-			id = query;
-		}
-	else q_codestring = query;
-
-    if(q_codestring.length < 6) return false;
-
-    multi_results_array.length = 0;
-    let search_data = "";
-    let codestring = q_codestring;
-    search_data = JSON.stringify({ codestring, jaccard, search_num_results, threshold, ngram_search});
- //   console.log(search_data);
-    if(record) searches.push({"id" : id, "search_data": JSON.parse(search_data)});
- console.log(searches.length + " searches now in array")
-    
-    $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>'); 
-
-	// First clear results array before starting to build a new one
-	clear_multi_results();
-
-//console.log("ports_to_search: "+ports_to_search)
-	ports = ports_to_search;
-	for(var i=0;i<ports.length;i++) {
-	    curr_search = i;
-	    var port = parseInt(ports[i]);
-	    var request = $.ajax({
-		   url: 'api/query_'+port.toString(),
-		   method: 'POST',
-		   data: search_data,
-		   contentType: 'application/json',
-		   async:true
-		}).always(show_multi_results);
-		 request.fail((xhr, status) => alert(status)); // TODO: real error handling!
-	    }
-}
-
 // Repeat search n in the searches array - NB n starts at 0!!
 function repeat_search(n) {
 		document.getElementById("emo_image_display").innerHTML = "";
@@ -304,14 +256,8 @@ function repeat_search(n) {
 			false // don't record this as a new search!
 		);
 }
-
-var multi_results_array = [];
-
-function clear_multi_results() {
-	// Empty current concatenated results array
-	multi_results_array.length = 0;
-}
 var curr_search;
+
 function simline_if_done(num,json){ 
 	if(curr_search==ports_to_search.length-1) {
 		for(i=0;i<num;i++){
@@ -487,8 +433,8 @@ $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in 
     }
     var search_num_results=parseInt(document.getElementById("res_disp_select").value)
     update_colls_to_search();
-//    search(query_id, jaccard, num_results, ngram_search, collections_to_search);
-    multi_search(query_id, jaccard, search_num_results+50, change_search_method(), ports_to_search);
+    search(query_id, jaccard, num_results, ngram_search, collections_to_search);
+    //multi_search(query_id, jaccard, search_num_results+50, change_search_method(), ports_to_search);
     
 }
 
@@ -749,21 +695,6 @@ function get_emo_ids(){
         }
     });
 }
-
-/*
-function get_colls_ports(colls){	  
-	  var result="";
-	  $.ajax({    
-	    url:'/api/get_coll_ports?colls='+colls,
-	    type: 'GET',
-	    success: function (data){
-		    console.log("Ports for "+colls+" are "+data);
-		    ports_to_search = data; 
-	    	result = data;
-	    }
-  });
-}
-*/
 
 // Load title-page jpg urls at startup
 function get_tp_urls(){
@@ -1090,10 +1021,9 @@ function clear_result_divs() {
 function show_example(example_id){
     load_page_query(example_id);
     update_colls_to_search();
-//    search(example_id, jaccard, num_results, collections_to_search);
     var search_num_results=parseInt(document.getElementById("res_disp_select").value);
-        multi_search(example_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
-        $('#examples_div').collapse('hide');
+    search(example_id, jaccard, search_num_results+50, collections_to_search);
+    $('#examples_div').collapse('hide');
 }
 
 /*******************************************************************************
@@ -1136,7 +1066,7 @@ function show_user_image(user_image_file) {
 function submit_upload_form(user_image_file) {
     
 	clear_multi_results();
-	
+
     const formData = new FormData();
     formData.append('user_image_file', user_image_file, user_image_file.name);
     formData.append('user_id', user_id);
@@ -1264,43 +1194,12 @@ function add_examples_list() {
 }
 
 $(document).ready(() => {
-
-// Load list of collections and their ports at startup
-//ports_to_search = [];
-//get_colls_ports();
-ports_to_search = ["8011","8001","8004","8015","8007","8017","8016","8006","8003","8027","8021","8008","8026","8009","8010","8014","8005","8002","8012","8018","8022","8024","8013","8020","8019","8023","8025"];
-
-if((typeof ports_to_search !== "undefined")&&(ports_to_search.length)) console.log("Got "+ports_to_search.length+" ports to search: ")
-else console.log("Couldn't get any ports to search!")
-    
     get_or_set_user_id();
 //    get_emo_ids();
     add_examples_list();
     
     $('#image_display').zoom();
     $('#result_image_display').zoom();
-//    $('#tp_display').zoom();
-/*
-      $('#query_tp_img')
-	    .wrap('<span style="display:inline-block"></span>')
-	    .css('display', 'block')
-	    .parent()
-	    .zoom();
-    $('#result_tp_img')
-	    .wrap('<span style="display:inline-block"></span>')
-	    .css('display', 'block')
-	    .parent()
-	    .zoom();
-*/	
-    // TODO(ra): this really wants refactoring. ugh.
-    $('#search_button').click(() => {
-        query_id = document.getElementById("query_id").value;
-        load_page_query(query_id);
-        var search_num_results=parseInt(document.getElementById("res_disp_select").value)
-        update_colls_to_search();
-//        search(query_id,jaccard,num_results, change_search_methods, collections_to_search);       
-        multi_search(query_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
-    });
 
     $('#search_by_id_button').click(() => {
         query_id = document.getElementById("query_id").value;
@@ -1323,19 +1222,15 @@ else console.log("Couldn't get any ports to search!")
     $('#multi-search-button').click(() => {
         query_id = document.getElementById("query_id").value;
         load_page_query(query_id);
-// console.log("Multi search for "+query_id)
+        console.log("Multi search for "+query_id)
         update_colls_to_search();
         var search_num_results=parseInt(document.getElementById("res_disp_select").value)
-        multi_search(query_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
+        search(query_id,jaccard, search_num_results+50, collections_to_search);
+
     });
     
     $('#repeat-search-button').click(() => {
-//        query_id = document.getElementById("query_id").value;
-//        load_page_query(query_id);
-// console.log("Multi search for "+query_id)
         update_colls_to_search();
-        var search_num_results=parseInt(document.getElementById("res_disp_select").value)
-//        multi_search(query_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
 		repeat_search(searches.length-1); // Should repeat last search actually done
     });
 

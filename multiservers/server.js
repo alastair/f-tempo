@@ -67,6 +67,7 @@ const word_ngram_totals = []; // total words per id, used for normalization
 const ngr_len = 5;
 
 const app = express();
+app.use(cors());
 var ARG_LIST = [];
 
 console.log("argv is: " + argv)

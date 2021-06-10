@@ -21,6 +21,7 @@ const EMO_IDS = []; // all ids in the system
 const EMO_IDS_MAWS = {}; // keys are ids, values are an array of maws for that id
 const MAWS_to_IDS = {}; // keys are maws, values are an array of all ids for which that maw appears
 const NGRAMS_to_IDS = {}; // keys are ngrams, values are a array of all ids in whose diat_int_code that ngram appears
+const EMO_IDS_TO_SKIP = new Set();
 
 const tp_jpgs = []; // URLs to title-pages (NB only for D-Mbs!)
 
@@ -29,8 +30,10 @@ const word_ngram_totals = []; // total words per id, used for normalization
 const ngr_len = 5;
 
 const app = express();
-let ARG_LIST = [];
 
+const SKIP_FILELIST = "/storage/ftempo/skip_id_filelist";
+
+let ARG_LIST = [];
 if (argv._.length) {
     ARG_LIST = argv._; // Arguments on command-line
 } else {
@@ -76,6 +79,8 @@ console.time("Full startup time");
 console.log("F-TEMPO server started on port " + port + " at " + Date());
 
 // CHANGE_ME!!
+
+load_file(SKIP_FILELIST, load_skipped_files, SKIP_FILELIST);
 load_file(maws_db, parse_maws_db, source);
 
 app.engine('html', mustacheExpress()); // render html templates using Mustache
@@ -650,6 +655,9 @@ function parse_maws_db(data_str, source) {
             no_maws_ids.push(id);
             continue;
         }
+        if (EMO_IDS_TO_SKIP.has(id)) {
+            continue;
+        }
         var item = parse_id(id);
 
         EMO_IDS.push(id);
@@ -676,6 +684,18 @@ function parse_maws_db(data_str, source) {
         line_count++;
     }
     process.stdout.write((("  " + line_count / IDs.length) * 100).toFixed(2) + "%" + "\r");
+}
+
+/**
+ * Load a list of IDs to ignore, and not load into the database
+ * @param data_str
+ * @param source
+ */
+function load_skipped_files(data_str, source) {
+    const lines = data_str.split("\n");
+    for (let line of lines) {
+        EMO_IDS_TO_SKIP.add(line);
+    }
 }
 
 function load_file(file, data_callback, source) {

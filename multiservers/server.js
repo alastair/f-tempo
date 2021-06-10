@@ -44,6 +44,7 @@ var MAWS_DB = './data/latest_maws';
 var DIAT_MEL_DB = './data/latest_diat_mel_strs'; 
 //const DIAT_MEL_DB = './data/latest_diat_mel_strs_corrIDs_30Sep2019.txt'; 
 const EMO_IDS = []; // all ids in the system
+const EMO_IDS_TO_SKIP = new Set();
 const sorted_EMO_IDS = [];
 const EMO_IDS_DIAT_MELS = {}; // keys are ids, values are the diat_int_code for that id
 var EMO_IDS_MAWS = {}; // keys are ids, values are an array of maws for that id
@@ -66,6 +67,7 @@ const word_ngram_totals = []; // total words per id, used for normalization
 const ngr_len = 5;
 
 const app = express();
+app.use(cors());
 var ARG_LIST = [];
 
 console.log("argv is: " + argv)
@@ -184,8 +186,11 @@ if((!DB_PREFIX_LIST.length)||((DB_PREFIX_LIST.length==1)&&(DB_PREFIX_LIST[0]=="t
 
 		if(DB_PREFIX_LIST[m].startsWith("D-Mbs")) var diat_mel_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/codestrings";
 		else var diat_mel_db = "/storage/ftempo/locations/"+DB_PREFIX_LIST[m]+"/all/codestrings";
+		const skip_filelist = "/storage/ftempo/skip_id_filelist";
+		load_file(skip_filelist, load_skipped_files, skip_filelist);
 		console.log("diat_mel_db is "+diat_mel_db);
 		load_file(diat_mel_db, parse_diat_mels_db, DB_PREFIX_LIST[m]);
+
 	}
 }
 
@@ -1183,6 +1188,9 @@ function parse_diat_mels_db(data_str,source) {
     for (let line of lines) {
         if (line) {
             const [id, diat_mels_str] = line.split(/ (.+)/); // splits on first match of whitespace
+            if (EMO_IDS_TO_SKIP.has(id)) {
+                continue
+            }
             if(typeof diat_mels_str != "undefined") EMO_IDS_DIAT_MELS[id] = diat_mels_str;
             EMO_IDS.push(id);
             line_count++;
@@ -1190,7 +1198,18 @@ function parse_diat_mels_db(data_str,source) {
         process.stdout.write((("  "+line_count/lines.length)*100).toFixed(2)+"%"+"\r") 
     }
     console.log(Object.keys(EMO_IDS_DIAT_MELS).length+" Diatonic melody strings loaded!");
+}
 
+/**
+ * Load a list of IDs to ignore, and not load into the database
+ * @param data_str
+ * @param source
+ */
+function load_skipped_files(data_str, source) {
+    const lines = data_str.split("\n");
+    for (let line of lines) {
+        EMO_IDS_TO_SKIP.add(line);
+    }
 }
 
 function load_ngrams_from_diat_mels (ng_len) {

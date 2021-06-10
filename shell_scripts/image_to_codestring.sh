@@ -29,7 +29,7 @@ echo "Converted to tiff OK" >> log
 
 # Run Aruspix on the converted image
 #aruspix-cmdline -m ~/emo_search/data/aruspix_models page.tiff 2>> log
-aruspix-cmdline -m /var/www/f-tempo/data/aruspix_models page.tiff 2>> log
+aruspix-cmdline -m /storage/ftempo/aruspix_models page.tiff 2>> log
 echo "Passed through Aruspix OK" >> log
 
 # delete page.mei if it exists, as unzip needs interaction if it does
@@ -41,7 +41,7 @@ echo "Extracted MEI OK" >> log
 # Parse MEI into diatonic interval string
 #echo -n $IMG_FILE" " > page.txt
 #touch page.txt;
-gawk -f /var/www/f-tempo/shell_scripts/parse_mei_to_diat_int_str.awk page.mei | tr -d "\n" > page.txt
+gawk -f /app/shell_scripts/parse_mei_to_diat_int_str.awk page.mei | tr -d "\n" > page.txt
 echo -n "Diat interval string (oneline): " >> log; 
 cat page.txt >> log; 
 

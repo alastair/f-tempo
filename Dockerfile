@@ -3,6 +3,7 @@ FROM node:14.16-buster
 RUN apt-get update \
     && apt-get install -y \
       cmake \
+      gawk \
       imagemagick \
       jq \
       libxml2-dev \
@@ -30,6 +31,8 @@ WORKDIR /tmp/aruspix/im
 RUN wget -q https://master.dl.sourceforge.net/project/imtoolkit/3.6.3/Linux%20Libraries/im-3.6.3_Linux26g4_64_lib.tar.gz
 RUN tar xfz im-3.6.3_Linux26g4_64_lib.tar.gz
 RUN mkdir lib && mv lib*.a lib*.so lib
+RUN cp lib/* /usr/local/lib
+RUN ldconfig
 
 WORKDIR /tmp/aruspix
 
@@ -42,6 +45,7 @@ RUN make depend && make
 WORKDIR /tmp/aruspix/aruspix/cmd-line
 RUN cmake . -DimDir=../../im -DtorchDir=../../Torch3
 RUN make
+RUN make install
 
 WORKDIR /tmp/aruspix/
 ARG MAW_COMMIT=96b5642454

@@ -21,6 +21,8 @@ var    argv = require('minimist')(process.argv.slice(2));
  ******************************************************************************/
 const D_MBS_ID_PATHS = [];
 
+const SOLR_HOST = "solr";
+
 var test = false;
 var MAWS_DB = './data/latest_maws'; 
 //const MAWS_DB = './data/latest_maws_corrIDs_30Sep2019.txt'; 
@@ -563,7 +565,7 @@ function quote(str) {
 
 function get_maws_for_siglum(siglum) {
     return new Promise((resolve, reject)=> {
-        const client = solr.createClient({host: "host.docker.internal", port: "8983", "core": "ftempo"});
+        const client = solr.createClient({host: SOLR_HOST, port: "8983", "core": "ftempo"});
         const query = client.createQuery().q('siglum:' + quote(siglum)).fl('maws');
         client.search(query, function (err, obj) {
             if (err) {
@@ -600,7 +602,7 @@ async function get_maws_for_codestring(codestring) {
 async function search_maws_solr(maws) {
     maws = maws.map(quote);
     return new Promise((resolve, reject)=> {
-        const client = solr.createClient({host: "host.docker.internal", port: "8983", "core": "ftempo"});
+        const client = solr.createClient({host: SOLR_HOST, port: "8983", "core": "ftempo"});
         const query = client.createQuery().defType('dismax').q(maws.join(" ")).qf({maws:1}).mm(1);
         client.search(query, function (err, obj) {
             if (err) {
@@ -1023,7 +1025,7 @@ console.log("url for mel str is "+q_diat_url);
 
 async function get_codestring(id) {
     return new Promise((resolve,reject)=> {
-        const client = solr.createClient({host: "host.docker.internal", port: "8983", "core": "ftempo"});
+        const client = solr.createClient({host: SOLR_HOST, port: "8983", "core": "ftempo"});
         const query = client.createQuery().q('siglum:"' + id + '"').fl('codestring');
         client.search(query, function (err, obj) {
             if (err) {

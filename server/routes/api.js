@@ -6,11 +6,6 @@ import {get_codestring, parse_id, run_image_query, search_by_codestring, search_
 
 const router = express.Router();
 
-// Returns an array of all emo ids
-router.get('/api/emo_ids', function (req, res) {
-    res.send(EMO_IDS);
-});
-
 // Returns a random id from the database
 router.get('/api/random_id', function (req, res) {
     res.send(EMO_IDS[Math.floor(Math.random() * EMO_IDS.length)]);

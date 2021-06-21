@@ -68,7 +68,6 @@ let jaccard = true;
 let corpus_search_mode = true; // false when image search mode
 let matched_words = []; // Arrays for displaying match stats in result list
 let words_in_page = []; // ''
-let emo_ids; // Array of page IDs loaded from database on initialisatiom
 let user_id; // for identifying user to logs, etc.
 let can_store_user_id = false;
 
@@ -126,14 +125,6 @@ function reload_page_query(id) {
     $('#emo_image_display').zoom();
 }
 
-/*
-function get_query_from_id(id) {
-    for(var i=0;i<emo_ids.length;i++) {
-        if((emo_ids[i].startsWith(">"+id))||(emo_ids[i].startsWith(id))) return emo_ids[i];
-    }
-    return false
-}
-*/
 ngr_len = 5;
 // Canvas needs to be created and supplied!
 function lineAt(canvas,startx,starty,colour) {
@@ -684,18 +675,6 @@ function reload_result_image(id) {
     $('#result_image_display').zoom();
 }
 
-// Load emo_ids at startup
-function get_emo_ids(){
-    $.ajax({
-        type: "GET",
-        url: "api/emo_ids",
-        success: (db_emo_ids) => {
-            emo_ids = db_emo_ids;
-            console.log(emo_ids);
-        }
-    });
-}
-
 // Load title-page jpg urls at startup
 function get_tp_urls(){
     var result="";
@@ -863,7 +842,6 @@ function checkKey(e) {
         (shiftDown)? find_book_id(true) : find_page_id(true);
         query_id = document.getElementById("query_id").value;
     } else if (e.keyCode == '220') { // '\' for random query
-//        document.getElementById("query_id").value = emo_ids[getRandomIntInclusive(0, emo_ids.length)];
         find_random_page();
         query_id = document.getElementById("query_id").value;    
         load_page_query(query_id);
@@ -1195,7 +1173,6 @@ function add_examples_list() {
 
 $(document).ready(() => {
     get_or_set_user_id();
-//    get_emo_ids();
     add_examples_list();
     
     $('#image_display').zoom();

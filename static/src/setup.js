@@ -550,9 +550,9 @@ function show_results(json) {
                 + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
                 + "</td>";
                 + "</div>";
-		table_html +=  "<td>empty</td>";// empty cell here
+		table_html +=  "<td></td>";// empty cell here
             if (provide_judgements) {
-                table_html += "<td></td><td id='"+sim_choice_id+"'>"
+                table_html += "<td id='"+sim_choice_id+"'>"
                    +"<select class='drop_downs'"
                     +"onchange='log_user_choice(\""+query_id+"\",\""
                     +target_id+"\","

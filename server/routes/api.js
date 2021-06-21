@@ -146,13 +146,17 @@ router.post('/api/query', async function (req, res) {
     }
 
     let result = {};
-    if (req.body.id) {
-        result = await search_by_id(req.body.id, jaccard, num_results, threshold);
-    } else if (req.body.codestring) {
-        console.log("codestring is: " + req.body.codestring);
-        result = await search_by_codestring(req.body.codestring, jaccard, num_results, threshold);
+    try {
+        if (req.body.id) {
+            result = await search_by_id(req.body.id, jaccard, num_results, threshold);
+        } else if (req.body.codestring) {
+            console.log("codestring is: " + req.body.codestring);
+            result = await search_by_codestring(req.body.codestring, jaccard, num_results, threshold);
+        }
+        return res.send(result);
+    } catch (err) {
+        return res.status(500).send("Unable to contact search server");
     }
-    return res.send(result);
 });
 
 

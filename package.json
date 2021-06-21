@@ -4,8 +4,8 @@
   "description": "Early Music Online search engine",
   "scripts": {
     "test": "jest",
-    "solr": "nodemon solr_server.js",
-    "multi": "nodemon --trace-warnings multiservers/server.js"
+    "start": "node server/server.js",
+    "dev": "nodemon --trace-warnings server/server.js"
   },
   "author": "Tim Crawford",
   "contributors": [
@@ -20,14 +20,12 @@
     "cors": "^2.8.5",
     "express": "^4.16.3",
     "express-fileupload": "^1.1.6",
-    "http-proxy-middleware": "^1.1.0",
     "jest": "^26.6.3",
     "minimist": "^1.2.5",
     "mustache-express": "^1.2.8",
     "nodemon": "^2.0.7",
     "request": "^2.88.0",
-    "solr-client": "^0.9.0",
-    "sync-request": "^6.1.0"
+    "solr-client": "^0.9.0"
   },
   "devDependencies": {
     "eslint": "^5.14.1",
@@ -35,7 +33,6 @@
     "eslint-plugin-import": "^2.16.0",
     "eslint-plugin-node": "^8.0.1",
     "eslint-plugin-promise": "^4.0.1",
-    "eslint-plugin-standard": "^4.0.0",
-    "grunt": "^1.0.4"
+    "eslint-plugin-standard": "^4.0.0"
   }
 }

@@ -188,13 +188,18 @@ router.post('/api/log', function (req, res) {
         return res.status(400).send('No log was specified.');
     }
 
-    fs.appendFileSync('./logs/' + log, log_entry);
-
-    res.send(
-        `Successfully logged:
+    try {
+        fs.appendFileSync('./logs/' + log, log_entry);
+        return res.send(
+            `Successfully logged:
     ${log_entry}
 to log ${log}.`
-    );
+        );
+    } catch (err) {
+        return res.status(500).send("Cannot write log file");
+    }
+
+
 });
 
 export default router;

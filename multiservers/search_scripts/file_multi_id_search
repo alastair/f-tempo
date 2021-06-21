@@ -1,4 +1,0 @@
-code=$(~/get_codestring $1); 
-search_scripts/file_multi_code_search $code
-
-for i in results/*; do echo $(basename $i); head -n 5 $i;echo;done | less

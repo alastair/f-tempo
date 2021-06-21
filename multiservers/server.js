@@ -25,26 +25,18 @@ const SOLR_HOST = "solr";
 
 var test = false;
 var MAWS_DB = './data/latest_maws'; 
-//const MAWS_DB = './data/latest_maws_corrIDs_30Sep2019.txt'; 
-var DIAT_MEL_DB = './data/latest_diat_mel_strs'; 
-//const DIAT_MEL_DB = './data/latest_diat_mel_strs_corrIDs_30Sep2019.txt'; 
+var DIAT_MEL_DB = './data/latest_diat_mel_strs';
 const EMO_IDS = []; // all ids in the system
-const sorted_EMO_IDS = [];
 const EMO_IDS_DIAT_MELS = {}; // keys are ids, values are the diat_int_code for that id
 var EMO_IDS_MAWS = {}; // keys are ids, values are an array of maws for that id
 const MAWS_to_IDS = {}; // keys are maws, values are an array of all ids for which that maw appears
 const EMO_IDS_NGRAMS = {}; // keys are ids, values are an array of ngrams for that id
 const NGRAMS_to_IDS = {}; // keys are ngrams, values are a array of all ids in whose diat_int_code that ngram appears
 
-const NGRAM_ID_BASE = "./data/ngram_id_dict_";
-const ID_NGRAM_BASE = "./data/id_ngram_dict_";
-
 var TP_JPG_LIST = "static/src/jpg_list.txt";
 const tp_jpgs = []; // URLs to title-pages (NB only for D-Mbs!)
 
-var search_ids = []; // list of ids to search - constructed from EMO_IDS as required
 var collections_to_search;
-var ALL_PORTS = ["8011","8001","8004","8015","8007","8017","8016","8006","8003","8027","8021","8008","8026","8009","8010","8014","8005","8002","8012","8018","8022","8024","8013","8020","8019","8023","8025"]; // default - all 27 ports 
 
 const word_totals = []; // total words per id, used for normalization
 const word_ngram_totals = []; // total words per id, used for normalization
@@ -375,44 +367,6 @@ console.log("q_mei_url: "+q_mei_url)
 
 var q_diat_str;
 var q_diat_url;
-
-app.get('/api/get_maws_from_id', function (req, res) { 
-    let num_ports = ALL_PORTS.length;
-    let id=req.url.substring(req.url.indexOf('=')+1);
-    let json="\'{\"id\": \""+id+"\"}\'";
-//console.log("MAWs request for " + json)
-//    if(req.body.id !== undefined) { id = req.body.id;}
-    
-    let result="";
-    
-    for(var i=0;i<num_ports;i++) {
-        var port = parseInt(ALL_PORTS[i]);
-        let url = 'http://localhost:'+port.toString()+"/api/maws_from_id";
-        let command="curl -s -d "+json+" -H 'Content-Type: application/json'  -X POST "+url;
-//console.log(command)
-        
-//        let command="curl -s "+url;    
-        result =  cp.execSync(command);
-        if(result.length) break;
-        }
-    if(result.length) res.send(JSON.parse(result).join(" ")); 
-//    if(result.length) res.send("MAWs for id "+id+" :<br>"+JSON.parse(result).join(" ")); 
-    else res.send("MAWs for id "+id+" not found!!"); 
-});
-
-// Returns the number of all emo ids
-app.get('/api/num_emo_ids', function (req, res) { 
-    let num_ports = ALL_PORTS.length;
-    var total_ids = 0; // total number in all d/bs
-    for(var i=0;i<num_ports;i++) {
-        var port = parseInt(ALL_PORTS[i]);
-        let url = 'http://localhost:'+port.toString()+"/api/num_emo_ids"
-        let command="curl -s "+url + " | awk '{print $1}'";    
-        var result =  cp.execSync(command);
-        total_ids += parseInt(result.toString().split(" ")[0]);
-        }
-    res.send(total_ids+" pages in database"); 
-});
 
 // Returns an array of all emo ids
 app.get('/api/emo_ids', function (req, res) { res.send(EMO_IDS); });

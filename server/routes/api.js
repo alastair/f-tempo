@@ -2,13 +2,25 @@ import express from 'express';
 import fs from 'fs';
 import path from "path";
 import {EMO_IDS, tp_jpgs} from "../server.js";
-import {get_codestring, parse_id, run_image_query, search_by_codestring, search_by_id} from "../services/search.js";
+import {
+    get_codestring,
+    get_random_id,
+    parse_id,
+    run_image_query,
+    search_by_codestring,
+    search_by_id
+} from "../services/search.js";
 
 const router = express.Router();
 
 // Returns a random id from the database
-router.get('/api/random_id', function (req, res) {
-    res.send(EMO_IDS[Math.floor(Math.random() * EMO_IDS.length)]);
+router.get('/api/random_id', async function(req, res) {
+    try {
+        const id = await get_random_id();
+        return res.send(id);
+    } catch (err) {
+        return res.status(500).send("Unable to contact random server");
+    }
 });
 
 // Returns a new id (next/previous page/book) in response to that in the request

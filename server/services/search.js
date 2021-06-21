@@ -62,6 +62,28 @@ async function search_maws_solr(maws) {
     });
 }
 
+async function search_random_id(timestamp) {
+    return new Promise((resolve, reject) => {
+        const client = solr.createClient({host: SOLR_HOST, port: "8983", "core": "ftempo"});
+        const query = client.createQuery().q("*:*").fl("siglum").start(0).rows(1).sort(`random_${timestamp} desc`);
+        client.search(query, function (err, obj) {
+            if (err) {
+                reject(obj);
+            } else {
+                if (obj.response.numFound >= 1) {
+                    resolve(obj.response.docs[0].siglum);
+                }
+                resolve("");
+            }
+        });
+    });
+}
+
+export async function get_random_id() {
+    const now = new Date().getTime();
+    return await search_random_id(now);
+}
+
 export async function search_by_id(id, jaccard, num_results, threshold) {
     const maws = await get_maws_for_siglum(id);
     return await search(maws, jaccard, num_results, threshold);

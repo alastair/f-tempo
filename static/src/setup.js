@@ -212,18 +212,16 @@ $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in 
 var multi_results_array = [];
 
 function get_codestring(id) {
-
-     var codestring = "";
-        $.ajax({
-        url: 'https://uk-dev-ftempo.rism.digital/api/get_codestring?id='+id,
+    var codestring = "";
+    $.ajax({
+        url: '/api/get_codestring?id='+id,
         method: 'GET',
         async: false,
         id: id,
-//        contentType: 'application/text',
+        // contentType: 'application/text',
         async: false,
         success: function(response){codestring=JSON.parse(response)}
-	})
-      .fail((xhr, status) => alert(status)); // TODO: real error handling!
+	}).fail((xhr, status) => alert(status)); // TODO: real error handling!
 
 //	console.log(id+" : codestring: "+codestring);
 	return codestring;
@@ -968,16 +966,13 @@ function find_page_id(next) {
 }
 
 function find_random_page () {
-     var new_id = "";
-        $.ajax({
-        url: 'https://uk-dev-ftempo.rism.digital/api/random_id',
+    $.ajax({
+        url: '/api/random_id',
         method: 'GET',
         async: false,
-        success: function(response){new_id=response}
+        success: function(response){load_page_query(response);}
 	})
       .fail((xhr, status) => alert(status)); // TODO: real error handling!
-	query_id = new_id;
-	load_page_query(new_id);
 }
 
 

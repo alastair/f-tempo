@@ -931,7 +931,7 @@ function find_book_id(next) {
 
      var new_id = "";
         $.ajax({
-        url: 'https://uk-dev-ftempo.rism.digital/api/next_id',
+        url: '/api/next_id',
         data: {id:this_id,page:"false",next: next},
         method: 'GET',
         async: false,
@@ -952,7 +952,7 @@ function find_page_id(next) {
 
      var new_id = "";
         $.ajax({
-        url: 'https://uk-dev-ftempo.rism.digital/api/next_id',
+        url: '/api/next_id',
         data: {id:this_id,page:"true",next: next},
         method: 'GET',
         async: false,

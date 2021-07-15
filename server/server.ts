@@ -16,27 +16,35 @@ const argv = minimist(process.argv.slice(2));
 /*******************************************************************************
  * Globals / init
  ******************************************************************************/
-const D_MBS_ID_PATHS = [];
+const D_MBS_ID_PATHS: string[] = [];
 
 export const SOLR_HOST = "localhost";
+
+interface StringToStringArray {
+    [key: string]: string[];
+}
+
+interface StringToString {
+    [key: string]: string;
+}
+
+interface StringToNumber {
+    [key: string]: number;
+}
 
 let test = false;
 let MAWS_DB = './data/latest_maws';
 let DIAT_MEL_DB = './data/latest_diat_mel_strs';
-export const EMO_IDS = []; // all ids in the system
-export const EMO_IDS_DIAT_MELS = {}; // keys are ids, values are the diat_int_code for that id
-const EMO_IDS_MAWS = {}; // keys are ids, values are an array of maws for that id
-const MAWS_to_IDS = {}; // keys are maws, values are an array of all ids for which that maw appears
-const EMO_IDS_NGRAMS = {}; // keys are ids, values are an array of ngrams for that id
-const NGRAMS_to_IDS = {}; // keys are ngrams, values are a array of all ids in whose diat_int_code that ngram appears
+export const EMO_IDS: string[] = []; // all ids in the system
+export const EMO_IDS_DIAT_MELS: StringToString = {}; // keys are ids, values are the diat_int_code for that id
+const EMO_IDS_MAWS: StringToStringArray = {}; // keys are ids, values are an array of maws for that id
+const MAWS_to_IDS: StringToStringArray = {}; // keys are maws, values are an array of all ids for which that maw appears
 
 const TP_JPG_LIST = "static/src/jpg_list.txt";
-export const tp_jpgs = []; // URLs to title-pages (NB only for D-Mbs!)
+export const tp_jpgs: string[] = []; // URLs to title-pages (NB only for D-Mbs!)
 
-let collections_to_search;
 
-const word_totals = []; // total words per id, used for normalization
-const word_ngram_totals = []; // total words per id, used for normalization
+const word_totals: StringToNumber = {}; // total words per id, used for normalization
 export const ngr_len = 5;
 
 const app = express();
@@ -107,12 +115,11 @@ for (let i = 0; i < DB_PREFIX_LIST.length; i++) {
 console.time("Full startup time");
 console.log("F-TEMPO server started at " + Date());
 
-load_file(TP_JPG_LIST, parse_tp_jpgs);
+load_file(TP_JPG_LIST, parse_tp_jpgs, "Titlepage jpegs");
 
-function parse_tp_jpgs(data_str) {
+function parse_tp_jpgs(data_str: string) {
     let lines = data_str.split("\n");
     for (let line of lines) {
-        var linecount;
         if (line) {
             tp_jpgs.push(line);
         }
@@ -120,7 +127,7 @@ function parse_tp_jpgs(data_str) {
     console.log(Object.keys(tp_jpgs).length + " title-page urls loaded!");
 }
 
-function parse_Mbs_paths(data_str) {
+function parse_Mbs_paths(data_str: string) {
     let lines = data_str.split("\n");
     for (let line of lines) {
         if (line) {
@@ -130,7 +137,7 @@ function parse_Mbs_paths(data_str) {
     return data_str.length;
 }
 
-var Mbs_segment;
+let Mbs_segment: number = 0;
 
 if ((!DB_PREFIX_LIST.length) || ((DB_PREFIX_LIST.length == 1) && (DB_PREFIX_LIST[0] == "test"))) {
     test = true;
@@ -163,7 +170,7 @@ if ((!DB_PREFIX_LIST.length) || ((DB_PREFIX_LIST.length == 1) && (DB_PREFIX_LIST
 }
 
 if (DB_PREFIX_LIST.includes("D-Mbs")) {
-    var total_size = 0;
+    let total_size = 0;
     for (Mbs_segment = 0; Mbs_segment <= 7; Mbs_segment++) {
         let path_file = "/storage/ftempo/locations/Mbs/Mbs" + Mbs_segment;
         total_size += parse_Mbs_paths(load_file_sync(path_file));
@@ -198,7 +205,7 @@ app.use("/", api);
 app.use("/", webinterface);
 
 
-function load_file(file, data_callback, source) {
+function load_file(file: string, data_callback: (a: string, b: string) => void, source: string) {
     console.log("Loading " + file);
     fs.readFile(file, 'utf8', (err, data) => {
         if (err) {
@@ -213,10 +220,10 @@ function load_file(file, data_callback, source) {
     });
 }
 
-function load_file_sync(file) {
+function load_file_sync(file: string) {
     if (file.startsWith("http")) {
-        var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-        var request = new XMLHttpRequest();
+        const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+        const request = new XMLHttpRequest();
         request.open('GET', file, false);  // `false` makes the request synchronous
         request.send(null);
         if (request.status === 200) {
@@ -237,7 +244,7 @@ function load_diat_mels() {
 }
 
 
-function parse_maws_db(data_str, source) {
+function parse_maws_db(data_str: string, source: string) {
     let lines = data_str.split("\n");
     console.log(lines.length + " lines of MAWs to read from " + source + " ...");
 
@@ -256,7 +263,7 @@ function parse_maws_db(data_str, source) {
             }
 
             EMO_IDS.push(id);
-            const uniq_words = Array.from(new Set(words));
+            const uniq_words: string[] = Array.from(new Set(words));
 
             EMO_IDS_MAWS[id] = uniq_words;
             if (uniq_words.length < 10) {
@@ -272,7 +279,7 @@ function parse_maws_db(data_str, source) {
             }
             line_count++;
         }
-        process.stdout.write((("  " + line_count / lines.length) * 100).toFixed(2) + "%" + "\r");
+        process.stdout.write(`  ${(line_count / lines.length * 100).toFixed(2)}%\r`);
     }
     EMO_IDS.sort();
     console.log(EMO_IDS.length + " lines of MAW data loaded!");
@@ -282,10 +289,10 @@ function parse_maws_db(data_str, source) {
     console.log(short_maws_ids.length + " lines with short MAW data rejected!");
 }
 
-function parse_diat_mels_db(data_str, source) {
+function parse_diat_mels_db(data_str: string, source: string) {
     let lines = data_str.split("\n");
     console.log(lines.length + " lines of diatonic melody strings to read from " + source + " ...");
-    var line_count = 0;
+    let line_count = 0;
     for (let line of lines) {
         if (line) {
             const [id, diat_mels_str] = line.split(/ (.+)/); // splits on first match of whitespace
@@ -293,18 +300,21 @@ function parse_diat_mels_db(data_str, source) {
             EMO_IDS.push(id);
             line_count++;
         }
-        process.stdout.write((("  " + line_count / lines.length) * 100).toFixed(2) + "%" + "\r");
+        process.stdout.write(`${(line_count / lines.length * 100).toFixed(2)}%\r`);
     }
     console.log(Object.keys(EMO_IDS_DIAT_MELS).length + " Diatonic melody strings loaded!");
 }
 
-function parse_id_maws_line(line) {
-    const parsed_line = {};
+type MawsLine = {
+    id: string,
+    words?: string[];
+};
+
+function parse_id_maws_line(line: string): MawsLine {
+
     let [id, maws_str] = line.split(/ (.+)/); // splits on first match of whitespace
     if (id.charAt(0) === '>') { id = id.substring(1); } // remove leading > if it's there
-    parsed_line.id = id;
-    if (maws_str === undefined) { return parsed_line; }
+    if (maws_str === undefined) { return {id: id}; }
     const words = maws_str.split(/[ ,]+/).filter(Boolean); // splits rest into words by whitespace
-    parsed_line.words = words;
-    return parsed_line;
+    return {id: id, words: words};
 }

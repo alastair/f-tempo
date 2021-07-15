@@ -24,8 +24,8 @@ router.get('/code_searches', function (req, res) {
 router.get('/compare', function (req, res) {
 
     // q for 'query', m for 'match'
-    const q_id = req.query.qid;
-    const m_id = req.query.mid;
+    const q_id = req.query.qid?.toString();
+    const m_id = req.query.mid?.toString();
 
     let ngram_length;
     if(req.query.ng_len) {
@@ -39,9 +39,6 @@ router.get('/compare', function (req, res) {
     // Get page-images for query and match
     const img_ext = '.jpg';
     const base_img_url = BASE_IMG_URL;
-    /*
-        if (get_collection_from_id(q_id) != "D-Mbs") var base_img_url = BASE_IMG_URL;
-     */
     const q_jpg_url = base_img_url + q_id + img_ext;
     const m_jpg_url = base_img_url + m_id + img_ext;
 
@@ -49,9 +46,6 @@ router.get('/compare', function (req, res) {
     // Get both MEI files
     const mei_ext = '.mei';
     const base_mei_url = BASE_MEI_URL;
-    /*
-        if (get_collection_from_id(q_id) != "D-Mbs") var base_mei_url = BASE_MEI_URL;
-    */
     const q_mei_url = base_mei_url + q_id + mei_ext;
     const m_mei_url = base_mei_url + m_id + mei_ext;
     console.log("q_mei_url: " + q_mei_url);
@@ -62,9 +56,9 @@ router.get('/compare', function (req, res) {
     if (!q_diat_str) { return res.status(400).send('Could not find melody string for this q_id ' + q_id); }
     if (!m_diat_str) { return res.status(400).send('Could not find melody string for this m_id: ' + m_id); }
 
-    function ngram_string(str, n) {
+    function ngram_string(str: string, n: number): string[] | null {
         // Returns array of ngrams of length n
-        if(!str.length) return false;
+        if(!str.length) return null;
         const ngrams = [];
         if(str.length < n) {
             ngrams.push(str + "%");
@@ -78,24 +72,27 @@ router.get('/compare', function (req, res) {
         }
         return ngrams;
     }
-    function exists(search, arr ) {
-        return arr.some(row => row.includes(search));
+    function exists(search: number, arr: string[]): boolean {
+        return arr.some(row => row.includes(search.toString()));
     }
 
-    function allIndexOf(str, findThis) {
-        var indices = [];
-        for(var pos = str.indexOf(findThis); pos !== -1; pos = str.indexOf(findThis, pos + 1)) {
+    function allIndexOf(str: string, findThis: string) {
+        const indices = [];
+        for(let pos = str.indexOf(findThis); pos !== -1; pos = str.indexOf(findThis, pos + 1)) {
             indices.push(pos);
         }
         return indices;
     }
 
-    function ngrams_in_common(q_str, m_str, n, query) {
+    function ngrams_in_common(q_str: string, m_str: string, n: number, query: boolean) {
         // Records all locations of each ngram common to query and match
-        let q_com_ng_loc = [];
-        let m_com_ng_loc = [];
+        let q_com_ng_loc: any[] = [];
+        let m_com_ng_loc: any[] = [];
         let q_ngrams = ngram_string(q_str, n);
         let m_ngrams = ngram_string(m_str, n);
+        if (q_ngrams === null || m_ngrams === null) {
+            return []
+        }
         let mlocs = [];
         let qlocs = [];
         for (let i = 0; i <= q_ngrams.length; i++) {
@@ -106,9 +103,7 @@ router.get('/compare', function (req, res) {
                         if(typeof q_com_ng_loc[i] === "undefined") {
                             q_com_ng_loc[i] = [];
                         }
-                        const entry = {};
-                        entry.q_ind = i;
-                        entry.m_ind = qlocs[j];
+                        const entry = {q_ind: i, m_ind: qlocs[j]};
                         q_com_ng_loc[i].push(entry);
                     }
                 }
@@ -122,9 +117,10 @@ router.get('/compare', function (req, res) {
                         if (typeof m_com_ng_loc[i] === "undefined") {
                             m_com_ng_loc[i] = [];
                         }
-                        const entry = {};
-                        entry.m_ind = i;
-                        entry.q_ind = mlocs[j];
+                        const entry = {
+                            m_ind: i,
+                            q_ind: mlocs[j]
+                        };
                         m_com_ng_loc[i].push(entry);
                     }
                 }
@@ -164,12 +160,7 @@ router.get('/compare', function (req, res) {
     res.render('compare', data);
 });
 
-function get_mei(file) {
+function get_mei(file: string) {
     // console.log("Getting MEI from: "+ file)
     return fs.readFileSync(file, 'utf8');
-}
-
-// Gets library RISM siglum from beginning of id
-function get_collection_from_id(id) {
-    return id.substr(0, id.indexOf("_"));
 }

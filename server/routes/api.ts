@@ -10,6 +10,7 @@ import {
     search_by_codestring,
     search_by_id
 } from "../services/search.js";
+import fileUpload from "express-fileupload";
 
 const router = express.Router();
 
@@ -36,16 +37,21 @@ router.get('/api/next_id', function (req, res) {
         if (req.query.page === "true") page = true;
         else if (req.query.page === "false") page = false;
     }
-    let start_id = req.query.id;
+    let start_id = req.query.id?.toString();
+    if (!start_id) {
+        return res.status(400).send("No id provided")
+    }
     let new_id = "";
     //console.log("next is "+next);
     let found = EMO_IDS.indexOf(start_id);
-    if (found === -1) res.send("ID " + start_id + " not found!");
+    if (found === -1) {
+        return res.status(400).send("ID " + start_id + " not found!");
+    }
     //console.log("found = "+found)
 
-    if (page === true) {
+    if (page) {
         // finding adjacent ID/page
-        if (next === true) {
+        if (next) {
             found += 1;
         } else found -= 1;
         //console.log("new found = "+found);
@@ -59,8 +65,8 @@ router.get('/api/next_id', function (req, res) {
         // find next book
         // console.log("Found this_book: "+this_book)
         let new_id = "";
-        let new_book = "";
-        if (next === true) {
+        let new_book: string | undefined = "";
+        if (next) {
             for (let i = found; i < EMO_IDS.length; i++) {
                 new_id = EMO_IDS[i];
                 new_book = parse_id(new_id).book;
@@ -104,7 +110,7 @@ router.get('/api/title-pages', function (req, res) {
 
 
 router.get('/api/get_codestring', async function (req, res) {
-    const id = req.query.id;
+    const id = req.query.id as string;
     if (typeof id === undefined) {
         return false;
     }
@@ -132,7 +138,7 @@ router.post('/api/query', async function (req, res) {
     // Defaults
     let num_results = 20;
     let jaccard = true;
-    let threshold = false;
+    let threshold = 0;
 
     // Set values if given in query
     if (req.body.jaccard !== undefined) {
@@ -142,7 +148,7 @@ router.post('/api/query', async function (req, res) {
         num_results = req.body.num_results;
     }
     if (req.body.threshold !== undefined) {
-        threshold = req.body.threshold;
+        threshold = parseInt(req.body.threshold, 10);
     }
 
     let result = {};
@@ -155,6 +161,8 @@ router.post('/api/query', async function (req, res) {
         }
         return res.send(result);
     } catch (err) {
+        console.error(err);
+        console.trace();
         return res.status(500).send("Unable to contact search server");
     }
 });
@@ -167,8 +175,7 @@ router.post('/api/image_query', function (req, res) {
     }
 
     // this needs to stay in sync with the name given to the FormData object in the front end
-    let user_image = req.files.user_image_file;
-    const user_id = req.body.user_id;
+    let user_image = req.files.user_image_file as fileUpload.UploadedFile;
     const new_filename = user_image.name.replace(/ /g, '_');
 
     // TODO: this probably breaks silently if the user uploads two files with the
@@ -178,13 +185,13 @@ router.post('/api/image_query', function (req, res) {
     const working_path = fs.mkdtempSync(path.join('./run', 'user_id', 'imageUpload-'));
 
     // Use the mv() method to save the file there
-    user_image.mv(working_path + new_filename, (err) => {
+    user_image.mv(working_path + new_filename, (err: any) => {
         if (err) {
             return res.status(500).send(err);
         } else {
             // console.log("Uploaded file saved as " + working_path + new_filename);
             const ngram_search = false; // TODO(ra): make this work!
-            const result = run_image_query(user_id, new_filename, working_path, ngram_search);
+            const result = run_image_query(new_filename, working_path, ngram_search);
             if (result) {
                 res.send(result);
             } else {

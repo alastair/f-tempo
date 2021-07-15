@@ -1,4 +1,4 @@
-FROM node:14.16-buster
+FROM node:16.3-buster
 
 RUN apt-get update \
     && apt-get install -y \
@@ -48,7 +48,7 @@ RUN make
 RUN make install
 
 WORKDIR /tmp/aruspix/
-ARG MAW_COMMIT=96b5642454
+ARG MAW_COMMIT=0c4c94a
 RUN git clone https://github.com/alastair/maw.git
 WORKDIR /tmp/aruspix/maw
 RUN git checkout $MAW_COMMIT

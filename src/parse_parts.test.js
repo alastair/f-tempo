@@ -1,11 +1,12 @@
-const {parseMusicXml, parseMei} = require('./parse_parts.js')
+const {parseMusicXml, parseMei} = require('./parse_parts.js');
 const fs = require('fs');
+const path = require('path');
 
 describe("Parse musicxml", () => {
     it("loads a musicxml file", () => {
         const parser = new DOMParser();
 
-        const data = fs.readFileSync( './Ben_qui_si_mostra_Rore.musicxml', 'utf-8')
+        const data = fs.readFileSync( path.resolve(__dirname, './test_data/Ben_qui_si_mostra_Rore.musicxml'), 'utf-8');
         const dom = parser.parseFromString(data, "application/xml");
         const expected = [
             'e-ABaAb-a-AaaFfAAa-aFe-AAbABa-b--ABa-a--AA-d-F-aAbaaaDba-aaFdaAb-FaAb----b-A-A-AA-fFdaaAACAfADAfA-aAAaaF-b----a-aAAbA-Aaaa-ADfFcaAAbA-AaaaEfFaaB-cAa',
@@ -14,15 +15,15 @@ describe("Parse musicxml", () => {
             'aEf-ACdEdC-BfFfAAaEfFeaFe-CcCdBa-D--dCdEAbcCbDfDAAdDfDAAdC-aAcB-d---Ba-CbaCBacDdaEaacDadDAAdB-d-Dc-DdCAdEdDfF-aaAcaDdCAdEdDfF-aaAcDdaAD',
         ];
         const parsed = parseMusicXml(dom.documentElement);
-        expect(parsed).toEqual(expected)
-    })
-})
+        expect(parsed).toEqual(expected);
+    });
+});
 
 describe("Parse MEI", () => {
     it("loads an MEI file", () => {
         const parser = new DOMParser();
 
-        const data = fs.readFileSync( './Ben_qui_si_mostra_Rore.mei', 'utf-8')
+        const data = fs.readFileSync( path.resolve(__dirname, './test_data/Ben_qui_si_mostra_Rore.mei'), 'utf-8');
         const dom = parser.parseFromString(data, "application/xml");
         const expected = [
             'e-ABaAb-a-AaaFfAAa-aFe-AAbABa-b--ABa-a--AA-d-F-aAbaaaDba-aaFdaAb-FaAb----b-A-A-AA-fFdaaAACAfADAfA-aAAaaF-b----a-aAAbA-Aaaa-ADfFcaAAbA-AaaaEfFaaB-cAa',
@@ -31,7 +32,7 @@ describe("Parse MEI", () => {
             'aEf-ACdEdC-BfFfAAaEfFeaFe-CcCdBa-D--dCdEAbcCbDfDAAdDfDAAdC-aAcB-d---Ba-CbaCBacDdaEaacDadDAAdB-d-Dc-DdCAdEdDfF-aaAcaDdCAdEdDfF-aaAcDdaAD',
         ];
         const parsed = parseMei(dom.documentElement);
-        const parsed_notes = [parsed['1'].notes, parsed['2'].notes, parsed['3'].notes, parsed['4'].notes]
-        expect(parsed_notes).toEqual(expected)
-    })
-})
+        const parsed_notes = [parsed['1'].notes, parsed['2'].notes, parsed['3'].notes, parsed['4'].notes];
+        expect(parsed_notes).toEqual(expected);
+    });
+});

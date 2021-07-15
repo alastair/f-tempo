@@ -6,7 +6,7 @@ volumes:
 services:
   ftempo:
     build: .
-    command: npm run multi
+    command: npm run watch
     volumes:
       - ./storage:/storage
       - .:/app
@@ -19,8 +19,4 @@ services:
     volumes:
       - ./solr/ftempo:/myconfig
       - solr:/var/solr/data
-    entrypoint:
-      - docker-entrypoint.sh
-      - solr-precreate
-      - ftempo
-      - /myconfig
+    command: "solr-precreate ftempo /myconfig"

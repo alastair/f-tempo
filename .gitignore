@@ -2,6 +2,7 @@
 run/
 data/
 logs/
+dist/
 
 # emacs
 .*~

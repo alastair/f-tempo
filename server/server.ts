@@ -7,18 +7,15 @@ import fileUpload from 'express-fileupload';
 import fs from 'fs';
 import mustacheExpress from 'mustache-express';
 import cors from 'cors';
-import minimist from 'minimist';
+import nconf from 'nconf';
 import api from "./routes/api.js";
 import webinterface from "./routes/interface.js";
-
-const argv = minimist(process.argv.slice(2));
+import path from "path";
 
 /*******************************************************************************
  * Globals / init
  ******************************************************************************/
-const D_MBS_ID_PATHS: string[] = [];
-
-export const SOLR_HOST = "localhost";
+nconf.argv().file('default_config.json')
 
 interface StringToStringArray {
     [key: string]: string[];
@@ -32,15 +29,12 @@ interface StringToNumber {
     [key: string]: number;
 }
 
-let test = false;
-let MAWS_DB = './data/latest_maws';
-let DIAT_MEL_DB = './data/latest_diat_mel_strs';
 export const EMO_IDS: string[] = []; // all ids in the system
 export const EMO_IDS_DIAT_MELS: StringToString = {}; // keys are ids, values are the diat_int_code for that id
 const EMO_IDS_MAWS: StringToStringArray = {}; // keys are ids, values are an array of maws for that id
 const MAWS_to_IDS: StringToStringArray = {}; // keys are maws, values are an array of all ids for which that maw appears
 
-const TP_JPG_LIST = "static/src/jpg_list.txt";
+const TP_JPG_LIST = nconf.get('config:tp_jpg_list');
 export const tp_jpgs: string[] = []; // URLs to title-pages (NB only for D-Mbs!)
 
 
@@ -48,71 +42,16 @@ const word_totals: StringToNumber = {}; // total words per id, used for normaliz
 export const ngr_len = 5;
 
 const app = express();
-let ARG_LIST = [];
 
-console.log("argv is: " + argv);
-if (argv._.length) {
-    ARG_LIST = argv._; // Arguments on command-line
-    console.log(argv._.length + " arguments");
-} else {
-    console.log("No arguments");
-    const data = load_file_sync("static/src/startup_config");
-    const words = data.split(" ");
-    for (let i = 0; i < words.length; i++) {
-        ARG_LIST.push(words[i]);
-    }
-}
-console.log("ARG_LIST = " + ARG_LIST);
+const databases = nconf.get('databases')
+console.log(`Databases = ${databases}`);
 
-let DB_PREFIX_LIST = []; // Array of prefixes to F_TEMPO data collections
-
-// Goldsmiths-based location of files *excluding D-Mbs* --- CHANGE THIS!!
-//const BASE_IMG_URL = 'http://doc.gold.ac.uk/~mas01tc/new_page_dir_50/';
-//const BASE_MEI_URL = 'http://doc.gold.ac.uk/~mas01tc/EMO_search/new_mei_pages/';
-//const BASE_IMG_URL = '/img/jpg/';
-//const BASE_MEI_URL = '/img/mei/';
-export const BASE_IMG_URL = 'http://f-tempo-mbs.rism-ch.org/img/jpg/';
-//const BASE_MEI_URL = 'http://f-tempo-mbs.rism-ch.org/img/mei/';
-export const BASE_MEI_URL = '/var/www/f-tempo/static/img/mei/';
-
-while (ARG_LIST.length > 0) {
-    if (ARG_LIST[0].startsWith("Mbs")) {
-        const suffix = ARG_LIST[0].substring(3);
-        switch (suffix) {
-            case "0":
-            case "1":
-            case "2":
-            case "3":
-            case "4":
-            case "5":
-            case "6":
-            case "7":
-            case "_all":
-                DB_PREFIX_LIST.push(ARG_LIST.shift());
-                break;
-            default:
-                ARG_LIST.shift(); // Throw away garbage/illegal arguments
-                break;
-        }
-    } else {
-        DB_PREFIX_LIST.push(ARG_LIST.shift().trim());
-    }
-}
-
-for (let i = 0; i < DB_PREFIX_LIST.length; i++) {
-    if (DB_PREFIX_LIST[i].startsWith("Mbs")) {
-        if (DB_PREFIX_LIST[i] === "Mbs_all") {
-            DB_PREFIX_LIST[i] = "all";
-        }
-        DB_PREFIX_LIST[i] = "D-Mbs/" + DB_PREFIX_LIST[i];
-    }
-    console.log(DB_PREFIX_LIST[i]);
-}
+export const BASE_IMG_URL = nconf.get('config:base_image_url');
+export const BASE_MEI_URL = nconf.get('config:base_mei_url');
 
 /*******************************************************************************
  * Setup
  ******************************************************************************/
-console.time("Full startup time");
 console.log("F-TEMPO server started at " + Date());
 
 load_file(TP_JPG_LIST, parse_tp_jpgs, "Titlepage jpegs");
@@ -127,63 +66,18 @@ function parse_tp_jpgs(data_str: string) {
     console.log(Object.keys(tp_jpgs).length + " title-page urls loaded!");
 }
 
-function parse_Mbs_paths(data_str: string) {
-    let lines = data_str.split("\n");
-    for (let line of lines) {
-        if (line) {
-            D_MBS_ID_PATHS[Mbs_segment] += line + " ";
-        }
-    }
-    return data_str.length;
+console.log(databases.length + " Databases to load: " + databases);
+for (let db of databases) {
+    const maws_db = path.join(nconf.get('config:storage'), db, 'all/maws');
+    load_file(maws_db, parse_maws_db, db);
+
+    const diat_mel_db = path.join(nconf.get('config:storage'), db, 'all/codestrings');
+    load_file(diat_mel_db, parse_diat_mels_db, db);
 }
 
-let Mbs_segment: number = 0;
-
-if ((!DB_PREFIX_LIST.length) || ((DB_PREFIX_LIST.length == 1) && (DB_PREFIX_LIST[0] == "test"))) {
-    test = true;
-    MAWS_DB = '../../test_data/maws/all';
-    DIAT_MEL_DB = '../../test_data/codestrings/all';
-    load_maws(); // load the MAWS
-    load_diat_mels(); // load the diatonic melodies
-} else {
-    console.log(DB_PREFIX_LIST.length + " Databases to load: " + DB_PREFIX_LIST);
-    for (let m = 0; m < DB_PREFIX_LIST.length; m++) {
-        console.log(m);
-        let maws_db;
-        if (DB_PREFIX_LIST[m].startsWith("D-Mbs")) {
-            maws_db = "/storage/ftempo/locations/" + DB_PREFIX_LIST[m] + "/maws";
-        }
-        else {
-            maws_db = "/storage/ftempo/locations/" + DB_PREFIX_LIST[m] + "/all/maws";
-        }
-        //load_file(maws_db, parse_maws_db,DB_PREFIX_LIST[m]);
-
-        let diat_mel_db;
-        if (DB_PREFIX_LIST[m].startsWith("D-Mbs")) {
-            diat_mel_db = "/storage/ftempo/locations/" + DB_PREFIX_LIST[m] + "/codestrings";
-        } else {
-            diat_mel_db = "/storage/ftempo/locations/" + DB_PREFIX_LIST[m] + "/all/codestrings";
-        }
-        console.log("diat_mel_db is " + diat_mel_db);
-        //load_file(diat_mel_db, parse_diat_mels_db, DB_PREFIX_LIST[m]);
-    }
-}
-
-if (DB_PREFIX_LIST.includes("D-Mbs")) {
-    let total_size = 0;
-    for (Mbs_segment = 0; Mbs_segment <= 7; Mbs_segment++) {
-        let path_file = "/storage/ftempo/locations/Mbs/Mbs" + Mbs_segment;
-        total_size += parse_Mbs_paths(load_file_sync(path_file));
-    }
-    console.log(D_MBS_ID_PATHS.length + " Mbs segments loaded; total size: " + total_size);
-
-}
-// This doesn't work, as loading is asynchronous!
-console.timeEnd("Full startup time");
-
-const port = 8000;
 app.listen(
-    port,
+    nconf.get('server:port'),
+    nconf.get('server:host'),
     () => console.log('EMO app listening on port 8000!') // success callback
 );
 
@@ -219,30 +113,6 @@ function load_file(file: string, data_callback: (a: string, b: string) => void, 
         }
     });
 }
-
-function load_file_sync(file: string) {
-    if (file.startsWith("http")) {
-        const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-        const request = new XMLHttpRequest();
-        request.open('GET', file, false);  // `false` makes the request synchronous
-        request.send(null);
-        if (request.status === 200) {
-            return request.responseText;
-        }
-    } else {
-        // console.log("Loading " + file + " synchronously");
-        return fs.readFileSync(file, 'utf8');
-    }
-}
-
-function load_maws() {
-    load_file(MAWS_DB, parse_maws_db, "basic");
-}
-
-function load_diat_mels() {
-    load_file(DIAT_MEL_DB, parse_diat_mels_db, "basic");
-}
-
 
 function parse_maws_db(data_str: string, source: string) {
     let lines = data_str.split("\n");

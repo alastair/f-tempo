@@ -1,7 +1,7 @@
 
 import cp from 'child_process';
 import solr from 'solr-client';
-import {SOLR_HOST} from "../server.js";
+import nconf from 'nconf';
 
 function quote(str: string) {
     return `"${str}"`;
@@ -9,7 +9,7 @@ function quote(str: string) {
 
 async function get_maws_for_siglum(siglum: string): Promise<string[]> {
     return new Promise((resolve, reject)=> {
-        const client = solr.createClient({host: SOLR_HOST, port: 8983, "core": "ftempo"});
+        const client = solr.createClient(nconf.get('search'));
         const query = client.query().q('siglum:' + quote(siglum)).fl('maws');
         client.search(query, function (err: any, obj: any) {
             if (err) {
@@ -41,7 +41,7 @@ async function get_maws_for_codestring(codestring: string): Promise<string[]|und
 async function search_maws_solr(maws: string[]): Promise<any> {
     maws = maws.map(quote);
     return new Promise((resolve, reject)=> {
-        const client = solr.createClient({host: SOLR_HOST, port: 8983, "core": "ftempo"});
+        const client = solr.createClient(nconf.get('search'));
         const query = client.query().defType('dismax').q(maws.join(" ")).qf({maws:1}).mm(1);
         client.search(query, function (err: any, obj: any) {
             if (err) {
@@ -58,7 +58,7 @@ async function search_maws_solr(maws: string[]): Promise<any> {
 
 async function search_random_id(timestamp: string) {
     return new Promise((resolve, reject) => {
-        const client = solr.createClient({host: SOLR_HOST, port: 8983, "core": "ftempo"});
+        const client = solr.createClient(nconf.get('search'));
         const key = `random_${timestamp}`;
         const query = client.query().q("*:*").fl("siglum").start(0).rows(1).sort({[key]: 'desc'});
         client.search(query, function (err: any, obj: any) {
@@ -275,7 +275,7 @@ export function parse_id(id: string): BookId {
 
 export async function get_codestring(id: string): Promise<string> {
     return new Promise((resolve, reject)=> {
-        const client = solr.createClient({host: SOLR_HOST, port: 8983, "core": "ftempo"});
+        const client = solr.createClient(nconf.get('search'));
         const query = client.query().q(`siglum:"${id}"`).fl('codestring');
         client.search(query, function (err: any, obj: any) {
             if (err) {

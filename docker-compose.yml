@@ -17,6 +17,7 @@ services:
     ports:
       - "8983:8983"
     volumes:
-      - ./solr/ftempo:/myconfig
+      - ./solr/cores:/solrconfig
+      - ./solr/initdb:/docker-entrypoint-initdb.d
       - solr:/var/solr/data
-    command: "solr-precreate ftempo /myconfig"
+    command: "solr-foreground"

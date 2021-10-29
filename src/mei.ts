@@ -1,6 +1,5 @@
-import fs from "fs";
-const jsdom = require("jsdom");
-const { JSDOM } = jsdom;
+import fs from 'fs';
+import {JSDOM} from 'jsdom';
 
 type Note = {
     pname: string;
@@ -37,19 +36,76 @@ function parseMeiDocument(document: Document) {
     return Array.from(notes).map(function(note): MeiNeume {
         const system = note.closest("system");
         const sysAttrs = system?.attributes
-        const systemLy = sysAttrs?.getNamedItem("uly")?.value;
-        const nattrs = note.attributes;
+        const systemId = sysAttrs?.getNamedItem("xml:id")?.value!
+        const noteElements = system.getElementsByTagName("note");
+        const notes = Array.from(noteElements).map(function(note): Note {
+            const nattrs = note.attributes;
+            return {
+                p: nattrs.getNamedItem('pname')?.value!,
+                o: nattrs.getNamedItem('oct')?.value!,
+                id: nattrs.getNamedItem('xml:id')?.value!,
+                x: nattrs.getNamedItem('ulx')?.value!
+            };
+        });
+
         return {
-            note: {
-                pname: nattrs.getNamedItem('pname')?.value!,
-                oct: nattrs.getNamedItem('oct')?.value!,
-            },
-            xmlid: nattrs.getNamedItem('xml:id')?.value!,
-            system: sysAttrs?.getNamedItem("xml:id")?.value!,
-            ulx: nattrs.getNamedItem('ulx')?.value,
-            uly: systemLy
-        }
+            id: systemId,
+            notes: notes,
+            y: sysAttrs.getNamedItem('uly')?.value!
+        };
     });
+
+    const pageElements = document.getElementsByTagName("page");
+    // TODO: If this file has more than 1 page?
+    const page = Array.from(pageElements);
+    if (page.length > 1) {
+        throw Error("Can't deal with more than 1 page");
+    }
+    const pageAttrs = page[0]?.attributes!;
+
+    return {
+        width: pageAttrs.getNamedItem('page.width')?.value!,
+        height: pageAttrs.getNamedItem('page.height')?.value!,
+        systems: systems
+    };
+}
+
+/**
+ * Take a page and return a list of all notes on this page in the form:
+ * [a4, b4, f4, g3]
+ * @param page
+ */
+export function pageToNoteList(page: Page): string[] {
+    const notes = page.systems.map((s) => {
+        return s.notes.map(n => {
+            return `${n.p}${n.o}`;
+        });
+    });
+    return notes.flat();
+}
+
+/**
+ * Take a page and return a list of all contours on this page in the form:
+ * [A, B, A, -, a, a, b]
+ * @param page
+ */
+export function pageToContourList(page: Page): string[] {
+    const notes = page.systems.map((s) => {
+        return s.notes;
+    });
+    return pitchesToIntervalMapping(notes.flat());
+}
+
+export function listToNgrams(items: string[], chunkSize?: number) {
+    if (!chunkSize) {
+        chunkSize = 4;
+    }
+    const ngrams = [];
+    for (let i = 0; i < items.length - chunkSize + 1; i++) {
+        const part = items.slice(i, i + chunkSize);
+        ngrams.push(part.join());
+    }
+    return ngrams;
 }
 
 function main(filename: string) {
@@ -62,11 +118,10 @@ function main(filename: string) {
         const contour = pitchesToIntervalMapping(partNotes);
         const ngram: MeiNgram = {
             contour: contour,
-            notes: partNotes,
-            sequence: i,
-            file: filename
-        }
-        nGrams.push(ngram)
+            notes: part,
+            sequence: i
+        };
+        nGrams.push(ngram);
     }
     console.log(JSON.stringify(nGrams));
 }

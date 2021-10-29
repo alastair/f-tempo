@@ -243,6 +243,12 @@ export function run_image_query(user_image_filename: string, the_working_path: s
     return result;
 }
 
+type BookId = {
+    RISM?: string
+    book?: string
+    page?: string
+}
+
 // Get library siglum, book siglum and page_code from id
 // The book siglum is the section of the id following the RISM siglum
 // NB The style of underscore-separation differs between collections
@@ -294,8 +300,6 @@ export async function get_codestring(id: string): Promise<string> {
         });
     });
 }
-
-
 
 function jacc_delta (array: SearchResult[], n: number) {
     return array[n].jaccard - array[n - 1].jaccard;

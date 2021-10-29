@@ -8,9 +8,18 @@
     "module": "esnext",
     "outDir": "./dist",
     "strict": true,
-    "esModuleInterop": true,
-    "inlineSourceMap": true,
-    "moduleResolution": "Node"
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "noEmit": true
   },
   "include": ["server/**/*", "src/**/*"],
   "exclude": ["node_modules", "storage"]

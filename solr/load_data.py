@@ -114,22 +114,24 @@ def load_file(solr_host: str, cache_maws: bool, filename: str):
 
 def submit(solr, cache_maws, documents):
     to_submit = []
-    twograms = get_twograms(documents)
+    #twograms = get_twograms(documents)
     maws = get_maws(documents, cache_maws)
     for siglum, codestring in documents.items():
-        document = {"siglum": siglum, "maws": maws[siglum], "2grams": twograms[siglum], "codestring": codestring}
+        parts = siglum.split("_")
+        library = parts[0]
+        document = {"siglum": siglum, "library": library, "maws": maws[siglum], "codestring": codestring}
         to_submit.append(document)
     solr.add(to_submit, commit=True)
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-h", help="solr host to connect to", default="http://localhost:8983/solr/ftempo/")
+    parser.add_argument("--host", help="solr host to connect to", default="http://localhost:8983/solr/ftempo/")
     parser.add_argument("-c", action="store_true", default=False, help="Store a cache of generated MAWs")
     parser.add_argument('codestringfile', help="file containing all codestrings to index")
     args = parser.parse_args()
 
-    load_file(args.h, args.c, args.codestringfile)
+    load_file(args.host, args.c, args.codestringfile)
 
 
 if __name__ == '__main__':

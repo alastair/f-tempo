@@ -111,3 +111,4 @@ function pitchesToIntervalMapping(pitches: Note[]) {
 if (require.main === module) {
     main(process.argv[2]);
 }
+

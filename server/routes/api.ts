@@ -143,6 +143,7 @@ router.post('/api/query', async function (req, res) {
     let num_results = 20;
     let jaccard = true;
     let threshold = 0;
+    let collections_to_search = [];
 
     // Set values if given in query
     if (req.body.jaccard !== undefined) {
@@ -154,14 +155,17 @@ router.post('/api/query', async function (req, res) {
     if (req.body.threshold !== undefined) {
         threshold = parseInt(req.body.threshold, 10);
     }
+    if (req.body.collections_to_search !== undefined) {
+        collections_to_search = req.body.collections_to_search;
+    }
 
     let result = {};
     try {
         if (req.body.id) {
-            result = await search_by_id(req.body.id, jaccard, num_results, threshold);
+            result = await search_by_id(req.body.id, collections_to_search, jaccard, num_results, threshold);
         } else if (req.body.codestring) {
             console.log("codestring is: " + req.body.codestring);
-            result = await search_by_codestring(req.body.codestring, jaccard, num_results, threshold);
+            result = await search_by_codestring(req.body.codestring, collections_to_search, jaccard, num_results, threshold);
         }
         return res.send(result);
     } catch (err) {

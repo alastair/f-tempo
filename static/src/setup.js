@@ -305,9 +305,9 @@ function show_multi_results(json) {
         // NOTE: the else here is wrong if we don't assume that the
         // 0th result is the identity match
         if (jaccard) { rank_factor = 1 - shortened_result_array[q].jaccard; }
-        else { rank_factor = results[q].num / shortened_result_array[0].num_words };
+        else { rank_factor = results[q].num_matched_words / shortened_result_array[0].num_words };
 
-        matched_words[q] = shortened_result_array[q].num;
+        matched_words[q] = shortened_result_array[q].num_matched_words;
         words_in_page[q] = shortened_result_array[q].num_words;
         var result_row_id = "result_row"+q;
         var target_id = shortened_result_array[q].id;
@@ -387,7 +387,7 @@ function show_multi_results(json) {
     const top_result_id = multi_results_array[0].id;
     let top_result_rank_factor;
     if (jaccard) { top_result_rank_factor = 1 - multi_results_array[0].jaccard; }
-    else { top_result_rank_factor = multi_results_array[0].num / multi_results_array[0].num_words };
+    else { top_result_rank_factor = multi_results_array[0].num_matched_words / multi_results_array[0].num_words };
 
     load_result_image(top_result_id, 0, top_result_rank_factor);
 /*
@@ -424,8 +424,6 @@ $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in 
     var search_num_results=parseInt(document.getElementById("res_disp_select").value)
     update_colls_to_search();
     search(query_id, jaccard, num_results, ngram_search, collections_to_search);
-    //multi_search(query_id, jaccard, search_num_results+50, change_search_method(), ports_to_search);
-    
 }
 
 function show_tp(id,isquery) {
@@ -512,9 +510,9 @@ function show_results(json) {
         // NOTE: the else here is wrong if we don't assume that the
         // 0th result is the identity match
         if (jaccard) { rank_factor = 1 - results[q].jaccard; }
-        else { rank_factor = results[q].num / results[0].num_words };
+        else { rank_factor = results[q].num_matched_words / results[0].num_words };
 
-        matched_words[q] = results[q].num;
+        matched_words[q] = results[q].num_matched_words;
         words_in_page[q] = results[q].num_words;
         var result_row_id = "result_row"+q;
         var target_id = results[q].id;
@@ -595,7 +593,7 @@ function show_results(json) {
     const top_result_id = results[0].id;
     let top_result_rank_factor;
     if (jaccard) { top_result_rank_factor = 1 - results[0].jaccard; }
-    else { top_result_rank_factor = results[0].num / results[0].num_words };
+    else { top_result_rank_factor = results[0].num_matched_words / results[0].num_words };
 
     load_result_image(top_result_id, 0, top_result_rank_factor);
 
@@ -990,7 +988,7 @@ function show_example(example_id){
     load_page_query(example_id);
     update_colls_to_search();
     var search_num_results=parseInt(document.getElementById("res_disp_select").value);
-    search(example_id, jaccard, search_num_results+50, collections_to_search);
+    search(example_id, jaccard, search_num_results, collections_to_search);
     $('#examples_div').collapse('hide');
 }
 
@@ -1173,7 +1171,7 @@ $(document).ready(() => {
         load_page_query(query_id);
         var search_num_results=parseInt(document.getElementById("res_disp_select").value)
         update_colls_to_search();
-        multi_search(query_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
+        multi_search(query_id,jaccard,search_num_results, change_search_method(), ports_to_search);
     });
 
     $('#search_by_code_button').click(() => {
@@ -1181,7 +1179,7 @@ $(document).ready(() => {
         query_code = document.getElementById("query_code").value.trim();
         var search_num_results=parseInt(document.getElementById("res_disp_select").value)
         if(!query_code.length) alert("You must enter some code!")
-        else multi_search(query_code,jaccard,search_num_results+50, change_search_method(), ports_to_search);
+        else multi_search(query_code,jaccard,search_num_results, change_search_method(), ports_to_search);
      // code_search(query_code,jaccard,num_results, collections_to_search);
 
     });
@@ -1192,7 +1190,7 @@ $(document).ready(() => {
         console.log("Multi search for "+query_id)
         update_colls_to_search();
         var search_num_results=parseInt(document.getElementById("res_disp_select").value)
-        search(query_id,jaccard, search_num_results+50, collections_to_search);
+        search(query_id,jaccard, search_num_results, collections_to_search);
 
     });
     

@@ -10,6 +10,7 @@ import cors from 'cors';
 import nconf from 'nconf';
 import api from "./routes/api.js";
 import webinterface from "./routes/interface.js";
+import path from "path";
 
 /*******************************************************************************
  * Globals / init

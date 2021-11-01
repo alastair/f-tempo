@@ -13,10 +13,10 @@ async function get_maws_for_siglum(siglum: string): Promise<string[]> {
         const query = client.query().q('siglum:' + quote(siglum)).fl('maws');
         client.search(query, function (err: any, obj: any) {
             if (err) {
-                console.log("Gotta solr error", err)
+                console.log("Got a solr error", err)
                 reject(err);
             } else {
-                console.log(obj);
+                //console.log(obj);
                 if (obj.response.numFound >= 1) {
                     const doc = obj.response.docs[0];
                     resolve(doc.maws);
@@ -34,15 +34,19 @@ async function get_maws_for_codestring(codestring: string): Promise<string[]|und
         ["-a", "PROT", "-i", "-", "-o", "-", "-k", "4", "-K", "8"],
         {input: inputstr});
     const maws_output = maws.stdout.toString().split("\n");
-    // Return any empty lines and the first sentinel line that starts with >
+    // Remove any empty lines and the first sentinel line that starts with >
     return maws_output.filter((val: string) => val && !val.startsWith(">"));
 }
 
-async function search_maws_solr(maws: string[]): Promise<any> {
+async function search_maws_solr(maws: string[], collections_to_search: string[], num_results: number): Promise<any> {
     maws = maws.map(quote);
+    collections_to_search = collections_to_search.map(quote)
     return new Promise((resolve, reject)=> {
         const client = solr.createClient(nconf.get('search'));
-        const query = client.query().defType('dismax').q(maws.join(" ")).qf({maws:1}).mm(1);
+        let query = client.query().defType('dismax').q(maws.join(" ")).qf({maws:1}).mm(1).rows(num_results);
+        if (collections_to_search.length) {
+            query = query.matchFilter("library", "(" + collections_to_search.join(" OR ") + ")")
+        }
         client.search(query, function (err: any, obj: any) {
             if (err) {
                 reject(err);
@@ -79,15 +83,15 @@ export async function get_random_id() {
     return await search_random_id(now.toString());
 }
 
-export async function search_by_id(id: string, jaccard: boolean, num_results: number, threshold: number) {
+export async function search_by_id(id: string, collections_to_search: string[], jaccard: boolean, num_results: number, threshold: number) {
     const maws = await get_maws_for_siglum(id);
-    return await search(maws, jaccard, num_results, threshold);
+    return await search(maws, collections_to_search, jaccard, num_results, threshold);
 }
 
-export async function search_by_codestring(codestring: string, jaccard: boolean, num_results: number, threshold: number) {
+export async function search_by_codestring(codestring: string, collections_to_search: string[], jaccard: boolean, num_results: number, threshold: number) {
     const maws = await get_maws_for_codestring(codestring);
     if (maws) {
-        return await search(maws, jaccard, num_results, threshold);
+        return await search(maws, collections_to_search, jaccard, num_results, threshold);
     } else {
         return []
     }
@@ -120,7 +124,7 @@ type SearchResult = {
  * @param threshold
  * @returns {boolean|[]|*[]|*}
  */
-async function search(words: string[], jaccard: boolean, num_results: number, threshold: number): Promise<SearchResult[]> {
+async function search(words: string[], collections_to_search: string[], jaccard: boolean, num_results: number, threshold: number): Promise<SearchResult[]> {
     if (words.length < 6) { // TODO: Need to report to frontend
         // console.log("Not enough words in query.");
         return [];
@@ -130,7 +134,7 @@ async function search(words: string[], jaccard: boolean, num_results: number, th
     // Safety check that the words are all unique:
     const search_uniq_words = new Set(words);
 
-    const maws_results = await search_maws_solr(words);
+    const maws_results = await search_maws_solr(words, collections_to_search, num_results * 2);
     const maws_with_scores: SearchResult[] = maws_results.map((doc: { maws: string[]; siglum: string; codestring: string; }) => {
         const unique_maws = new Set(doc.maws);
         const num_matched_words = set_intersection(unique_maws, search_uniq_words).size;
@@ -162,7 +166,7 @@ async function search(words: string[], jaccard: boolean, num_results: number, th
     //console.timeEnd("pruning")
     const result = gate_scores_by_threshold(maws_with_scores, threshold, jaccard, num_results);
     //console.timeEnd("search");
-    console.log(result);
+    //console.log(result);
     return result;
 }
 
@@ -197,7 +201,7 @@ function gate_scores_by_threshold(scores_pruned: SearchResult[], threshold: "med
                 break;
             }
         }
-        return out_array;
+        return out_array.slice(0, num_results);
     } else {
         // return the first num_results results
         return scores_pruned.slice(0, num_results);
@@ -224,7 +228,7 @@ export function run_image_query(user_image_filename: string, the_working_path: s
             return;
         }
         // console.log("query is "+query)
-        result = search(query, jaccard, num_results, threshold);
+        result = search(query, [], jaccard, num_results, threshold);
     }
     else {
         try {
@@ -232,7 +236,7 @@ export function run_image_query(user_image_filename: string, the_working_path: s
             query = String(query_data).split(' ').slice(1);
         } catch (err) { return; } // something broke in the shell script...
         if (query) {
-            result = search(query, jaccard, num_results, threshold);
+            result = search(query, [], jaccard, num_results, threshold);
         }
     }
 
@@ -281,7 +285,6 @@ export async function get_codestring(id: string): Promise<string> {
             if (err) {
                 reject(err);
             } else {
-                console.log(obj);
                 if (obj.response.numFound >= 1) {
                     const doc = obj.response.docs[0];
                     resolve(doc.codestring);

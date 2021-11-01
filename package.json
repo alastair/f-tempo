@@ -7,7 +7,7 @@
     "serve": "node dist/server/server.js",
     "start": "npm run serve",
     "build": "tsc",
-    "watch": "nodemon --watch server --ext ts --exec \"tsc --incremental && node dist/server/server.js\""
+    "watch": "nodemon --watch server --watch src --ext ts --exec \"tsc --incremental && node dist/server/server.js\""
   },
   "author": "Tim Crawford",
   "contributors": [

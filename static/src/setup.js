@@ -73,6 +73,8 @@ let can_store_user_id = false;
 
 let tp_urls = get_tp_urls(); // Array of title-page urls loaded at startup
 
+let current_page = {library: '', book: '', page: ''};
+
 var ports_to_search = [];
 
 //const BASE_IMG_URL = '/img/jpg/';
@@ -320,7 +322,6 @@ function show_multi_results(json) {
             table_html +=
                 "<tr class='id_list_name' id='"+result_row_id
                 +"' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
-//          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + query_id + "\","+true+")' onmouseup='reload_page_query(\"" + query_id + "\")'></td>"
           if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' onmousedown='show_tp(\"" + query_id + "\","+true+")' onmouseup='reload_page_query(\"" + query_id + "\")'></td>"
           else table_html +=  "<td></td>" 
                 table_html += "<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
@@ -926,43 +927,37 @@ function parse_id(id) {
 function find_book_id(next) {
 	var this_id = document.getElementById("query_id").value.trim();
 	if(this_id == null) return false;
-	if(next==true) next="true";
-	if(next==false) next="false";
+    const direction = next ? "next" : "prev";
 
-     var new_id = "";
+    let new_id = {};
         $.ajax({
         url: '/api/next_id',
-        data: {id:this_id,page:"false",next: next},
+        data: {id: this_id, library: current_page.library, book: current_page.book, direction: direction},
         method: 'GET',
         async: false,
         success: function(response){new_id=response}
-	})
-      .fail((xhr, status) => alert(status)); // TODO: real error handling!
-console.log("Random ID is: "+new_id)
-//	return new_id;
-	query_id = new_id;
-	load_page_query(new_id);
+	}).fail((xhr, status) => alert(status)); // TODO: real error handling!
+    query_id = new_id.page.id;
+    current_page = {library: new_id.library, book: new_id.book_id, page: new_id.page.id};
+    load_page_query(query_id);
 }
 
 function find_page_id(next) {
 	var this_id = document.getElementById("query_id").value.trim();
-	if(this_id == null) return false;
-	if(next==true) next="true";
-	if(next==false) next="false";
+	if (this_id === null) return false;
+    const direction = next ? "next" : "prev";
 
-     var new_id = "";
-        $.ajax({
+    let new_id = {};
+    $.ajax({
         url: '/api/next_id',
-        data: {id:this_id,page:"true",next: next},
+        data: {id: this_id, library: current_page.library, book: current_page.book, page: current_page.page, direction: direction},
         method: 'GET',
         async: false,
         success: function(response){new_id=response}
-	})
-      .fail((xhr, status) => alert(status)); // TODO: real error handling!
-// console.log("Started at "+this_id+" - now going to "+new_id)
-//	return new_id;
-	query_id = new_id;
-	load_page_query(new_id);
+	}).fail((xhr, status) => alert(status)); // TODO: real error handling!
+	query_id = new_id.page.id;
+    current_page = {library: new_id.library, book: new_id.book_id, page: new_id.page.id};
+    load_page_query(query_id);
 }
 
 function find_random_page () {
@@ -1225,5 +1220,5 @@ $(document).ready(() => {
 
     const initial_page_id = 'GB-Lbl_A103b_025_0'
     load_page_query(initial_page_id);
-    
+    current_page = {library: 'GB-Lbl', book: 'A103b', page: initial_page_id};
 });

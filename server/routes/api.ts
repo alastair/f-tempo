@@ -1,7 +1,7 @@
 import express from 'express';
 import fs from 'fs';
 import path from "path";
-import {EMO_IDS, tp_jpgs} from "../server.js";
+import {EMO_IDS, tp_jpgs, db} from "../server.js";
 import {
     get_codestring,
     get_random_id,
@@ -25,82 +25,86 @@ router.get('/api/random_id', async function(req, res) {
 });
 
 // Returns a new id (next/previous page/book) in response to that in the request
+/**
+Find the next book id or page id for the provided arguments.
+ Required GET arguments:
+   - library
+   - book
+   - page [optional]
+   - direction 'next' or 'prev', default next if not set.
+ If the `page` argument isn't provided, give the
+ */
 router.get('/api/next_id', function (req, res) {
-// NB FIXME!! This does not work properly with F-Pn IDs, as the 'book' part of the ID is scrambled!
-    let next = true; // default to finding next ...
-    let page = true; // page
-    if (req.query.next !== "undefined") {
-        if (req.query.next === "true") next = true;
-        else if (req.query.next === "false") next = false;
-    }
-    if (req.query.page !== "undefined") {
-        if (req.query.page === "true") page = true;
-        else if (req.query.page === "false") page = false;
-    }
-    let start_id = req.query.id?.toString();
-    if (!start_id) {
-        return res.status(400).send("No id provided")
-    }
-    let new_id = "";
-    //console.log("next is "+next);
-    let found = EMO_IDS.indexOf(start_id);
-    if (found === -1) {
-        return res.status(400).send("ID " + start_id + " not found!");
-    }
-    //console.log("found = "+found)
+    const page_full_id = req.query.id as string;
+    const library = req.query.library as string;
+    const book_id = req.query.book as string;
+    const page_id = req.query.page as string;
+    const valid_directions = ["next", "prev"];
+    const direction = req.query.direction as string || "next";
 
-    if (page) {
-        // finding adjacent ID/page
-        if (next) {
-            found += 1;
-        } else found -= 1;
-        //console.log("new found = "+found);
-        // TODO handle end and beginning of EMO_IDS properly!! Maybe as simple as ...
-        if ((found >= EMO_IDS.length) || (found < 0)) res.send(start_id);
-        new_id = EMO_IDS[found];
-        //console.log("ID: "+start_id+" new ID: "+new_id+" ("+next+")");
-    } else {
-        let parsed_id = parse_id(start_id);
-        let this_book = parsed_id.book;
-        // find next book
-        // console.log("Found this_book: "+this_book)
-        let new_id = "";
-        let new_book: string | undefined = "";
-        if (next) {
-            for (let i = found; i < EMO_IDS.length; i++) {
-                new_id = EMO_IDS[i];
-                new_book = parse_id(new_id).book;
-                if (new_book !== this_book) {
-                    break;
-                }
-            }
-        } else {
-            // find previous book]
-            for (let i = found; i > 0; i--) {
-                new_id = EMO_IDS[i].trim();
-                new_book = parse_id(new_id).book;
-                if (new_book !== this_book) {
-                    // now we are at the last image of the previous book
-                    // so find the book before that one and go to next
-                    // image - it will be the first of the book we want
-                    this_book = new_book;
-                    for (; i > 0; i--) {
-                        new_id = EMO_IDS[i].trim();
-                        new_book = parse_id(new_id).book;
-                        if (new_book !== this_book) {
-                            if (i > 0) i++; // Don't go to next if at first book
-                            new_id = EMO_IDS[i].trim();
-                            break;
-                        }
-                    }
-                    break;
-                }
-            }
-        // console.log("Found previous book: "+new_book)
+    if (!valid_directions.includes(direction)) {
+        return res.status(400).json({error: "Invalid `direction` field"});
+    }
+
+    if (!page_full_id) {
+        return res.status(400).json({error: "No `id` field provided"});
+    }
+    if (!library) {
+        return res.status(400).json({error: "No `library` field provided"});
+    }
+    if (!book_id) {
+        return res.status(400).json({error: "No `book` field provided"});
+    }
+
+    const db_library = db[library];
+    if (!db_library) {
+        return res.status(400).json({error: `Library ${library} not found`});
+    }
+
+    if (!db_library.book_ids.includes(book_id)) {
+        return res.status(400).json({error: `Book ${book_id} not found in library ${library}`});
+    }
+
+    if (page_id) {
+        // If a page is set, then we want next/prev page
+        const book = db_library.books[book_id];
+        if (!book.page_ids.includes(page_id)) {
+            return res.status(400).json({error: `Page ${page_id} not found in book ${book_id}`});
         }
+        const page_position = book.page_ids.indexOf(page_id)
+        let new_position = page_position + (direction === "prev" ? -1 : 1);
+        if (new_position < 0) {
+            new_position = 0;
+        } else if (new_position >= book.page_ids.length) {
+            new_position = book.page_ids.length - 1;
+        }
+        const new_book_page_id = book.page_ids[new_position];
+        const response = {
+            library,
+            book_id,
+            page: book.pages[new_book_page_id]
+        }
+        return res.json(response);
+    } else {
+        // If page isn't set, we want next/prev book
+        const book_position = db_library.book_ids.indexOf(book_id);
+        let new_position = book_position + (direction === "prev" ? -1 : 1);
+        if (new_position < 0) {
+            new_position = 0;
+        } else if (new_position >= db_library.books.length) {
+            new_position = db_library.books.length - 1;
+        }
+        const new_book_id = db_library.book_ids[new_position];
+        const new_book = db_library.books[new_book_id];
+        // If we get a new book, we want to return the first page from that book
+        const new_book_page_id = new_book.page_ids[0];
+        const response = {
+            library,
+            book_id: new_book_id,
+            page: new_book.pages[new_book_page_id]
+        }
+        return res.json(response);
     }
-
-    res.send(new_id);
 });
 
 // Returns an array of all title-page jpg urls

@@ -1,7 +1,0 @@
-code=$1;
-cat seg_server_list | while read -a i; 
- do 
-   search_scripts/codestring_port_search $code ${i[1]}; 
- done | 
-sort -n -k 2 # | 
-#less -N

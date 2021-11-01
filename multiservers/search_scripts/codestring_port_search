@@ -1,4 +1,0 @@
-curl -s -d '{"diat_int_code": "'$1'","jaccard":"true"}' -H "Content-Type: application/json" -X POST http://localhost:$2/api/query   |
- jq -r  ".[] | 
- [.id, .jaccard] |
- @tsv"

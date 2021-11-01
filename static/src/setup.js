@@ -68,11 +68,12 @@ let jaccard = true;
 let corpus_search_mode = true; // false when image search mode
 let matched_words = []; // Arrays for displaying match stats in result list
 let words_in_page = []; // ''
-let emo_ids; // Array of page IDs loaded from database on initialisatiom
 let user_id; // for identifying user to logs, etc.
 let can_store_user_id = false;
 
 let tp_urls = get_tp_urls(); // Array of title-page urls loaded at startup
+
+let current_page = {library: '', book: '', page: ''};
 
 var ports_to_search = [];
 
@@ -126,14 +127,6 @@ function reload_page_query(id) {
     $('#emo_image_display').zoom();
 }
 
-/*
-function get_query_from_id(id) {
-    for(var i=0;i<emo_ids.length;i++) {
-        if((emo_ids[i].startsWith(">"+id))||(emo_ids[i].startsWith(id))) return emo_ids[i];
-    }
-    return false
-}
-*/
 ngr_len = 5;
 // Canvas needs to be created and supplied!
 function lineAt(canvas,startx,starty,colour) {
@@ -205,8 +198,8 @@ function display_cosine_sim_line_multi(json) {
 }
 
 // Basic remote search function.
-function search(id, jaccard, num_results, ngram_search, collections_to_search) {
-    search_data = JSON.stringify({ id, jaccard, num_results, threshold, ngram_search, collections_to_search});
+function search(id, jaccard, num_results, collections_to_search) {
+    search_data = JSON.stringify({ id, jaccard, num_results, threshold, collections_to_search});
 console.log(search_data)
 $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>'); 
     $.ajax({
@@ -221,18 +214,16 @@ $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in 
 var multi_results_array = [];
 
 function get_codestring(id) {
-
-     var codestring = "";
-        $.ajax({
-        url: 'https://uk-dev-ftempo.rism.digital/api/get_codestring?id='+id,
+    var codestring = "";
+    $.ajax({
+        url: '/api/get_codestring?id='+id,
         method: 'GET',
         async: false,
         id: id,
-//        contentType: 'application/text',
+        // contentType: 'application/text',
         async: false,
         success: function(response){codestring=JSON.parse(response)}
-	})
-      .fail((xhr, status) => alert(status)); // TODO: real error handling!
+	}).fail((xhr, status) => alert(status)); // TODO: real error handling!
 
 //	console.log(id+" : codestring: "+codestring);
 	return codestring;
@@ -242,54 +233,6 @@ function get_codestring(id) {
 // Globals 'searches' array stores the search-data for recent searches; it 
 // will die when page is restarted
 var searches = [];
-
-// Multiple remote search function. Repeats identical search for each port.
-// NB Results must be dynamically concatenated in the browser - see show_multi_results
-function multi_search(query, jaccard, search_num_results, ngram_search, ports, record) {
-	if(typeof record == "undefined") record = true;
-	var q_codestring = "";
-	var id = "";
-    // Options for multi_search are by id or by q_codestring; also by 'word' but we are most unlikely to do that one
-    
-    // Seriously crude test whether it's an id or a q_codestring:
-// All queries use underscore, but this is not part of the diat_int_str  code
-	if(query.indexOf("_") > 0) 
-		{
-			q_codestring = get_codestring(query);
-			id = query;
-		}
-	else q_codestring = query;
-
-    if(q_codestring.length < 6) return false;
-
-    multi_results_array.length = 0;
-    let search_data = "";
-    let codestring = q_codestring;
-    search_data = JSON.stringify({ codestring, jaccard, search_num_results, threshold, ngram_search});
- //   console.log(search_data);
-    if(record) searches.push({"id" : id, "search_data": JSON.parse(search_data)});
- console.log(searches.length + " searches now in array")
-    
-    $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>'); 
-
-	// First clear results array before starting to build a new one
-	clear_multi_results();
-
-//console.log("ports_to_search: "+ports_to_search)
-	ports = ports_to_search;
-	for(var i=0;i<ports.length;i++) {
-	    curr_search = i;
-	    var port = parseInt(ports[i]);
-	    var request = $.ajax({
-		   url: 'api/query_'+port.toString(),
-		   method: 'POST',
-		   data: search_data,
-		   contentType: 'application/json',
-		   async:true
-		}).always(show_multi_results);
-		 request.fail((xhr, status) => alert(status)); // TODO: real error handling!
-	    }
-}
 
 // Repeat search n in the searches array - NB n starts at 0!!
 function repeat_search(n) {
@@ -304,14 +247,8 @@ function repeat_search(n) {
 			false // don't record this as a new search!
 		);
 }
-
-var multi_results_array = [];
-
-function clear_multi_results() {
-	// Empty current concatenated results array
-	multi_results_array.length = 0;
-}
 var curr_search;
+
 function simline_if_done(num,json){ 
 	if(curr_search==ports_to_search.length-1) {
 		for(i=0;i<num;i++){
@@ -368,9 +305,9 @@ function show_multi_results(json) {
         // NOTE: the else here is wrong if we don't assume that the
         // 0th result is the identity match
         if (jaccard) { rank_factor = 1 - shortened_result_array[q].jaccard; }
-        else { rank_factor = results[q].num / shortened_result_array[0].num_words };
+        else { rank_factor = results[q].num_matched_words / shortened_result_array[0].num_words };
 
-        matched_words[q] = shortened_result_array[q].num;
+        matched_words[q] = shortened_result_array[q].num_matched_words;
         words_in_page[q] = shortened_result_array[q].num_words;
         var result_row_id = "result_row"+q;
         var target_id = shortened_result_array[q].id;
@@ -385,7 +322,6 @@ function show_multi_results(json) {
             table_html +=
                 "<tr class='id_list_name' id='"+result_row_id
                 +"' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
-//          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + query_id + "\","+true+")' onmouseup='reload_page_query(\"" + query_id + "\")'></td>"
           if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' onmousedown='show_tp(\"" + query_id + "\","+true+")' onmouseup='reload_page_query(\"" + query_id + "\")'></td>"
           else table_html +=  "<td></td>" 
                 table_html += "<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
@@ -451,7 +387,7 @@ function show_multi_results(json) {
     const top_result_id = multi_results_array[0].id;
     let top_result_rank_factor;
     if (jaccard) { top_result_rank_factor = 1 - multi_results_array[0].jaccard; }
-    else { top_result_rank_factor = multi_results_array[0].num / multi_results_array[0].num_words };
+    else { top_result_rank_factor = multi_results_array[0].num_matched_words / multi_results_array[0].num_words };
 
     load_result_image(top_result_id, 0, top_result_rank_factor);
 /*
@@ -487,9 +423,7 @@ $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in 
     }
     var search_num_results=parseInt(document.getElementById("res_disp_select").value)
     update_colls_to_search();
-//    search(query_id, jaccard, num_results, ngram_search, collections_to_search);
-    multi_search(query_id, jaccard, search_num_results+50, change_search_method(), ports_to_search);
-    
+    search(query_id, jaccard, num_results, ngram_search, collections_to_search);
 }
 
 function show_tp(id,isquery) {
@@ -576,9 +510,9 @@ function show_results(json) {
         // NOTE: the else here is wrong if we don't assume that the
         // 0th result is the identity match
         if (jaccard) { rank_factor = 1 - results[q].jaccard; }
-        else { rank_factor = results[q].num / results[0].num_words };
+        else { rank_factor = results[q].num_matched_words / results[0].num_words };
 
-        matched_words[q] = results[q].num;
+        matched_words[q] = results[q].num_matched_words;
         words_in_page[q] = results[q].num_words;
         var result_row_id = "result_row"+q;
         var target_id = results[q].id;
@@ -604,9 +538,9 @@ function show_results(json) {
                 + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
                 + "</td>";
                 + "</div>";
-		table_html +=  "<td>empty</td>";// empty cell here
+		table_html +=  "<td></td>";// empty cell here
             if (provide_judgements) {
-                table_html += "<td></td><td id='"+sim_choice_id+"'>"
+                table_html += "<td id='"+sim_choice_id+"'>"
                    +"<select class='drop_downs'"
                     +"onchange='log_user_choice(\""+query_id+"\",\""
                     +target_id+"\","
@@ -659,7 +593,7 @@ function show_results(json) {
     const top_result_id = results[0].id;
     let top_result_rank_factor;
     if (jaccard) { top_result_rank_factor = 1 - results[0].jaccard; }
-    else { top_result_rank_factor = results[0].num / results[0].num_words };
+    else { top_result_rank_factor = results[0].num_matched_words / results[0].num_words };
 
     load_result_image(top_result_id, 0, top_result_rank_factor);
 
@@ -737,33 +671,6 @@ function reload_result_image(id) {
     document.getElementById("result_image_display").innerHTML = "<img id='result_image' src='"+BASE_IMG_URL+image+"' />";
     $('#result_image_display').zoom();
 }
-
-// Load emo_ids at startup
-function get_emo_ids(){
-    $.ajax({
-        type: "GET",
-        url: "api/emo_ids",
-        success: (db_emo_ids) => {
-            emo_ids = db_emo_ids;
-            console.log(emo_ids);
-        }
-    });
-}
-
-/*
-function get_colls_ports(colls){	  
-	  var result="";
-	  $.ajax({    
-	    url:'/api/get_coll_ports?colls='+colls,
-	    type: 'GET',
-	    success: function (data){
-		    console.log("Ports for "+colls+" are "+data);
-		    ports_to_search = data; 
-	    	result = data;
-	    }
-  });
-}
-*/
 
 // Load title-page jpg urls at startup
 function get_tp_urls(){
@@ -932,7 +839,6 @@ function checkKey(e) {
         (shiftDown)? find_book_id(true) : find_page_id(true);
         query_id = document.getElementById("query_id").value;
     } else if (e.keyCode == '220') { // '\' for random query
-//        document.getElementById("query_id").value = emo_ids[getRandomIntInclusive(0, emo_ids.length)];
         find_random_page();
         query_id = document.getElementById("query_id").value;    
         load_page_query(query_id);
@@ -1019,56 +925,47 @@ function parse_id(id) {
 function find_book_id(next) {
 	var this_id = document.getElementById("query_id").value.trim();
 	if(this_id == null) return false;
-	if(next==true) next="true";
-	if(next==false) next="false";
+    const direction = next ? "next" : "prev";
 
-     var new_id = "";
+    let new_id = {};
         $.ajax({
-        url: 'https://uk-dev-ftempo.rism.digital/api/next_id',
-        data: {id:this_id,page:"false",next: next},
+        url: '/api/next_id',
+        data: {id: this_id, library: current_page.library, book: current_page.book, direction: direction},
         method: 'GET',
         async: false,
         success: function(response){new_id=response}
-	})
-      .fail((xhr, status) => alert(status)); // TODO: real error handling!
-console.log("Random ID is: "+new_id)
-//	return new_id;
-	query_id = new_id;
-	load_page_query(new_id);
+	}).fail((xhr, status) => alert(status)); // TODO: real error handling!
+    query_id = new_id.page.id;
+    current_page = {library: new_id.library, book: new_id.book_id, page: new_id.page.id};
+    load_page_query(query_id);
 }
 
 function find_page_id(next) {
 	var this_id = document.getElementById("query_id").value.trim();
-	if(this_id == null) return false;
-	if(next==true) next="true";
-	if(next==false) next="false";
+	if (this_id === null) return false;
+    const direction = next ? "next" : "prev";
 
-     var new_id = "";
-        $.ajax({
-        url: 'https://uk-dev-ftempo.rism.digital/api/next_id',
-        data: {id:this_id,page:"true",next: next},
+    let new_id = {};
+    $.ajax({
+        url: '/api/next_id',
+        data: {id: this_id, library: current_page.library, book: current_page.book, page: current_page.page, direction: direction},
         method: 'GET',
         async: false,
         success: function(response){new_id=response}
-	})
-      .fail((xhr, status) => alert(status)); // TODO: real error handling!
-// console.log("Started at "+this_id+" - now going to "+new_id)
-//	return new_id;
-	query_id = new_id;
-	load_page_query(new_id);
+	}).fail((xhr, status) => alert(status)); // TODO: real error handling!
+	query_id = new_id.page.id;
+    current_page = {library: new_id.library, book: new_id.book_id, page: new_id.page.id};
+    load_page_query(query_id);
 }
 
 function find_random_page () {
-     var new_id = "";
-        $.ajax({
-        url: 'https://uk-dev-ftempo.rism.digital/api/random_id',
+    $.ajax({
+        url: '/api/random_id',
         method: 'GET',
         async: false,
-        success: function(response){new_id=response}
+        success: function(response){load_page_query(response);}
 	})
       .fail((xhr, status) => alert(status)); // TODO: real error handling!
-	query_id = new_id;
-	load_page_query(new_id);
 }
 
 
@@ -1090,10 +987,9 @@ function clear_result_divs() {
 function show_example(example_id){
     load_page_query(example_id);
     update_colls_to_search();
-//    search(example_id, jaccard, num_results, collections_to_search);
     var search_num_results=parseInt(document.getElementById("res_disp_select").value);
-        multi_search(example_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
-        $('#examples_div').collapse('hide');
+    search(example_id, jaccard, search_num_results, collections_to_search);
+    $('#examples_div').collapse('hide');
 }
 
 /*******************************************************************************
@@ -1136,7 +1032,7 @@ function show_user_image(user_image_file) {
 function submit_upload_form(user_image_file) {
     
 	clear_multi_results();
-	
+
     const formData = new FormData();
     formData.append('user_image_file', user_image_file, user_image_file.name);
     formData.append('user_id', user_id);
@@ -1264,50 +1160,18 @@ function add_examples_list() {
 }
 
 $(document).ready(() => {
-
-// Load list of collections and their ports at startup
-//ports_to_search = [];
-//get_colls_ports();
-ports_to_search = ["8011","8001","8004","8015","8007","8017","8016","8006","8003","8027","8021","8008","8026","8009","8010","8014","8005","8002","8012","8018","8022","8024","8013","8020","8019","8023","8025"];
-
-if((typeof ports_to_search !== "undefined")&&(ports_to_search.length)) console.log("Got "+ports_to_search.length+" ports to search: ")
-else console.log("Couldn't get any ports to search!")
-    
     get_or_set_user_id();
-//    get_emo_ids();
     add_examples_list();
     
     $('#image_display').zoom();
     $('#result_image_display').zoom();
-//    $('#tp_display').zoom();
-/*
-      $('#query_tp_img')
-	    .wrap('<span style="display:inline-block"></span>')
-	    .css('display', 'block')
-	    .parent()
-	    .zoom();
-    $('#result_tp_img')
-	    .wrap('<span style="display:inline-block"></span>')
-	    .css('display', 'block')
-	    .parent()
-	    .zoom();
-*/	
-    // TODO(ra): this really wants refactoring. ugh.
-    $('#search_button').click(() => {
-        query_id = document.getElementById("query_id").value;
-        load_page_query(query_id);
-        var search_num_results=parseInt(document.getElementById("res_disp_select").value)
-        update_colls_to_search();
-//        search(query_id,jaccard,num_results, change_search_methods, collections_to_search);       
-        multi_search(query_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
-    });
 
     $('#search_by_id_button').click(() => {
         query_id = document.getElementById("query_id").value;
         load_page_query(query_id);
         var search_num_results=parseInt(document.getElementById("res_disp_select").value)
         update_colls_to_search();
-        multi_search(query_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
+        multi_search(query_id,jaccard,search_num_results, change_search_method(), ports_to_search);
     });
 
     $('#search_by_code_button').click(() => {
@@ -1315,7 +1179,7 @@ else console.log("Couldn't get any ports to search!")
         query_code = document.getElementById("query_code").value.trim();
         var search_num_results=parseInt(document.getElementById("res_disp_select").value)
         if(!query_code.length) alert("You must enter some code!")
-        else multi_search(query_code,jaccard,search_num_results+50, change_search_method(), ports_to_search);
+        else multi_search(query_code,jaccard,search_num_results, change_search_method(), ports_to_search);
      // code_search(query_code,jaccard,num_results, collections_to_search);
 
     });
@@ -1323,19 +1187,15 @@ else console.log("Couldn't get any ports to search!")
     $('#multi-search-button').click(() => {
         query_id = document.getElementById("query_id").value;
         load_page_query(query_id);
-// console.log("Multi search for "+query_id)
+        console.log("Multi search for "+query_id)
         update_colls_to_search();
         var search_num_results=parseInt(document.getElementById("res_disp_select").value)
-        multi_search(query_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
+        search(query_id,jaccard, search_num_results, collections_to_search);
+
     });
     
     $('#repeat-search-button').click(() => {
-//        query_id = document.getElementById("query_id").value;
-//        load_page_query(query_id);
-// console.log("Multi search for "+query_id)
         update_colls_to_search();
-        var search_num_results=parseInt(document.getElementById("res_disp_select").value)
-//        multi_search(query_id,jaccard,search_num_results+50, change_search_method(), ports_to_search);
 		repeat_search(searches.length-1); // Should repeat last search actually done
     });
 
@@ -1358,5 +1218,5 @@ else console.log("Couldn't get any ports to search!")
 
     const initial_page_id = 'GB-Lbl_A103b_025_0'
     load_page_query(initial_page_id);
-    
+    current_page = {library: 'GB-Lbl', book: 'A103b', page: initial_page_id};
 });

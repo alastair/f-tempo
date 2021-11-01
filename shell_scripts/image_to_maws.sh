@@ -21,7 +21,7 @@ echo "Converted to tiff OK" >> log
 
 
 # Run Aruspix on the converted image
-aruspix-cmdline -m $HOME_DIR/data/aruspix_models page.tiff 2>> log
+aruspix-cmdline -m /storage/ftempo/aruspix_models page.tiff 2>> log
 echo "Passed through Aruspix OK" >> log
 
 # Extract things we need from the Aruspix output
@@ -30,7 +30,7 @@ echo "Extracted MEI OK" >> log
 
 # Parse MEI into diatonic interval string
 echo ">"$IMG_FILE > page.txt
-gawk -f $HOME_DIR/shell_scripts/parse_mei_to_diat_int_str.awk page.mei >> page.txt
+gawk -f ./shell_scripts/parse_mei_to_diat_int_str.awk page.mei >> page.txt
 echo -n "Diat interval string (fasta): " >> log; 
 cat page.txt >> log; 
 

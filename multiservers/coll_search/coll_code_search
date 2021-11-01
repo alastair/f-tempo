@@ -1,7 +1,0 @@
-#code=$(./get_codestring $1);
-#echo $code
-code=$1
-grep -E $2 coll_port_list | 
-awk '{for(i=2;i<=NF;i++)print $i}'| while read j;
- do ./codestring_port_search $code $j; done |
-sort -n -k2

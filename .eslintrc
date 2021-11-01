@@ -1,0 +1,35 @@
+{
+    "env": {
+        "browser": true,
+        "node": true,
+        "es6": true,
+        "es2017": true,
+        "jest": true
+    },
+    "parserOptions": {
+        "sourceType": "module"
+    },
+    "extends": "eslint:recommended",
+    "rules": {
+        "comma-spacing": [
+            "error", 
+            { "before": false, "after": true }
+        ],
+        "space-infix-ops" : "error",
+        "indent": [
+            "error",
+            4,
+            { "SwitchCase": 1 }
+        ],
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
+        "no-console" : "off",
+        "semi": [
+            "error",
+            "always"
+        ],
+        "no-unused-vars": ["off"]
+    }
+}

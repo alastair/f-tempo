@@ -4,6 +4,11 @@
     "port": 8983,
     "core": "ftempo"
   },
+  "search_ngrams": {
+    "host": "solr",
+    "port": 8983,
+    "core": "ftempo"
+  },
   "server": {
     "host": "0.0.0.0",
     "port": 8000
@@ -21,6 +26,6 @@
     "storage": "./storage/ftempo/",
     "tp_jpg_list": "static/src/jpg_list.txt",
     "base_image_url": "http://f-tempo-mbs.rism-ch.org/img/jpg/",
-    "base_mei_url": "/var/www/f-tempo/static/img/mei/"
+    "base_mei_url": "./storage/scores/"
   }
 }

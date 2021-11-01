@@ -4,10 +4,8 @@
   "description": "Early Music Online search engine",
   "scripts": {
     "test": "jest",
-    "serve": "node --loader ts-node/esm server/server.ts",
-    "start": "npm run serve",
-    "build": "tsc",
-    "watch": "nodemon --watch server --watch src --ext ts --exec \"tsc --incremental && node dist/server/server.js\""
+    "start": "node --loader ts-node/esm server/server.ts",
+    "watch": "nodemon --watch server --watch src --ext ts --exec \"npm start\""
   },
   "author": "Tim Crawford",
   "contributors": [

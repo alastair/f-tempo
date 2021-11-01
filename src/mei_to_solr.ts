@@ -1,13 +1,17 @@
+/// <reference types="./types" />
 import yargs from 'yargs'
-import {listToNgrams, notesToContour, pageToContourList, pageToNoteList, parseMei} from "./mei.js";
+import {listToNgrams, pageToContourList, pageToNoteList, parseMei} from "./mei.js";
 import util from 'util';
 import solr from "solr-client";
 import path from "path";
 import fs from "fs";
+import nconf from 'nconf';
+
+nconf.argv().file('default_config.json')
 
 async function saveToSolr(documents: any[]) {
     return new Promise((resolve, reject)=> {
-        const client = solr.createClient({host: "localhost", port: 8983, core: 'ngrams'});
+        const client = solr.createClient({host: "localhost", port: 8983, core: 'ngram'});
         client.add(documents, {}, function (err: any, obj: any) {
             if (err) {
                 reject(err);
@@ -21,7 +25,7 @@ async function saveToSolr(documents: any[]) {
 }
 
 function clearSolr() {
-    const client = solr.createClient({host: "localhost", port: 8983, core: 'ngrams'});
+    const client = solr.createClient({host: "localhost", port: 8983, core: 'ngram'});
     client.deleteAll( {}, function (err: any, obj: any) {
         if (err) {
             console.error(err);
@@ -32,29 +36,31 @@ function clearSolr() {
     });
 }
 
-function     idToParts(documentId: string) {
-    const parts = documentId.split("_");
-    const library = parts[0];
-    let book = undefined;
-    let page = undefined;
-    if (library === "GB-Lbl") {
-        if (parts.length === 4) {
-            book = parts[1];
-            page = parts[2] + "_" + parts[3];
-        } else if (parts.length === 5) {
-            book = parts[1] + "_" + parts[2];
-            page = parts[3] + "_" + parts[4];
-        } else if (parts.length === 6) {
-            // GB-Lbl_Rore_Madrigals_Bk3_1560_179
-            book = parts[1] + "_" + parts[2] + "_" + parts[3] + "_" + parts[4];
-            page = parts[5];
-        } else if (parts.length === 7) {
-            // GB-Lbl_Rore_Madrigali_Cromatici_Bk1_1563_121
-            book = parts[1] + "_" + parts[2] + "_" + parts[3] + "_" + parts[4] + "_" + parts[5];
-            page = parts[6];
+async function processLibrary(librarypath: string, cache: boolean) {
+    const data = fs.readFileSync(librarypath);
+    const library = JSON.parse(data.toString());
+    const meiRoot = nconf.get('config:base_mei_url');
+    let documents = [];
+    for (const [book_id, book] of Object.entries(library.books)) {
+        for (const [page_id, page] of Object.entries((book as any).pages)) {
+            const parts = page_id.split("_");
+            const library = parts[0];
+            const page2 = (page as any);
+            const document = makeDocumentFromFile(path.join(meiRoot, library, page2.mei), page2.id, book_id, page2.id, cache)
+            if (document) {
+                documents.push(document);
+            }
+            if (documents.length >= 1000) {
+                console.log("saving 1000")
+                await saveToSolr(documents);
+                documents = [];
+            }
         }
     }
-    return {library, book, page};
+    if (documents.length) {
+        console.log(`saving last ${documents.length}`);
+        await saveToSolr(documents);
+    }
 }
 
 
@@ -80,16 +86,53 @@ const argv = yargs(process.argv.slice(2)).usage('Parse MEI files to solr')
                 description: 'path to directory to parse',
                 required: false,
                 default: undefined
-            }
+            },
+            'library': {
+                type: 'string',
+                description: 'path to library definition file',
+                required: false,
+                default: undefined
+            },
+            'cache': {
+                type: 'boolean',
+                description: 'if set, cache the mei data',
+                required: false,
+                default: false
+            },
         })
     })
     .argv;
 
-function makeDocumentFromFile(filePath: string) {
-    const meiPage = parseMei(filePath);
-    const id = path.basename(filePath, '.mei');
+function makeDocumentFromFile(filePath: string, id: string, book: string, page: string, cache: boolean) {
+    let meiPage: Page | undefined = undefined;
+    const parts = id.split("_");
+    const library = parts[0];
 
-    const {library, book, page} = idToParts(id);
+    const dirname = path.join('solr', 'cache', 'mei', library, book)
+    const fpath = path.join(dirname, `${id}.json`);
+    if (cache) {
+        try {
+            fs.accessSync(fpath, fs.constants.R_OK)
+            const data = fs.readFileSync(fpath);
+            meiPage = JSON.parse(data.toString());
+        } catch (err) {
+            // console.info(`Cannot find cache file for ${fpath}`);
+        }
+    }
+    if (meiPage === undefined) {
+        try {
+            meiPage = parseMei(filePath);
+        } catch {
+            // Probably means the file isn't there
+            return undefined;
+        }
+    }
+
+    if (cache) {
+        fs.mkdirSync(dirname, { recursive: true })
+        fs.writeFileSync(fpath, JSON.stringify(meiPage));
+    }
+
     return {
         id: id,
         library: library,
@@ -103,23 +146,26 @@ function makeDocumentFromFile(filePath: string) {
 
 async function importSolr(argv: any) {
     if (argv.path) {
-        const solrDocument = makeDocumentFromFile(argv.path!);
-        //console.log(pprint(solrDocument));
+        const solrDocument = makeDocumentFromFile(argv.path!, '', '', '', false);
         await saveToSolr([solrDocument]);
     } else if (argv.dir) {
         const files = fs.readdirSync(argv.dir);
         let documents = [];
         for (let i = 0; i < files.length; i++) {
-            documents.push(makeDocumentFromFile(path.join(argv.dir, files[i])));
+            documents.push(makeDocumentFromFile(path.join(argv.dir, files[i]), '', '', '', false));
             if (documents.length >= 1000) {
                 await saveToSolr(documents);
                 documents = [];
             }
         }
+        if (documents.length) {
+            await saveToSolr(documents);
+        }
+    } else if (argv.library) {
+        await processLibrary(argv.library, argv.cache);
     } else {
         yargs.showHelp();
     }
-    console.debug("got some args ", argv);
 }
 
 

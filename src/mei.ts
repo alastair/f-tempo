@@ -1,28 +1,8 @@
 import fs from 'fs';
 import {JSDOM} from 'jsdom';
 
-type Note = {
-    pname: string;
-    oct: string;
-}
 
-type MeiNeume = {
-    note: Note;
-    ulx?: string;
-    uly?: string;
-    xmlid: string;
-    system: string;
-}
-
-type MeiNgram = {
-    notes: Note[];
-    contour: string[];
-    sequence: number;
-    file: string;
-    // TODO: Bounding boxes
-}
-
-function parseMei(filename: string): MeiNeume[] {
+export function parseMei(filename: string): Page {
     const data = fs.readFileSync( filename, 'utf-8');
     const dom = new JSDOM("")
     const DOMParser = dom.window.DOMParser;
@@ -31,10 +11,10 @@ function parseMei(filename: string): MeiNeume[] {
     return parseMeiDocument(doc);
 }
 
-function parseMeiDocument(document: Document) {
-    const notes = document.getElementsByTagName("note");
-    return Array.from(notes).map(function(note): MeiNeume {
-        const system = note.closest("system");
+function parseMeiDocument(document: Document): Page {
+    const systemElements = document.getElementsByTagName("system");
+
+    const systems = Array.from(systemElements).map(function(system): System {
         const sysAttrs = system?.attributes
         const systemId = sysAttrs?.getNamedItem("xml:id")?.value!
         const noteElements = system.getElementsByTagName("note");
@@ -108,14 +88,14 @@ export function listToNgrams(items: string[], chunkSize?: number) {
     return ngrams;
 }
 
-function main(filename: string) {
-    const notes = parseMei(filename);
-    const chunkSize = 4;
+export function notesToContour(notes: Note[], chunkSize?: number) {
+    if (!chunkSize) {
+        chunkSize = 4;
+    }
     const nGrams: MeiNgram[] = [];
     for (let i = 0; i < notes.length - chunkSize + 1; i++) {
         const part = notes.slice(i, i + chunkSize);
-        const partNotes = part.map((x)=>x.note);
-        const contour = pitchesToIntervalMapping(partNotes);
+        const contour = pitchesToIntervalMapping(part);
         const ngram: MeiNgram = {
             contour: contour,
             notes: part,
@@ -123,7 +103,7 @@ function main(filename: string) {
         };
         nGrams.push(ngram);
     }
-    console.log(JSON.stringify(nGrams));
+    return nGrams;
 }
 
 /**
@@ -134,7 +114,7 @@ function main(filename: string) {
  * lower-case if pitch is decreasing. Doesn't take in to account accidentals
  * @param pitches
  */
-function pitchesToIntervalMapping(pitches: Note[]) {
+export function pitchesToIntervalMapping(pitches: Note[]): string[] {
     const interval_mapping = '-abcdefghijklmnopqrstuvwxyz'.split('');
 
     const alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
@@ -142,7 +122,7 @@ function pitchesToIntervalMapping(pitches: Note[]) {
     const pitch_nums = pitches.map(function(e) {
         // TODO: This replicates the behaviour of the awk script, where g is 0 and a->f is 1-6
         //  appears to be a bug because of awk string indexes starting from 1
-        return (alphabet.indexOf(e.pname.toUpperCase()) + 1) % 7 + ((7 * parseInt(e.oct, 10)) % 7);
+        return (alphabet.indexOf(e.p.toUpperCase()) + 1) % 7 + ((7 * parseInt(e.o, 10)) % 7);
     });
 
     let pitch_intervals = [];
@@ -161,9 +141,3 @@ function pitchesToIntervalMapping(pitches: Note[]) {
         return letter;
     });
 }
-
-
-if (require.main === module) {
-    main(process.argv[2]);
-}
-

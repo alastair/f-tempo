@@ -1,12 +1,14 @@
 {
-  "ts-node": {
-    "files": true
-  },
   "compilerOptions": {
     "incremental": true,
     "target": "ES2020",
     "module": "esnext",
     "outDir": "./dist",
+    "inlineSourceMap": true,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
@@ -21,6 +23,7 @@
     ],
     "noEmit": true
   },
-  "include": ["server/**/*", "src/**/*"],
-  "exclude": ["node_modules", "storage"]
+  "include": [
+    "src"
+  ]
 }

@@ -58,17 +58,19 @@ function parse_tp_jpgs(data_str: string) {
     console.log(Object.keys(tp_jpgs).length + " title-page urls loaded!");
 }
 
-const db_paths = nconf.get('database_files')
+const db_paths = nconf.get('database_files');
 // TODO: Make this type actually represent a json db entry
 export const db: StringToAny = {};
-for (const [key, path] of Object.entries(db_paths)) {
+const storage_location = nconf.get('config:storage');
+for (const [key, filename] of Object.entries(db_paths)) {
     console.log(`Loading ${key}`)
+    const full_path = path.join(storage_location, filename as string)
     try {
-        fs.accessSync(path as string, fs.constants.R_OK)
-        const data = fs.readFileSync(path as string);
+        fs.accessSync(full_path, fs.constants.R_OK)
+        const data = fs.readFileSync(full_path);
         db[key] = JSON.parse(data.toString());
     } catch (err) {
-        console.error(`Cannot find file ${path}`);
+        console.error(`Cannot find file ${filename} in ${storage_location}`);
     }
 }
 

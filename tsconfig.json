@@ -11,5 +11,7 @@
     "esModuleInterop": true,
     "inlineSourceMap": true,
     "moduleResolution": "Node"
-  }
+  },
+  "include": ["server/**/*", "src/**/*"],
+  "exclude": ["node_modules", "storage"]
 }

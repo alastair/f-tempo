@@ -199,16 +199,17 @@ function display_cosine_sim_line_multi(json) {
 
 // Basic remote search function.
 function search(id, jaccard, num_results, collections_to_search) {
-    search_data = JSON.stringify({ id, jaccard, num_results, threshold, collections_to_search});
-console.log(search_data)
-$('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>'); 
+    let search_data = JSON.stringify({ id, jaccard, num_results, threshold, collections_to_search});
+    console.log(search_data);
+    $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>');
     $.ajax({
         url: 'api/query',
         method: 'POST',
         data: search_data,
         contentType: 'application/json',
-    }).done(show_results)
-      .fail((xhr, status) => alert(status)); // TODO: real error handling!
+    })
+        .done(show_results)
+        .fail((xhr, status) => alert(status)); // TODO: real error handling!
 }
 
 var multi_results_array = [];
@@ -402,21 +403,22 @@ function show_multi_results(json) {
 */
 }
 
-function code_search(diat_int_code, jaccard, num_results, collections_to_search) {
-$('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>'); 
-    search_data = JSON.stringify({ diat_int_code, jaccard, num_results, threshold, collections_to_search });
+function code_search(codestring, jaccard, num_results, collections_to_search) {
+    $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>');
+    let search_data = JSON.stringify({ codestring, jaccard, num_results, threshold, collections_to_search });
     $.ajax({
         url: 'api/query',
         method: 'POST',
         data: search_data,
         contentType: 'application/json',
-    }).done(show_results)
-      .fail((xhr, status) => alert(status)); // TODO: real error handling!
+    })
+        .done(show_results)
+        .fail((xhr, status) => alert(status)); // TODO: real error handling!
 }
 
 
 function search_by_active_query_id(load_query_image=false, ngram_search, collections_to_search) {
-$('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>'); 
+$('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>');
     query_id = document.getElementById("query_id").value;
     if (load_query_image) {
         load_page_query(query_id);
@@ -843,10 +845,7 @@ function checkKey(e) {
         query_id = document.getElementById("query_id").value;    
         load_page_query(query_id);
     } else if (e.keyCode == '13') { // enter to search
-//console.log("Searching in "+collections_to_search); 
-        query_id = document.getElementById("query_id").value;
-        ngram_search = change_search_method();
-        search_by_active_query_id(true, ngram_search, collections_to_search);
+        do_search()
     }    
 }
 
@@ -1122,6 +1121,14 @@ function set_code_search_mode() {
     corpus_search_mode = false;
 }
 
+function do_search() {
+    query_id = document.getElementById("query_id").value;
+    load_page_query(query_id);
+    update_colls_to_search();
+    var search_num_results = parseInt(document.getElementById("res_disp_select").value);
+    search(query_id, jaccard, search_num_results, collections_to_search);
+}
+
 /*******************************************************************************
  * Start 
  ******************************************************************************/
@@ -1167,31 +1174,22 @@ $(document).ready(() => {
     $('#result_image_display').zoom();
 
     $('#search_by_id_button').click(() => {
-        query_id = document.getElementById("query_id").value;
-        load_page_query(query_id);
-        var search_num_results=parseInt(document.getElementById("res_disp_select").value)
-        update_colls_to_search();
-        multi_search(query_id,jaccard,search_num_results, change_search_method(), ports_to_search);
+        do_search();
     });
 
     $('#search_by_code_button').click(() => {
         document.getElementById("emo_browser_col").style.visibility = "hidden";
-        query_code = document.getElementById("query_code").value.trim();
-        var search_num_results=parseInt(document.getElementById("res_disp_select").value)
-        if(!query_code.length) alert("You must enter some code!")
-        else multi_search(query_code,jaccard,search_num_results, change_search_method(), ports_to_search);
-     // code_search(query_code,jaccard,num_results, collections_to_search);
-
+        let query_code = document.getElementById("query_code").value.trim();
+        let search_num_results = parseInt(document.getElementById("res_disp_select").value)
+        if(!query_code.length) {
+            alert("You must enter some code!")
+        } else {
+            code_search(query_code, jaccard, num_results, collections_to_search);
+        }
     });
 
     $('#multi-search-button').click(() => {
-        query_id = document.getElementById("query_id").value;
-        load_page_query(query_id);
-        console.log("Multi search for "+query_id)
-        update_colls_to_search();
-        var search_num_results=parseInt(document.getElementById("res_disp_select").value)
-        search(query_id,jaccard, search_num_results, collections_to_search);
-
+        do_search();
     });
     
     $('#repeat-search-button').click(() => {

@@ -1,6 +1,7 @@
 import fs from "fs";
 import express from "express";
-import {BASE_IMG_URL, BASE_MEI_URL, EMO_IDS_DIAT_MELS, ngr_len} from "../server.js";
+import {BASE_IMG_URL, BASE_MEI_URL, ngr_len} from "../server.js";
+import {get_codestring} from "../services/search.js";
 
 
 const router = express.Router();
@@ -21,7 +22,7 @@ router.get('/code_searches', function (req, res) {
     res.render('index', data);
 });
 
-router.get('/compare', function (req, res) {
+router.get('/compare', async function (req, res) {
 
     // q for 'query', m for 'match'
     const q_id = req.query.qid?.toString();
@@ -50,8 +51,9 @@ router.get('/compare', function (req, res) {
     const m_mei_url = base_mei_url + m_id + mei_ext;
     console.log("q_mei_url: " + q_mei_url);
 
-    const q_diat_str = EMO_IDS_DIAT_MELS[q_id];
-    const m_diat_str = EMO_IDS_DIAT_MELS[m_id];
+
+    const q_diat_str = await get_codestring(q_id)
+    const m_diat_str = await get_codestring(m_id)
 
     if (!q_diat_str) { return res.status(400).send('Could not find melody string for this q_id ' + q_id); }
     if (!m_diat_str) { return res.status(400).send('Could not find melody string for this m_id: ' + m_id); }
@@ -145,6 +147,12 @@ router.get('/compare', function (req, res) {
 
     let q_mei = get_mei(q_mei_url);
     let m_mei = get_mei(m_mei_url);
+    if (q_mei === undefined) {
+        return res.status(400).send(`Cannot find q_mei_url ${q_mei_url}`)
+    }
+    if (m_mei === undefined) {
+        return res.status(400).send(`Cannot find m_mei_url ${m_mei_url}`)
+    }
 
     const  data = {
         q_id,
@@ -162,5 +170,9 @@ router.get('/compare', function (req, res) {
 
 function get_mei(file: string) {
     // console.log("Getting MEI from: "+ file)
-    return fs.readFileSync(file, 'utf8');
+    try {
+        return fs.readFileSync(file, 'utf8');
+    } catch {
+        return undefined;
+    }
 }

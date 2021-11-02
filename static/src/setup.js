@@ -165,9 +165,12 @@ function display_cosine_sim_line(json) {
 }
 
 // Basic remote search function.
-function search(id, jaccard, num_results, collections_to_search) {
+function search(id, jaccard, num_results, collections_to_search, record) {
     let search_data = JSON.stringify({id, jaccard, num_results, threshold, collections_to_search});
     console.log(search_data);
+    if (record) {
+        searches.push({search_data: JSON.parse(search_data)});
+    }
     $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>');
     $.ajax({
         url: 'api/query',
@@ -184,15 +187,16 @@ function search(id, jaccard, num_results, collections_to_search) {
 // will die when page is restarted
 var searches = [];
 
-// Repeat search n in the searches array - NB n starts at 0!!
 function repeat_search(n) {
     document.getElementById("emo_image_display").innerHTML = "";
     document.getElementById("q_page_display").innerHTML = "";
-    multi_search(
-        searches[n].search_data.codestring,
+    const id = searches[n].search_data.id;
+    load_page_query(id);
+    search(
+        searches[n].search_data.id,
         searches[n].search_data.jaccard,
-        searches[n].search_data.search_num_results,
-        searches[n].search_data.ngram_search,
+        searches[n].search_data.num_results,
+        searches[n].search_data.collections_to_search,
         false // don't record this as a new search!
     );
 }
@@ -202,6 +206,9 @@ var num_results_to_display;
 function code_search(codestring, jaccard, num_results, collections_to_search, record) {
     $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>');
     let search_data = JSON.stringify({codestring, jaccard, num_results, threshold, collections_to_search});
+    if (record) {
+        searches.push({search_data: JSON.parse(search_data)});
+    }
     $.ajax({
         url: 'api/query',
         method: 'POST',
@@ -220,7 +227,7 @@ function search_by_active_query_id(load_query_image = false, ngram_search, colle
         load_page_query(query_id);
     }
     update_colls_to_search();
-    search(query_id, jaccard, num_results, ngram_search, collections_to_search);
+    search(query_id, jaccard, num_results, ngram_search, collections_to_search, true);
 }
 
 function show_tp(id, isquery) {
@@ -859,7 +866,7 @@ function do_search() {
     load_page_query(query_id);
     update_colls_to_search();
     var search_num_results = parseInt(document.getElementById("res_disp_select").value);
-    search(query_id, jaccard, search_num_results, collections_to_search);
+    search(query_id, jaccard, search_num_results, collections_to_search, true);
 }
 
 /*******************************************************************************

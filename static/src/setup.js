@@ -77,12 +77,7 @@ let current_page = {library: '', book: '', page: ''};
 
 var ports_to_search = [];
 
-//const BASE_IMG_URL = '/img/jpg/';
-//const BASE_MEI_URL = '/img/mei/';
 const BASE_IMG_URL = 'https://uk-dev-ftempo.rism.digital/img/jpg/';
-const BASE_MEI_URL = 'https://uk-dev-ftempo.rism.digital/img/mei/';
-
-//let ngram_search = false;
 
 function get_or_set_user_id() {
     if (storageAvailable('localStorage')) {
@@ -106,23 +101,17 @@ function load_page_query(id) {
     clear_result_divs();
 
     document.getElementById("query_id").value = id;
-    image = id + ".jpg";
+    let image = id + ".jpg";
     document.getElementById("q_page_display").innerHTML = "Query page: " + id;
-//    document.getElementById("emo_image_display").style.maxHeight="1000px";
     document.getElementById("emo_image_display").style.maxWidth="700px";
-//    document.getElementById("emo_image_display").innerHTML = "<img class='img-fluid' id='query_image' src='"+BASE_IMG_URL+image+"' role=\"presentation\"/>";
-    var emo_im_disp_width = '100%';
+    let emo_im_disp_width = '100%';
     document.getElementById("emo_image_display").innerHTML = "<img id='query_image' src='"+BASE_IMG_URL+image+"' width="+emo_im_disp_width+" role=\"presentation\"/>";
     $('#emo_image_display').zoom();
-//show_tp(id,true);
-    // $('#search_controls').removeClass('d-none');
-    // $('#emo_browser_buttons').removeClass('d-none');
 }
 
 function reload_page_query(id) {
     document.getElementById("query_id").value = id;
-    image = id + ".jpg";
-//    document.getElementById("emo_image_display").style.maxHeight="1000px";
+    let image = id + ".jpg";
     document.getElementById("emo_image_display").style.maxWidth="700px";    document.getElementById("emo_image_display").innerHTML = "<img id='query_image' src='"+BASE_IMG_URL+image+"' role=\"presentation\"/>";
     $('#emo_image_display').zoom();
 }
@@ -168,35 +157,6 @@ function display_cosine_sim_line(json) {
 	}
 }
 
-function display_cosine_sim_line_multi(json) {            
-//	var results = json;
-	var q_str = query_codestring;
-	for(let q = 1; q < json.length; q++) {
-		let progID = 'progress'+q;
-		let progRect = document.getElementById(progID).getBoundingClientRect();
-		let canWidth = progRect.width;
-		let canHeight = progRect.height;
-		let canTop = progRect.top;
-		let canLeft = progRect.left;
-		let canID = 'canvas'+q;
-		let canv = document.createElement('canvas');
-		canv.id = canID;
-		document.getElementById(progID).parentNode.appendChild(canv);
-//		document.getElementById(progID).parentNode.insertBefore(canv,document.getElementById(progID).nextSibling);
-		canv.style.position="absolute";
-		canv.style.zIndex="2";
-		canv.width=canWidth;
-//		canv.height=canHeight;
-		canv.height="5";
-		canv.top=(canTop-canHeight)+"px";
-		canv.left=canLeft;
-		m_str = json[q].codestring;
-		var cos_sim = textCosineSimilarity(ngram_array(q_str,ngr_len).join(' '), ngram_array(m_str,ngr_len).join(' '));
-		var line_x = cos_sim * canv.width;
-		lineAt(canv,line_x,0,"red");
-	}
-}
-
 // Basic remote search function.
 function search(id, jaccard, num_results, collections_to_search) {
     let search_data = JSON.stringify({ id, jaccard, num_results, threshold, collections_to_search});
@@ -210,24 +170,6 @@ function search(id, jaccard, num_results, collections_to_search) {
     })
         .done(show_results)
         .fail((xhr, status) => alert(status)); // TODO: real error handling!
-}
-
-var multi_results_array = [];
-
-function get_codestring(id) {
-    var codestring = "";
-    $.ajax({
-        url: '/api/get_codestring?id='+id,
-        method: 'GET',
-        async: false,
-        id: id,
-        // contentType: 'application/text',
-        async: false,
-        success: function(response){codestring=JSON.parse(response)}
-	}).fail((xhr, status) => alert(status)); // TODO: real error handling!
-
-//	console.log(id+" : codestring: "+codestring);
-	return codestring;
 }
 
 // Users may wish to revisit recent searches.
@@ -248,160 +190,7 @@ function repeat_search(n) {
 			false // don't record this as a new search!
 		);
 }
-var curr_search;
-
-function simline_if_done(num,json){ 
-	if(curr_search==ports_to_search.length-1) {
-		for(i=0;i<num;i++){
-			json[i].codestring=get_codestring(json[i].id)
-		}
-		display_cosine_sim_line(json);
-	}
-}
-
-var query_codestring="";
 var num_results_to_display;
-function show_multi_results(json) {
-    
-    if(!json.length) return;
-    imageSrcs.length = 0; // empty the cache altogether
-    
-    var this_result = false;
-    if(typeof json == "string") { 
-	    this_result = Object.values(JSON.parse(json));
-//	    console.log(typeof this_result);
-    }
-    else {this_result = json;}
-//console.log("this_result is "+typeof this_result+"\n"+ this_result)
-
-    var result_num = 0;
-    multi_results_array = multi_results_array.concat(this_result);
-    const provide_judgements = $('#provide_judgements').is(':checked');
-
-    if (json.length < 2) {
-        console.log("No results for " + query_id + "!")
-        document.getElementById("result_id_msg").innerHTML = "<font color='red'>No results!!</font>";        
-        return false;
-    }
-	multi_results_array.sort((a, b) => { return a.jaccard - b.jaccard; });
-	num_results = multi_results_array.length;
-	num_results_to_display = document.getElementById("res_disp_select").value;
-	var shortened_result_array = multi_results_array.slice(0,(parseInt(num_results_to_display)))
-
-    let table_html = "<thead><tr><th colspan=3>" + num_results + " results - "
-                 + shortened_result_array[0].num_words + " words in query</th></tr>"
-                 + "<tr>"
-                 + "<th></th>"
-                 + "<th>Page ID</th>"
-                 + "<th>Match Score</th>";
-    if(provide_judgements) {
-        table_html += "<th></th><th>Judge Match</th>";
-    }
-        table_html += "</tr></thead>"
-                 + "<tbody class='table_body'>";
-
-    for(let q = 0; q < shortened_result_array.length; q++) {
-        let rank_factor;
-
-        // NOTE: the else here is wrong if we don't assume that the
-        // 0th result is the identity match
-        if (jaccard) { rank_factor = 1 - shortened_result_array[q].jaccard; }
-        else { rank_factor = results[q].num_matched_words / shortened_result_array[0].num_words };
-
-        matched_words[q] = shortened_result_array[q].num_matched_words;
-        words_in_page[q] = shortened_result_array[q].num_words;
-        var result_row_id = "result_row"+q;
-        var target_id = shortened_result_array[q].id;
-        var sim_choice_id = "sim_choice"+q;
-        var sim_id = "sim"+q;
-        imageSrcs.push(BASE_IMG_URL+shortened_result_array[q].id+".jpg");
-
-        const rank_percentage = (rank_factor * 100).toFixed(2);
-
-        if(corpus_search_mode && shortened_result_array[q].id == query_id) { // query
-            query_codestring = get_codestring(query_id);
-            table_html +=
-                "<tr class='id_list_name' id='"+result_row_id
-                +"' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
-          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' onmousedown='show_tp(\"" + query_id + "\","+true+")' onmouseup='reload_page_query(\"" + query_id + "\")'></td>"
-          else table_html +=  "<td></td>" 
-                table_html += "<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
-               + "<td>"
-                + '<div class="progress">'
-                + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
-                + "</div>"
-                + "</td>";
-		table_html +=  "<td></td>";// empty cell here for query
-            if (provide_judgements) {
-                table_html += "<td id='"+sim_choice_id+"'>"
-                   +"<select class='drop_downs'"
-                    +"onchange='log_user_choice(\""+query_id+"\",\""
-                    +target_id+"\","
-                    +q+", \""
-                    +db_name+"\");'"
-                    +" id='"+sim_id+"'>"
-                    +"<option selected' value='0'></option>"
-                    +"<option value='notm'>Not music!</option>"
-                    +"</select>"
-                    +"</td>"
-            }
-            table_html += "</tr>";
-
-        } else {  // results
-            table_html +=
-                "<tr class='id_list_name' id='"+result_row_id
-                + "' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
-          if(target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + target_id + "\","+false+")'></td>"
-          else table_html +=  "<td></td>" 
-                table_html += "<td text-align='center' style='color:blue; font-size: 10px'>" +target_id+"</td>"
-                + "<td>"
-                + '<div class="progress" id="progress'+q+'">'
-                + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
-                + "</td>"
-                + "<td><img class='mag-glass' width='16' height='16' src='img/magnifying-glass.svg' onclick='compare(\""+query_id+"\",\""+shortened_result_array[q].id+"\")'/></td>";
-            if (provide_judgements) {
-                table_html += "<td id='"+sim_choice_id+"'>"
-                    + "<select  class='drop_downs'"
-                    + "onchange='log_user_choice(\""+query_id+"\",\""
-                    + target_id+"\","
-                    + q+", "
-                    + "\""+db_name+"\");'"
-                    + " id='"+sim_id+"'>"
-                    + "<option selected' value='0'></option>"
-                    + "<option value='dupl'>Duplicate page</option>"
-                    + "<option value='same'>Same music</option>"
-                    + "<option value='relv'>Related music</option>"
-                    + "<option value='notm'>Not music!</option>"
-                    + "</select>"
-                    + "</td>";
-            }
-            table_html += "</tr>";
-        }
-    }
-	if(curr_search==ports_to_search.length-1) {
-//	    preloadImages(imageSrcs);
-    }
-    table_html += "</tbody>";
-
-    $('#results_table').html(table_html);
-
-    const top_result_id = multi_results_array[0].id;
-    let top_result_rank_factor;
-    if (jaccard) { top_result_rank_factor = 1 - multi_results_array[0].jaccard; }
-    else { top_result_rank_factor = multi_results_array[0].num_matched_words / multi_results_array[0].num_words };
-
-    load_result_image(top_result_id, 0, top_result_rank_factor);
-/*
-// This requires the diat_mel_str for each id to be loaded into the array
-   for(var r=0;r<shortened_result_array.length;r++){
-   	shortened_result_array[r].codestring = get_codestring(shortened_result_array[r].id);
-   }
-   
-   if(query_id.length) {
-	   display_cosine_sim_line_multi({shortened_result_array});
-	}
-*/
-}
 
 function code_search(codestring, jaccard, num_results, collections_to_search) {
     $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>');
@@ -476,20 +265,12 @@ function preloadImages(srcs) {
 var imageSrcs = [];
 
 function show_results(json) {
-
-	imageSrcs.length = 0; // empty the cache altogether
-
-    var result_num = 0;
+    imageSrcs.length = 0; // empty the cache altogether
     var results = json;
     const provide_judgements = $('#provide_judgements').is(':checked');
-//    const select_D_Mbs = $('#select_D_Mbs').is(':checked');
-//    const select_D_Bs = $('#select_D_Bs').is(':checked');
-//    const select_F_Pn = $('#select_F_Pn').is(':checked');
-//    const select_GB_Lbl = $('#select_GB_Lbl').is(':checked');
-//    const select_PL_Wn = $('#select_PL_Wn').is(':checked');
 
     if (json.length < 2) {
-        console.log("No results for " + query_id + "!")
+        console.log("No results for " + query_id + "!");
         document.getElementById("result_id_msg").innerHTML = "<font color='red'>No results!!</font>";        
         return false;
     }
@@ -512,7 +293,7 @@ function show_results(json) {
         // NOTE: the else here is wrong if we don't assume that the
         // 0th result is the identity match
         if (jaccard) { rank_factor = 1 - results[q].jaccard; }
-        else { rank_factor = results[q].num_matched_words / results[0].num_words };
+        else { rank_factor = results[q].num_matched_words / results[0].num_words; }
 
         matched_words[q] = results[q].num_matched_words;
         words_in_page[q] = results[q].num_words;
@@ -524,7 +305,7 @@ function show_results(json) {
 
         const rank_percentage = (rank_factor * 100).toFixed(2);
 
-        if(corpus_search_mode && results[q].id == query_id) { // query
+        if(corpus_search_mode && results[q].id === query_id) { // query
             table_html +=
                 "<tr class='id_list_name' id='"+result_row_id
                 +"' onclick='load_result_image(\""+target_id+"\","+q+","+(rank_factor*100).toFixed(1)+");'>"
@@ -571,7 +352,7 @@ function show_results(json) {
             if (provide_judgements) {
                 table_html += "<td id='"+sim_choice_id+"'>"
                     + "<select  class='drop_downs'"
-                    + "onchange='log_user_choice(\""+query_id+"\",\""
+                    + " onchange='log_user_choice(\"" + query_id + "\",\""
                     + target_id+"\","
                     + q+", "
                     + "\""+db_name+"\");'"
@@ -595,13 +376,13 @@ function show_results(json) {
     const top_result_id = results[0].id;
     let top_result_rank_factor;
     if (jaccard) { top_result_rank_factor = 1 - results[0].jaccard; }
-    else { top_result_rank_factor = results[0].num_matched_words / results[0].num_words };
+    else { top_result_rank_factor = results[0].num_matched_words / results[0].num_words; }
 
     load_result_image(top_result_id, 0, top_result_rank_factor);
 
-   if(query_id.length) {
-	   display_cosine_sim_line(json);
-	}
+    if(query_id.length) {
+        display_cosine_sim_line(json);
+    }
 }
 
 
@@ -621,7 +402,6 @@ function compare(a,b) {
 
 function highlight_result_row(rank) {
     let rowID;
-//    for(var i=0; i < num_results; i++) {
     for(var i=0; i < parseInt(document.getElementById("res_disp_select").value); i++) {
         rowID = "result_row" + i;
         if (document.getElementById(rowID).style != null) {
@@ -641,7 +421,7 @@ function load_result_image(id, rank, percent) {
     }
     image = id + ".jpg";
 
-    if (query_id != id) {
+    if (query_id !== id) {
         document.getElementById("result_id_msg").innerHTML =
             matched_words[rank]+"/"+words_in_page[rank]+" words in page match the query"; }
 
@@ -649,29 +429,11 @@ function load_result_image(id, rank, percent) {
         document.getElementById("result_id_msg").innerHTML = "Query: "+id;
     }
 
-//    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='http://doc.gold.ac.uk/~mas01tc/page_dir_50/"+image+"' />";
-//    document.getElementById("result_image_display").style.maxHeight='1000px';
     document.getElementById("result_image_display").style.maxWidth='700px';
-//    document.getElementById("result_image_display").innerHTML = "<img class='img-fluid' id='result_image' src='"+BASE_IMG_URL+image+"' />";
     document.getElementById("result_image_display").innerHTML = "<img id='result_image' width='100%' alt='... image loading!' src='"+BASE_IMG_URL+image+"' />";
     highlight_result_row(rank);
     $('#result_image_display').zoom();
     document.getElementById("query_id").value = id;
-    //                load_lyrics(id, false);
-}
-
-function reload_result_image(id) {
-    if (!id) {
-        document.getElementById("result_id_msg").innerHTML = "";
-        document.getElementById("result_image_display").innerHTML = "";
-        return false;
-    }
-    let image = id + ".jpg";
-
-//    document.getElementById("result_image_display").style.maxHeight='1000px';
-    document.getElementById("result_image_display").style.maxHeight='700px';
-    document.getElementById("result_image_display").innerHTML = "<img id='result_image' src='"+BASE_IMG_URL+image+"' />";
-    $('#result_image_display').zoom();
 }
 
 // Load title-page jpg urls at startup
@@ -779,31 +541,6 @@ function log_user_choice(query_id,target_id,result_num,database) {
     });
 }
 
-// Server-side - user need never be aware of this; log needs to be on remote server - see log_search_problem.php
-function log_search_problem(query_id,message,database) {
-    var the_time = getFormattedDate();
-    var log_entry = the_time+"\t";
-    if(can_store_user_id) {
-        log_entry += localStorage.getItem("userID");
-    }
-    else {
-        log_entry += user_id;
-    }
-    log_entry += "\t" +query_id+"\t" + database+"\t" + message;
-    $.ajax({
-        type: "POST",
-        url: "api/log",
-        data: {
-            log_entry: log_entry,
-            log: 'search_problems.log'
-        },
-        dataType:'TEXT',
-        success: function(response){
-            console.log(response);
-        }
-    });
-}
-
 // Client-side UI stuff
 function checkKey(e) {
     
@@ -814,17 +551,17 @@ function checkKey(e) {
         e.preventDefault();
     }
 
-    if (e.keyCode == '38' || e.keyCode == '40') {
+    if (e.keyCode === 38 || e.keyCode === 40) {
         // highlighting stuff
         let result_row = "result_row";
 
-        if (e.keyCode == '38') {    // up arrow
+        if (e.keyCode === 38) {    // up arrow
             if(highlighted_result_row > 0) {
                 result_row += highlighted_result_row - 1;
             } else {
                 return;
             }
-        } else if (e.keyCode == '40') {    // down arrow
+        } else if (e.keyCode === 40) {    // down arrow
             if (highlighted_result_row < num_results_to_display - 1) {
                 result_row += highlighted_result_row + 1;
             } else {
@@ -834,33 +571,20 @@ function checkKey(e) {
         document.getElementById(result_row).click();
         return;
     }
-    if (e.keyCode == '37') {    // left arrow - Search previous page/book
+    if (e.keyCode === 37) {    // left arrow - Search previous page/book
         (shiftDown)? find_book_id(false) : find_page_id(false);
         query_id = document.getElementById("query_id").value;
-    } else if (e.keyCode == '39') {    // right arrow - Search next page/book
+    } else if (e.keyCode === 39) {    // right arrow - Search next page/book
         (shiftDown)? find_book_id(true) : find_page_id(true);
         query_id = document.getElementById("query_id").value;
-    } else if (e.keyCode == '220') { // '\' for random query
+    } else if (e.keyCode === 220) { // '\' for random query
         find_random_page();
         query_id = document.getElementById("query_id").value;    
         load_page_query(query_id);
-    } else if (e.keyCode == '13') { // enter to search
-        do_search()
+    } else if (e.keyCode === 13) { // enter to search
+        do_search();
     }    
 }
-
-// Unused??
-var dl_text =  "";
-// Unused??
-function PreviewText() {
-    var oFReader = new FileReader();
-    oFReader.readAsText(document.getElementById("uploadText").files[0]);
-    oFReader.onload = function (oFREvent) {
-        dl_text = document.getElementById("uploadTextValue").value = oFREvent.target.result;
-        // We now have it so can delete the hidden input value
-        document.getElementById("uploadTextValue").value = "";
-    };
-};
 
 function update_colls_to_search() {
 	collections_to_search.length=0; // clear the list first
@@ -963,15 +687,13 @@ function find_random_page () {
         method: 'GET',
         async: false,
         success: function(response){load_page_query(response);}
-	})
-      .fail((xhr, status) => alert(status)); // TODO: real error handling!
+    })
+        .fail((xhr, status) => alert(status)); // TODO: real error handling!
 }
-
 
 function basename(path) {
     return path.replace(/\\/g,'/').replace(/.*\//, '');
 }
-
 
 function clear_result_divs() {
     const result_div_ids = ['results_table', 'result_image_display', 'result_id_msg'];
@@ -1005,12 +727,7 @@ function validate_file_upload() {
         alert('You can only upload 1 file.');
         return;
     }
-
-    const user_image_file = files[0];
-    
-    // TODO(ra) more validation - filetype etc.
-
-    return user_image_file;
+    return files[0];
 }
 
 
@@ -1030,7 +747,7 @@ function show_user_image(user_image_file) {
 
 function submit_upload_form(user_image_file) {
     
-	clear_multi_results();
+	clear_result_divs();
 
     const formData = new FormData();
     formData.append('user_image_file', user_image_file, user_image_file.name);
@@ -1043,7 +760,7 @@ function submit_upload_form(user_image_file) {
         contentType: false,
     }).done((data) => {
         $('#uploading_status').empty();
-        show_multi_results(data);
+        show_results(data);
     }).fail((xhr, status) => {
         $('#uploading_status').empty();
         alert(status)
@@ -1103,19 +820,6 @@ function set_image_search_mode() {
     $('#corpus_search_link').removeClass('active');
     $('#image_search_link').addClass('active');
     $('#code_search_link').removeClass('active');
-    $('#search_controls').addClass('d-none');
-    $('#examples_container').addClass('d-none');
-    corpus_search_mode = false;
-}
-
-function set_code_search_mode() {
-    // console.log('search with code!');
-    clear_result_divs();
-    $('#emo_browser_col').addClass('d-none');
-    $('#image_upload_col').addClass('d-none');
-    $('#corpus_search_link').removeClass('active');
-    $('#image_search_link').removeClass('active');
-    $('#code_search_link').addClass('active');
     $('#search_controls').addClass('d-none');
     $('#examples_container').addClass('d-none');
     corpus_search_mode = false;

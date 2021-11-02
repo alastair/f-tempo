@@ -201,8 +201,6 @@ function repeat_search(n) {
     );
 }
 
-var num_results_to_display;
-
 function code_search(codestring, jaccard, num_results, collections_to_search, record) {
     $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>');
     let search_data = JSON.stringify({codestring, jaccard, num_results, threshold, collections_to_search});
@@ -567,22 +565,22 @@ function checkKey(e) {
 
     if (e.keyCode === 38 || e.keyCode === 40) {
         // highlighting stuff
-        let result_row = "result_row";
-
+        const result_row = "result_row";
+        let row_id = "";
         if (e.keyCode === 38) {    // up arrow
             if (highlighted_result_row > 0) {
-                result_row += highlighted_result_row - 1;
+                row_id = result_row + (highlighted_result_row - 1);
             } else {
                 return;
             }
         } else if (e.keyCode === 40) {    // down arrow
-            if (highlighted_result_row < num_results_to_display - 1) {
-                result_row += highlighted_result_row + 1;
+            if (highlighted_result_row < num_results - 1) {
+                row_id = result_row + (highlighted_result_row + 1);
             } else {
-                result_row = "result_row0";
+                row_id = "result_row0";
             }
         }
-        document.getElementById(result_row).click();
+        document.getElementById(row_id).click();
         return;
     }
     if (e.keyCode === 37) {    // left arrow - Search previous page/book

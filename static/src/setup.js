@@ -314,13 +314,14 @@ function show_results(json) {
         var sim_choice_id = "sim_choice" + q;
         var sim_id = "sim" + q;
         imageSrcs.push(BASE_IMG_URL + results[q].id + ".jpg");
+        var book = JSON.stringify({book_id: results[q].book, library: results[q].library});
 
         const rank_percentage = (rank_factor * 100).toFixed(2);
 
         if (corpus_search_mode && results[q].id === query_id) { // query
             table_html +=
                 "<tr class='id_list_name' id='" + result_row_id
-                + "' onclick='load_result_image(\"" + target_id + "\"," + q + "," + (rank_factor * 100).toFixed(1) + ");'>";
+                + "' onclick='load_result_image(\"" + target_id + "\"," + q + "," + book + ");'>";
             if (target_id.startsWith("D-Mbs")) {
                 table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + query_id + "\"," + true + ")' onmouseup='reload_page_query(\"" + query_id + "\")'></td>";
             } else {
@@ -351,7 +352,7 @@ function show_results(json) {
         } else {  // results
             table_html +=
                 "<tr class='id_list_name' id='" + result_row_id
-                + "' onclick='load_result_image(\"" + target_id + "\"," + q + "," + (rank_factor * 100).toFixed(1) + ");'>";
+                + "' onclick='load_result_image(\"" + target_id + "\"," + q + "," + book + ");'>";
             if (target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + target_id + "\"," + false + ")'></td>";
             else table_html += "<td></td>";
             table_html += "<td text-align='center' style='color:blue; font-size: 10px'>" + target_id + "</td>"
@@ -427,12 +428,13 @@ function highlight_result_row(rank) {
     highlighted_result_row = rank;
 }
 
-function load_result_image(id, rank, percent) {
+function load_result_image(id, rank, book) {
     if (!id) {
         document.getElementById("result_id_msg").innerHTML = "";
         document.getElementById("result_image_display").innerHTML = "";
         return false;
     }
+    current_page = {library: book.library, book: book.book_id, page: id};
     const image = id + ".jpg";
 
     if (query_id !== id) {

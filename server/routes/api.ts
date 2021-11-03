@@ -160,7 +160,7 @@ router.post('/api/query', async function (req, res) {
         collections_to_search = req.body.collections_to_search;
     }
 
-    let result = {};
+    let result: any[] = [];
     try {
         if (req.body.id) {
             result = await search_by_id(req.body.id, collections_to_search, jaccard, num_results, threshold);
@@ -168,6 +168,11 @@ router.post('/api/query', async function (req, res) {
             console.log("codestring is: " + req.body.codestring);
             result = await search_by_codestring(req.body.codestring, collections_to_search, jaccard, num_results, threshold);
         }
+        result = result.map((r) => {
+            const id = r.id;
+            const book = db_id_to_book[id];
+            return {...r, ...book}
+        })
         return res.send(result);
     } catch (err) {
         console.error(err);

@@ -705,7 +705,11 @@ function find_random_page() {
         method: 'GET',
         async: false,
         success: function (response) {
-            load_page_query(response);
+            var page = response.id;
+            var book = response.book;
+            var library = response.library;
+            load_page_query(page);
+            current_page = {library, book, page};
         }
     })
         .fail((xhr, status) => alert(status)); // TODO: real error handling!

@@ -1,7 +1,7 @@
 import express from 'express';
 import fs from 'fs';
 import path from "path";
-import {EMO_IDS, tp_jpgs, db} from "../server.js";
+import {tp_jpgs, db, db_id_to_book} from "../server.js";
 import {
     get_codestring,
     get_random_id,
@@ -18,7 +18,8 @@ const router = express.Router();
 router.get('/api/random_id', async function(req, res) {
     try {
         const id = await get_random_id();
-        return res.send(id);
+        const book = db_id_to_book[id as string];
+        return res.status(200).json({id, ...book});
     } catch (err) {
         return res.status(500).send("Unable to contact random server");
     }

@@ -64,6 +64,7 @@ function parse_tp_jpgs(data_str: string) {
 const db_paths = nconf.get('database_files');
 // TODO: Make this type actually represent a json db entry
 export const db: StringToAny = {};
+export const db_id_to_book: StringToAny = {};
 const storage_location = nconf.get('config:storage');
 for (const [key, filename] of Object.entries(db_paths)) {
     console.log(`Loading ${key}`)
@@ -72,7 +73,18 @@ for (const [key, filename] of Object.entries(db_paths)) {
         fs.accessSync(full_path, fs.constants.R_OK)
         const data = fs.readFileSync(full_path);
         db[key] = JSON.parse(data.toString());
+        // Make a mapping of full id -> {book, library}
+        // This is used for random page and search results to augment the results and include the data
+        // TODO: ideally this would be part of the solr database and be returned with these queries
+        const library = key.split("_")[0]
+        const books: StringToAny = db[key].books;
+        for (const [book, pages] of Object.entries(books)) {
+            for (const pageid of pages.page_ids) {
+                db_id_to_book[pageid] = {book: book, library: library}
+            }
+        }
     } catch (err) {
+        // TODO: This could be any exception, not just file doesn't exist
         console.error(`Cannot find file ${filename} in ${storage_location}`);
     }
 }

@@ -16,6 +16,9 @@ import path from "path";
  * Globals / init
  ******************************************************************************/
 nconf.argv().file('default_config.json')
+if (process.env.NODE_ENV === "production") {
+    nconf.file('production_config.json')
+}
 
 interface StringToString {
     [key: string]: string;

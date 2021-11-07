@@ -70,4 +70,3 @@ EXPOSE 8000
 
 RUN mkdir -p /app/multiservers/run/codestring_queries
 
-RUN npm run build

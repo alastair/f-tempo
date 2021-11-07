@@ -76,18 +76,6 @@ export function pageToContourList(page: Page): string[] {
     return pitchesToIntervalMapping(notes.flat());
 }
 
-export function listToNgrams(items: string[], chunkSize?: number) {
-    if (!chunkSize) {
-        chunkSize = 4;
-    }
-    const ngrams = [];
-    for (let i = 0; i < items.length - chunkSize + 1; i++) {
-        const part = items.slice(i, i + chunkSize);
-        ngrams.push(part.join());
-    }
-    return ngrams;
-}
-
 export function notesToContour(notes: Note[], chunkSize?: number) {
     if (!chunkSize) {
         chunkSize = 4;
@@ -111,7 +99,7 @@ export function notesToContour(notes: Note[], chunkSize?: number) {
  * and return a mapping of absolute pitches differences between the notes
  * - if there is no change
  * a for pitch 1, b for pitch 2, c for pitch 3. Upper-case if pitch is increasing,
- * lower-case if pitch is decreasing. Doesn't take in to account accidentals
+ * lower-case if pitch is decreasing. Doesn't take into account accidentals
  * @param pitches
  */
 export function pitchesToIntervalMapping(pitches: Note[]): string[] {

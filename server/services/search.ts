@@ -2,12 +2,13 @@
 import cp from 'child_process';
 import solr from 'solr-client';
 import nconf from 'nconf';
+import {get_maws_for_codestring} from "../../src/maw.js";
 
 function quote(str: string) {
     return `"${str}"`;
 }
 
-async function get_maws_for_siglum(siglum: string): Promise<string[]> {
+async function get_maws_for_siglum(siglum: string): Promise<string> {
     return new Promise((resolve, reject)=> {
         const client = solr.createClient(nconf.get('search'));
         const query = client.query().q('siglum:' + quote(siglum)).fl('maws');
@@ -21,21 +22,10 @@ async function get_maws_for_siglum(siglum: string): Promise<string[]> {
                     const doc = obj.response.docs[0];
                     resolve(doc.maws);
                 }
-                resolve([]);
+                resolve('');
             }
         });
     });
-}
-
-async function get_maws_for_codestring(codestring: string): Promise<string[]|undefined> {
-    const inputstr = `>input:\n${codestring}\n`;
-    const maws = cp.spawnSync(
-        "/usr/local/bin/maw",
-        ["-a", "PROT", "-i", "-", "-o", "-", "-k", "4", "-K", "8"],
-        {input: inputstr});
-    const maws_output = maws.stdout.toString().split("\n");
-    // Remove any empty lines and the first sentinel line that starts with >
-    return maws_output.filter((val: string) => val && !val.startsWith(">"));
 }
 
 async function search_maws_solr(maws: string[], collections_to_search: string[], num_results: number): Promise<any> {
@@ -107,7 +97,7 @@ export async function get_random_id() {
 
 export async function search_by_id(id: string, collections_to_search: string[], jaccard: boolean, num_results: number, threshold: number) {
     const maws = await get_maws_for_siglum(id);
-    return await search(maws, collections_to_search, jaccard, num_results, threshold);
+    return await search(maws.split(" "), collections_to_search, jaccard, num_results, threshold);
 }
 
 export async function search_by_codestring(codestring: string, collections_to_search: string[], jaccard: boolean, num_results: number, threshold: number) {

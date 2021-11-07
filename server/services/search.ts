@@ -60,6 +60,28 @@ async function search_maws_solr(maws: string[], collections_to_search: string[],
     });
 }
 
+async function search_ngrams_solr(ngrams: string, collections_to_search: string[], num_results: number, interval: boolean): Promise<any> {
+    collections_to_search = collections_to_search.map(quote)
+    return new Promise((resolve, reject)=> {
+        const client = solr.createClient(nconf.get('search_ngram'));
+        const qob = interval ? {pitch_ngrams: quote(ngrams)} : {note_ngrams: quote(ngrams)}
+        let query = client.query().q(qob).rows(num_results);
+        if (collections_to_search.length) {
+            query = query.matchFilter("library", "(" + collections_to_search.join(" OR ") + ")")
+        }
+        client.search(query, function (err: any, obj: any) {
+            if (err) {
+                reject(err);
+            } else {
+                if (obj.response.numFound >= 1) {
+                    resolve(obj.response.docs);
+                }
+                resolve([]);
+            }
+        });
+    });
+}
+
 async function search_random_id(timestamp: string) {
     return new Promise((resolve, reject) => {
         const client = solr.createClient(nconf.get('search'));
@@ -95,6 +117,11 @@ export async function search_by_codestring(codestring: string, collections_to_se
     } else {
         return []
     }
+}
+
+export async function search_by_ngram(ngram: string, num_results: number, threshold: number, interval: boolean) {
+    const ngrams = await search_ngrams_solr(ngram, [], num_results, interval);
+    return ngrams;
 }
 
 function set_intersection(setA: Set<string>, setB: Set<string>) {

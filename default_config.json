@@ -1,13 +1,13 @@
 {
   "search": {
-    "host": "solr",
+    "host": "localhost",
     "port": 8983,
     "core": "ftempo"
   },
-  "search_ngrams": {
-    "host": "solr",
+  "search_ngram": {
+    "host": "localhost",
     "port": 8983,
-    "core": "ftempo"
+    "core": "ngram"
   },
   "server": {
     "host": "0.0.0.0",

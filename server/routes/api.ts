@@ -5,10 +5,10 @@ import {tp_jpgs, db, db_id_to_book} from "../server.js";
 import {
     get_codestring,
     get_random_id,
-    parse_id,
     run_image_query,
     search_by_codestring,
-    search_by_id
+    search_by_id,
+    search_by_ngram
 } from "../services/search.js";
 import fileUpload from "express-fileupload";
 
@@ -123,6 +123,113 @@ router.get('/api/get_codestring', async function (req, res) {
     res.send(JSON.stringify(searchResult));
 });
 
+type NgramSearchResponse = {
+    id: string
+    library: string
+    book: string
+    pageNumber: string
+    note_ngrams: string
+    pitch_ngrams: string
+    page: string[]
+}
+
+type NgramResponseNote = {
+    p: string
+    o: string
+    id: string
+    x: string
+}
+
+type NgramResponseSystem = {
+    id: string
+    notes: NgramResponseNote[]
+}
+
+type NgramResponsePage = {
+    width: string
+    height: string
+    systems: NgramResponseSystem[]
+}
+
+/**
+ * The same as String.prototype.indexOf, but works on arrays instead of strings
+ * @param arr the array to search
+ * @param subarr the subarray to find
+ * @param startat the starting position in arr to search
+ */
+function findSubarray(arr: string[], subarr: string[], startat: number) {
+    // TODO: This could be updated to use something like KMP to be faster
+    for (let i = startat; i < 1 + (arr.length - subarr.length); i++) {
+        let j = 0;
+        for (; j < subarr.length; j++) {
+            if (arr[i + j] !== subarr[j]) {
+                break;
+            }
+        }
+        if (j === subarr.length) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+/**
+ * Perform an ngram search
+ * POST a json document with content-type application/json with the following structure
+ * {ngrams: a list of ngrams to search}
+ */
+router.post('/api/ngram', async function (req, res) {
+    if (req.body === undefined) {
+        return res.status(400).send("requires a body");
+    }
+
+    let num_results = 20;
+    let threshold = 0;
+    if (req.body.num_results !== undefined) {
+        num_results = req.body.num_results;
+    }
+    if (req.body.threshold !== undefined) {
+        threshold = parseInt(req.body.threshold, 10);
+    }
+
+    const ngrams = req.body.ngrams;
+    const interval = req.body.interval;
+    const search_ngrams_arr = ngrams.split(" ");
+    // Convert ngrams from a space separated string to an array
+    if (search_ngrams_arr.length) {
+        const result = await search_by_ngram(ngrams, num_results, threshold, interval);
+        const response = result.map((item: NgramSearchResponse) => {
+            // Find the start position(s) of the search term in the results
+            const positions: number[] = [];
+            // console.debug(`len note ngrams: ${item.note_ngrams.split(" ").length}`)
+            const note_ngrams_arr = interval ? item.pitch_ngrams.split(" ") : item.note_ngrams.split(" ");
+            let position = findSubarray(note_ngrams_arr, search_ngrams_arr, 0)
+            while (position !== -1) {
+                positions.push(position);
+                position = findSubarray(note_ngrams_arr, search_ngrams_arr, position + ngrams.length);
+            }
+            // console.debug(`positions: ${positions}`);
+            const pageDocument: NgramResponsePage = JSON.parse(item.page[0]);
+            // Unwind the page/systems/notes structure to a flat array so that we can apply the above positions
+            const notes: any[] = [];
+            for (const system of pageDocument.systems) {
+                for (const note of system.notes) {
+                    notes.push({note: `${note.p}${note.o}`, id: note.id, system: system.id})
+                }
+            }
+            // console.debug(`len unwound notes: ${notes.length}`)
+            const responseNotes = positions.map((start) => {
+                // If it's an interval search select 1 more note because we're working with gaps instead of notes
+                const len = search_ngrams_arr.length + (interval ? 1 : 0);
+                return notes.slice(start, start + len);
+            });
+            return {match_id: item.id, notes: responseNotes};
+        });
+        return res.json(response)
+    } else {
+        return res.status(400).json({error: "No ngrams set"})
+    }
+});
 
 /**
  * Perform a search

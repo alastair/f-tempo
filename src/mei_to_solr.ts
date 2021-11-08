@@ -6,9 +6,35 @@ import solr from "solr-client";
 import path from "path";
 import fs from "fs";
 import nconf from 'nconf';
-import {get_maws_for_codestring} from "./maw.js";
+import {get_maws_for_codestrings} from "./maw.js";
 
 nconf.argv().file('default_config.json')
+
+const argv = yargs(process.argv.slice(2)).usage('Parse MEI files to solr')
+    .command({
+        command: 'clear',
+        describe: 'clear solr database',
+        handler: clearSolr
+    })
+    .command({
+        command: 'import <library>',
+        describe: 'import data to solr',
+        handler: importSolr,
+        builder: yargs =>
+            yargs.positional('library', {
+                description: 'path to library definition file',
+                default: undefined
+            }).options({
+            'cache': {
+                type: 'boolean',
+                description: 'if set, cache the mei data',
+                required: false,
+                default: false
+            },
+        })
+    })
+    .demandCommand()
+    .argv;
 
 async function saveToSolr(documents: any[]) {
     return new Promise((resolve, reject)=> {
@@ -60,43 +86,20 @@ async function processLibrary(librarypath: string, cache: boolean) {
             if (documents.length >= 1000) {
                 count += 1000;
                 console.log(` ${count}/${numPages}`);
-                await saveToSolr(documents);
+                const documentsWithMaws = addMaws(documents);
+                await saveToSolr(documentsWithMaws);
+                saveCache(documentsWithMaws, cache);
                 documents = [];
             }
         }
     }
     if (documents.length) {
         console.log(`saving last ${documents.length}`);
-        await saveToSolr(documents);
+        const documentsWithMaws = addMaws(documents);
+        await saveToSolr(documentsWithMaws);
+        saveCache(documentsWithMaws, cache);
     }
 }
-
-
-const argv = yargs(process.argv.slice(2)).usage('Parse MEI files to solr')
-    .command({
-        command: 'clear',
-        describe: 'clear solr database',
-        handler: clearSolr
-    })
-    .command({
-        command: 'import <library>',
-        describe: 'import data to solr',
-        handler: importSolr,
-        builder: yargs =>
-            yargs.positional('library', {
-                description: 'path to library definition file',
-                default: undefined
-            }).options({
-            'cache': {
-                type: 'boolean',
-                description: 'if set, cache the mei data',
-                required: false,
-                default: false
-            },
-        })
-    })
-    .demandCommand()
-    .argv;
 
 type MeiCacheData = {page: Page, maws: string[], notes: string[], intervals: string[]}
 
@@ -120,23 +123,13 @@ async function makeDocumentFromFile(filePath: string, id: string, book: string, 
     if (data === undefined) {
         try {
             const page = parseMei(filePath);
-
             const intervals = pageToContourList(page)
-            const maws = await get_maws_for_codestring(intervals.join(''));
-            if (!maws) {
-                throw Error("maws is empty somehow?")
-            }
-            
+
             data = {
                 intervals: intervals,
-                maws: maws,
+                maws: [],
                 notes: pageToNoteList(page),
                 page: page
-            }
-
-            if (cache) {
-                fs.mkdirSync(dirname, { recursive: true })
-                fs.writeFileSync(fpath, JSON.stringify(data));
             }
         } catch {
             // Probably means the file isn't there
@@ -150,10 +143,25 @@ async function makeDocumentFromFile(filePath: string, id: string, book: string, 
         book: book,
         page_number: page,
         page_data: JSON.stringify(data.page),
-        maws: data.maws.join(' '),
         notes: data.notes.join(' '),
         intervals: data.intervals.join(' ')
     };
+}
+
+function addMaws(documents: any[]) {
+    const input: {[k: string]: string} = {}
+    for (const doc of documents) {
+        input[doc.siglum] = doc.intervals.split(' ').join('')
+    }
+    const mawsOutput = get_maws_for_codestrings(input);
+
+    return documents.map(doc => {
+        const maws: any = {}
+        if (mawsOutput[doc.siglum] !== undefined) {
+            maws['maws'] = mawsOutput[doc.siglum].join(' ')
+        }
+        return {...doc, ...maws};
+    });
 }
 
 async function importSolr(argv: any) {
@@ -164,7 +172,26 @@ async function importSolr(argv: any) {
     }
 }
 
+function saveCache(documents: any[], cache: boolean) {
+    if (cache) {
+        documents.forEach(element => {
+            const parts = element.id.split("_");
+            const book = element.id.split("_");
+            const library = parts[0];
 
+            const dirname = path.join('solr', 'cache', library, book)
+            const fpath = path.join(dirname, `${element.id}.json`);
+            const data = {
+                page_number: element.page,
+                page_data: JSON.parse(element.page),
+                notes: element.notes.split(' '),
+                intervals: element.intervals.split(' ')
+            }
+            fs.mkdirSync(dirname, { recursive: true })
+            fs.writeFileSync(fpath, JSON.stringify(data));
+        });
+    }
+}
 
 function pprint(obj: any): string {
     return util.inspect(obj, false, 4, true);

@@ -2,7 +2,7 @@
 import cp from 'child_process';
 import solr from 'solr-client';
 import nconf from 'nconf';
-import {get_maws_for_codestring} from "../../src/maw.js";
+import {get_maws_for_codestrings} from "../../src/maw.js";
 
 function quote(str: string) {
     return `"${str}"`;
@@ -101,9 +101,9 @@ export async function search_by_id(id: string, collections_to_search: string[], 
 }
 
 export async function search_by_codestring(codestring: string, collections_to_search: string[], jaccard: boolean, num_results: number, threshold: number) {
-    const maws = await get_maws_for_codestring(codestring);
+    const maws = get_maws_for_codestrings({cs: codestring});
     if (maws) {
-        return await search(maws, collections_to_search, jaccard, num_results, threshold);
+        return await search(maws['cs'], collections_to_search, jaccard, num_results, threshold);
     } else {
         return []
     }

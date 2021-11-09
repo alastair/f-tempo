@@ -18,6 +18,9 @@
     "PL-Kj": "index-PL-Kj.json"
   },
   "config": {
+    "import": {
+      "threads": 4
+    },
     "storage": "./storage/ftempo/",
     "tp_jpg_list": "static/src/jpg_list.txt",
     "base_image_url": "http://f-tempo-mbs.rism-ch.org/img/jpg/",

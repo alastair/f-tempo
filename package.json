@@ -29,7 +29,8 @@
     "nodemon": "^2.0.7",
     "once": "^1.4.0",
     "request": "^2.88.0",
-    "solr-client": "^0.9.0"
+    "solr-client": "^0.9.0",
+    "workerpool": "^6.1.5"
   },
   "devDependencies": {
     "@types/cors": "^2.8.10",
@@ -42,6 +43,7 @@
     "@types/nconf": "^0.10.1",
     "@types/once": "^1.4.0",
     "@types/solr-client": "^0.7.5",
+    "@types/workerpool": "^6.1.0",
     "concurrently": "^6.2.0",
     "eslint": "^7.29.0",
     "eslint-config-standard": "^12.0.0",

@@ -152,8 +152,8 @@ async function search(words: string[], collections_to_search: string[], jaccard:
     const search_uniq_words = new Set(words);
 
     const maws_results = await search_maws_solr(words, collections_to_search, num_results * 2);
-    const maws_with_scores: SearchResult[] = maws_results.map((doc: { maws: string[]; siglum: string; codestring: string; }) => {
-        const unique_maws = new Set(doc.maws);
+    const maws_with_scores: SearchResult[] = maws_results.map((doc: { maws: string; siglum: string; codestring: string; }) => {
+        const unique_maws = new Set(doc.maws.split(" "));
         const num_matched_words = set_intersection(unique_maws, search_uniq_words).size;
         return {
             // ID of the document

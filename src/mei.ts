@@ -1,3 +1,4 @@
+/// <reference types="./types" />
 import fs from 'fs';
 import {JSDOM} from 'jsdom';
 

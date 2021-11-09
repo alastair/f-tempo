@@ -112,7 +112,7 @@ function processLibrary(librarypath: string, cache: boolean) {
         const items = inputList.slice(i, i + chunk);
         pool.exec('doImport', [items]).then((resp: any[]) => {
             saveToSolr(resp);
-            console.log(`${i+chunk}/${len}`)
+            console.log(`${Math.min(i+chunk, len)}/${len}`)
             // saveCache(documentsWithMaws, cache);
         }).then(function () {
             const stats = pool.stats();

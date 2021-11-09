@@ -108,9 +108,7 @@ export function pitchesToIntervalMapping(pitches: Note[]): string[] {
     const alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
 
     const pitch_nums = pitches.map(function(e) {
-        // TODO: This replicates the behaviour of the awk script, where g is 0 and a->f is 1-6
-        //  appears to be a bug because of awk string indexes starting from 1
-        return (alphabet.indexOf(e.p.toUpperCase()) + 1) % 7 + ((7 * parseInt(e.o, 10)) % 7);
+        return (alphabet.indexOf(e.p.toUpperCase())) % 7 + ((7 * parseInt(e.o, 10)) % 7);
     });
 
     let pitch_intervals = [];

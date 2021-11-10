@@ -12,91 +12,61 @@ function quote(str: string) {
     return `"${str}"`;
 }
 
-async function get_maws_for_siglum(siglum: string): Promise<string> {
-    return new Promise((resolve, reject)=> {
-        const client = solr.createClient(nconf.get('search'));
-        const query = client.query().q('siglum:' + quote(siglum)).fl('maws');
-        client.search(query, function (err: any, obj: any) {
-            if (err) {
-                console.log("Got a solr error", err)
-                reject(err);
-            } else {
-                //console.log(obj);
-                if (obj.response.numFound >= 1) {
-                    const doc = obj.response.docs[0];
-                    resolve(doc.maws);
-                }
-                resolve('');
-            }
-        });
-    });
+async function get_maws_for_siglum(siglum: string) {
+    const client = solr.createClient(nconf.get('search'));
+    const query = client.query().q('siglum:' + quote(siglum)).fl('maws');
+    const result = await client.search(query);
+    if (result.response.numFound >= 1) {
+        const doc = result.response.docs[0];
+        return (doc as any).maws;
+    }
 }
 
 async function search_maws_solr(maws: string[], collections_to_search: string[], num_results: number): Promise<any> {
     maws = maws.map(quote);
     collections_to_search = collections_to_search.map(quote)
-    return new Promise((resolve, reject)=> {
-        const client = solr.createClient(nconf.get('search'));
-        let query = client.query().defType('dismax').q(maws.join(" ")).qf({maws:1}).mm(1).rows(num_results);
-        if (collections_to_search.length) {
-            query = query.matchFilter("library", "(" + collections_to_search.join(" OR ") + ")")
-        }
-        client.search(query, function (err: any, obj: any) {
-            if (err) {
-                reject(err);
-            } else {
-                if (obj.response.numFound >= 1) {
-                    resolve(obj.response.docs);
-                }
-                resolve([]);
-            }
-        });
-    });
+    const client = solr.createClient(nconf.get('search'));
+    let query = client.query().defType('dismax').q(maws.join(" ")).qf({maws:1}).mm(1).rows(num_results);
+    if (collections_to_search.length) {
+        query = query.matchFilter("library", "(" + collections_to_search.join(" OR ") + ")")
+    }
+    const result = await client.search(query);
+    if (result.response.numFound >= 1) {
+        return result.response.docs;
+    }
+    return []
 }
 
 async function search_ngrams_solr(ngrams: string, collections_to_search: string[], num_results: number, interval: boolean): Promise<any> {
     collections_to_search = collections_to_search.map(quote)
-    return new Promise((resolve, reject)=> {
-        const client = solr.createClient(nconf.get('search_ngram'));
-        const qob = interval ? {pitch_ngrams: quote(ngrams)} : {note_ngrams: quote(ngrams)}
-        let query = client.query().q(qob).rows(num_results);
-        if (collections_to_search.length) {
-            query = query.matchFilter("library", "(" + collections_to_search.join(" OR ") + ")")
-        }
-        client.search(query, function (err: any, obj: any) {
-            if (err) {
-                reject(err);
-            } else {
-                if (obj.response.numFound >= 1) {
-                    resolve(obj.response.docs);
-                }
-                resolve([]);
-            }
-        });
-    });
+    const client = solr.createClient(nconf.get('search_ngram'));
+    const qob = interval ? {pitch_ngrams: quote(ngrams)} : {note_ngrams: quote(ngrams)}
+    let query = client.query().q(qob).rows(num_results);
+    if (collections_to_search.length) {
+        query = query.matchFilter("library", "(" + collections_to_search.join(" OR ") + ")")
+    }
+    const results = await client.search(query);
+    if (results.response.numFound >= 1) {
+        return results.response.docs;
+    }
+    return [];
 }
 
 async function search_random_id(timestamp: string) {
-    return new Promise((resolve, reject) => {
-        const client = solr.createClient(nconf.get('search'));
-        const key = `random_${timestamp}`;
-        const query = client.query().q("*:*").fl("siglum").start(0).rows(1).sort({[key]: 'desc'});
-        client.search(query, function (err: any, obj: any) {
-            if (err) {
-                reject(err);
-            } else {
-                if (obj.response.numFound >= 1) {
-                    resolve(obj.response.docs[0].siglum);
-                }
-                resolve("");
-            }
-        });
-    });
+    const key = `random_${timestamp}`;
+    const client = solr.createClient(nconf.get('search'));
+    const query = client.query().q("*:*").fl("siglum,library,book").start(0).rows(1).sort({[key]: 'desc'});
+    const result: any = await client.search(query);
+    if (result.response.numFound >= 1) {
+        return result.response.docs[0];
+    }
+    return {};
 }
 
 export async function get_random_id() {
     const now = new Date().getTime();
-    return await search_random_id(now.toString());
+    const id = await search_random_id(now.toString());
+    return {id: id.siglum, book: id.book, library: id.library}
 }
 
 export async function search_by_id(id: string, collections_to_search: string[], jaccard: boolean, num_results: number, threshold: number) {
@@ -156,13 +126,15 @@ async function search(words: string[], collections_to_search: string[], jaccard:
     const search_uniq_words = new Set(words);
 
     const maws_results = await search_maws_solr(words, collections_to_search, num_results * 2);
-    const maws_with_scores: SearchResult[] = maws_results.map((doc: { maws: string; siglum: string; codestring: string; }) => {
+    const maws_with_scores: SearchResult[] = maws_results.map((doc: { maws: string; siglum: string; intervals: string; book: string; library: string;}) => {
         const unique_maws = new Set(doc.maws.split(" "));
         const num_matched_words = set_intersection(unique_maws, search_uniq_words).size;
         return {
             // ID of the document
             id: doc.siglum,
-            codestring: doc.codestring,
+            book: doc.book,
+            library: doc.library,
+            codestring: doc.intervals.split(" ").join(""),
             // Number of words in common between search term and document
             num_matched_words: num_matched_words,
             // Number of unique words in the document
@@ -323,22 +295,15 @@ export function parse_id(id: string): BookId {
     return parsed_id;
 }
 
-export async function get_codestring(id: string): Promise<string> {
-    return new Promise((resolve, reject)=> {
-        const client = solr.createClient(nconf.get('search'));
-        const query = client.query().q(`siglum:"${id}"`).fl('codestring');
-        client.search(query, function (err: any, obj: any) {
-            if (err) {
-                reject(err);
-            } else {
-                if (obj.response.numFound >= 1) {
-                    const doc = obj.response.docs[0];
-                    resolve(doc.codestring);
-                }
-                resolve("");
-            }
-        });
-    });
+export async function get_codestring(id: string) {
+    const client = solr.createClient(nconf.get('search'));
+    const query = client.query().q(`siglum:"${id}"`).fl('codestring');
+    const result = await client.search(query);
+    if (result.response.numFound >= 1) {
+        const doc: any = result.response.docs[0];
+        return doc.codestring;
+    }
+    return "";
 }
 
 function jacc_delta (array: SearchResult[], n: number) {

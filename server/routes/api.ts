@@ -1,7 +1,7 @@
 import express from 'express';
 import fs from 'fs';
 import path from "path";
-import {tp_jpgs, db, db_id_to_book} from "../server.js";
+import {tp_jpgs, db} from "../server.js";
 import {
     get_codestring,
     get_random_id,
@@ -18,9 +18,9 @@ const router = express.Router();
 router.get('/api/random_id', async function(req, res) {
     try {
         const id = await get_random_id();
-        const book = db_id_to_book[id as string];
-        return res.status(200).json({id, ...book});
+        return res.status(200).json(id);
     } catch (err) {
+        console.log((err as Error).stack)
         return res.status(500).send("Unable to contact random server");
     }
 });
@@ -272,14 +272,8 @@ router.post('/api/query', async function (req, res) {
         if (req.body.id) {
             result = await search_by_id(req.body.id, collections_to_search, jaccard, num_results, threshold);
         } else if (req.body.codestring) {
-            console.log("codestring is: " + req.body.codestring);
             result = await search_by_codestring(req.body.codestring, collections_to_search, jaccard, num_results, threshold);
         }
-        result = result.map((r) => {
-            const id = r.id;
-            const book = db_id_to_book[id];
-            return {...r, ...book}
-        })
         return res.send(result);
     } catch (err) {
         console.error(err);

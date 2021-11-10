@@ -29,7 +29,7 @@
     "nodemon": "^2.0.7",
     "once": "^1.4.0",
     "request": "^2.88.0",
-    "solr-client": "^0.9.0",
+    "solr-client": "^0.10.0-rc8",
     "workerpool": "^6.1.5"
   },
   "devDependencies": {

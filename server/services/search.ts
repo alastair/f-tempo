@@ -3,10 +3,10 @@ import os from 'os';
 import cp from 'child_process';
 import solr from 'solr-client';
 import nconf from 'nconf';
-import {get_maws_for_codestrings} from "../../src/maw.js";
+import {get_maws_for_codestrings} from "../../lib/maw.js";
 import * as path from "path";
 import fileUpload from "express-fileupload";
-import {pageToContourList, parseMei} from "../../src/mei.js";
+import {pageToContourList, parseMei} from "../../lib/mei.js";
 
 function quote(str: string) {
     return `"${str}"`;

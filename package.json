@@ -5,7 +5,7 @@
   "scripts": {
     "test": "jest",
     "start": "node --no-warnings --loader ts-node/esm server/server.ts",
-    "watch": "nodemon --watch server --watch src --ext ts --exec \"npm start\""
+    "watch": "nodemon --watch server --watch lib --ext ts --exec \"npm start\""
   },
   "author": "Tim Crawford",
   "contributors": [

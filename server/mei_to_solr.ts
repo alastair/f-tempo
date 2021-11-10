@@ -1,4 +1,4 @@
-/// <reference types="./types" />
+/// <reference types="../lib/types" />
 import yargs from 'yargs'
 import util from 'util';
 import solr from "solr-client";
@@ -13,7 +13,10 @@ const __dirname = path.dirname(__filename);
 
 nconf.argv().file('default_config.json')
 
-const pool = workerpool.pool(__dirname + '/worker.js', {maxWorkers: 4});
+const pool = workerpool.pool(
+    __dirname + '/../lib/worker.js',
+    {maxWorkers: nconf.get('config:import:threads')}
+);
 
 const argv = yargs(process.argv.slice(2)).usage('Parse MEI files to solr')
     .command({
@@ -44,16 +47,9 @@ const argv = yargs(process.argv.slice(2)).usage('Parse MEI files to solr')
 /**
  * Entrypoint for the `clear` command.
  */
-function clearSolr() {
+async function clearSolr() {
     const client = solr.createClient(nconf.get('search'));
-    client.deleteAll( {}, function (err: any, obj: any) {
-        if (err) {
-            console.error(err);
-        } else {
-            console.log(obj);
-            client.commit();
-        }
-    });
+    await client.deleteAll();
 }
 
 /**
@@ -129,17 +125,12 @@ function processLibrary(librarypath: string, cache: boolean) {
  * Load a list of documents to solr
  * @param documents 
  */
-function saveToSolr(documents: any[]) {
+async function saveToSolr(documents: any[]) {
     const client = solr.createClient(nconf.get('search'));
-    client.add(documents, {}, function (err: any, obj: any) {
-        if (err) {
-            throw new Error(err);
-        } else {
-            console.log(obj);
-            client.commit();
-            return obj;
-        }
-    });
+    const response = await client.add(documents)
+    console.log(response);
+    client.commit();
+    return response;
 }
 
 /**

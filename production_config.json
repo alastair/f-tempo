@@ -4,11 +4,6 @@
     "port": 8983,
     "core": "ftempo"
   },
-  "search_ngram": {
-    "host": "solr",
-    "port": 8983,
-    "core": "ngram"
-  },
   "server": {
     "host": "0.0.0.0",
     "port": 8000
@@ -23,9 +18,13 @@
     "PL-Kj": "index-PL-Kj.json"
   },
   "config": {
+    "import": {
+      "threads": 4
+    },
     "storage": "/storage/ftempo/",
     "tp_jpg_list": "static/src/jpg_list.txt",
     "base_image_url": "https://uk-dev-ftempo.rism.digital/img/jpg/",
-    "base_mei_url": "/storage/ftempo/locations/all/mei/"
+    "base_mei_url": "/storage/ftempo/locations/all/mei/",
+    "maw_path": "/usr/local/bin/maw"
   }
 }

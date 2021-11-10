@@ -14,7 +14,8 @@ export function get_maws_for_codestrings(codestrings: {[k: string]: string}): {[
     const maws = cp.spawnSync(
         nconf.get('config:maw_path'),
         ["-a", "PROT", "-i", "-", "-o", "-", "-k", "4", "-K", "8"],
-        {input: inputstr});
+        {input: inputstr}
+    );
     if (maws === undefined) {
         throw new Error("Cannot find `maw` binary");
     }
@@ -27,7 +28,9 @@ export function get_maws_for_codestrings(codestrings: {[k: string]: string}): {[
             currentKey = line.replaceAll(">", "").replaceAll(":", "");
             output[currentKey] = []
         } else {
-            output[currentKey].push(line);
+            if (line) {
+                output[currentKey].push(line);
+            }
         }
     }
     return output;

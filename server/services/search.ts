@@ -1,8 +1,12 @@
-
+import fs from 'fs';
+import os from 'os';
 import cp from 'child_process';
 import solr from 'solr-client';
 import nconf from 'nconf';
 import {get_maws_for_codestrings} from "../../src/maw.js";
+import * as path from "path";
+import fileUpload from "express-fileupload";
+import {pageToContourList, parseMei} from "../../src/mei.js";
 
 function quote(str: string) {
     return `"${str}"`;
@@ -226,38 +230,57 @@ function gate_scores_by_threshold(scores_pruned: SearchResult[], threshold: "med
 }
 
 
-// ** TODO NB: this only supports MAW-based searches at present
-export function run_image_query(user_image_filename: string, the_working_path: string, ngram_search: boolean) {
+export async function run_image_query(image: fileUpload.UploadedFile) {
     const jaccard = true; // TODO(ra) should probably get this setting through the POST request, too...
     const num_results = 20; // TODO(ra) should probably get this setting through the POST request, too...
     const threshold = 0; // TODO(ra) should probably get this setting through the POST request, too...
 
-    let query_data;
-    let query;
-    let result;
-    if(!ngram_search) {
-        try {
-            query_data = cp.execSync('./shell_scripts/image_to_maws.sh ' // script takes 2 command line params
-                + user_image_filename + ' ' + the_working_path);
-            query = String(query_data).split(' ').slice(1); // a string of maws, preceded with an id
-        } catch (err) {
-            // something broke in the shell script...
-            return;
-        }
-        // console.log("query is "+query)
-        result = search(query, [], jaccard, num_results, threshold);
-    }
-    else {
-        try {
-            query_data = cp.execSync('./shell_scripts/image_to_ngrams.sh ' + user_image_filename + ' ' + the_working_path + ' ' + '9');
-            query = String(query_data).split(' ').slice(1);
-        } catch (err) { return; } // something broke in the shell script...
-        if (query) {
-            result = search(query, [], jaccard, num_results, threshold);
-        }
-    }
+    // TODO: Check if we have all of the required programs installed
+    // TODO: Check each spawn call in case there was an error and don't continue
 
-    return result;
+    let tmpDir;
+    const appPrefix = 'emo-upload';
+    try {
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), appPrefix));
+        await image.mv(path.join(tmpDir, image.name))
+
+        const status = cp.spawnSync(
+            "convert",
+            [image.name, "-alpha", "off", "page.tiff"],
+            {cwd: tmpDir})
+        if (status.status !== 0) {
+            console.error(status.stdout)
+            console.error(status.stderr)
+        }
+
+        const aruspixStatus = cp.spawnSync(
+            "aruspix-cmdline",
+            ["-m", "/storage/ftempo/aruspix_models", "page.tiff"],
+            {cwd: tmpDir})
+
+        const zipStatus = cp.spawnSync(
+            "unzip",
+            ["-q", "page.axz", "page.mei"],
+            {cwd: tmpDir})
+
+        const page = parseMei(path.join(tmpDir, "page.mei"));
+        const intervals = pageToContourList(page)
+
+        return search_by_codestring(intervals.join(""), [], jaccard, num_results, threshold);
+    }
+    catch (e) {
+        console.error(`error when running stuff ${e}`);
+        // handle error
+    } finally {
+        try {
+            if (tmpDir) {
+                //fs.rmdirSync(tmpDir, { recursive: true });
+            }
+        }
+        catch (e) {
+            console.error(`An error has occurred while removing the temp folder at ${tmpDir}. Please remove it manually. Error: ${e}`);
+        }
+    }
 }
 
 type BookId = {

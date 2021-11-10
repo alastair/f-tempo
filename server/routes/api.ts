@@ -289,37 +289,19 @@ router.post('/api/query', async function (req, res) {
 });
 
 
-// Handle image uploads
-router.post('/api/image_query', function (req, res) {
+router.post('/api/image_query', async function (req, res) {
     if (!req.files) {
         return res.status(400).send('No files were uploaded.');
     }
 
-    // this needs to stay in sync with the name given to the FormData object in the front end
     let user_image = req.files.user_image_file as fileUpload.UploadedFile;
-    const new_filename = user_image.name.replace(/ /g, '_');
 
-    // TODO: this probably breaks silently if the user uploads two files with the
-    // same name -- they'll end up in the working directory, which may cause
-    // problems for Aruspix
-
-    const working_path = fs.mkdtempSync(path.join('./run', 'user_id', 'imageUpload-'));
-
-    // Use the mv() method to save the file there
-    user_image.mv(working_path + new_filename, (err: any) => {
-        if (err) {
-            return res.status(500).send(err);
-        } else {
-            // console.log("Uploaded file saved as " + working_path + new_filename);
-            const ngram_search = false; // TODO(ra): make this work!
-            const result = run_image_query(new_filename, working_path, ngram_search);
-            if (result) {
-                res.send(result);
-            } else {
-                return res.status(422).send('Could not process this file.');
-            }
-        }
-    });
+    try {
+        const result = await run_image_query(user_image);
+        res.send(result);
+    } catch (e) {
+        return res.status(422).send('Could not process this file.');
+    }
 });
 
 router.post('/api/log', function (req, res) {

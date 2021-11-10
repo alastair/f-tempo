@@ -58,9 +58,6 @@ RUN make -f Makefile.64-bit.gcc && mv maw /usr/local/bin
 RUN mkdir /app
 WORKDIR /app
 
-COPY ./solr/requirements.txt ./
-RUN pip3 install --no-cache-dir -r requirements.txt
-
 COPY package.json package-lock.json ./
 RUN npm install
 

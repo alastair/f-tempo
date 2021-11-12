@@ -132,7 +132,7 @@ async function saveToSolr(documents: any[]) {
     const client = solr.createClient(nconf.get('search'));
     const response = await client.add(documents)
     console.log(response);
-    client.commit();
+    await client.commit();
     return response;
 }
 

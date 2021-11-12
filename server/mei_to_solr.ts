@@ -12,6 +12,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 nconf.argv().file('default_config.json')
+if (process.env.NODE_ENV === "production") {
+    nconf.file('production_config.json')
+}
 
 const pool = workerpool.pool(
     __dirname + '/../lib/worker.js',

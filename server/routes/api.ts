@@ -125,12 +125,14 @@ router.get('/api/get_codestring', async function (req, res) {
 
 type NgramSearchResponse = {
     id: string
+    siglum: string
     library: string
     book: string
-    pageNumber: string
-    note_ngrams: string
-    pitch_ngrams: string
-    page: string[]
+    page_number: string
+    notes: string
+    intervals: string
+    maws: string
+    page_data: string[]
 }
 
 type NgramResponseNote = {
@@ -202,14 +204,14 @@ router.post('/api/ngram', async function (req, res) {
             // Find the start position(s) of the search term in the results
             const positions: number[] = [];
             // console.debug(`len note ngrams: ${item.note_ngrams.split(" ").length}`)
-            const note_ngrams_arr = interval ? item.pitch_ngrams.split(" ") : item.note_ngrams.split(" ");
+            const note_ngrams_arr = interval ? item.intervals.split(" ") : item.notes.split(" ");
             let position = findSubarray(note_ngrams_arr, search_ngrams_arr, 0)
             while (position !== -1) {
                 positions.push(position);
                 position = findSubarray(note_ngrams_arr, search_ngrams_arr, position + ngrams.length);
             }
             // console.debug(`positions: ${positions}`);
-            const pageDocument: NgramResponsePage = JSON.parse(item.page[0]);
+            const pageDocument: NgramResponsePage = JSON.parse(item.page_data[0]);
             // Unwind the page/systems/notes structure to a flat array so that we can apply the above positions
             const notes: any[] = [];
             for (const system of pageDocument.systems) {
@@ -223,7 +225,7 @@ router.post('/api/ngram', async function (req, res) {
                 const len = search_ngrams_arr.length + (interval ? 1 : 0);
                 return notes.slice(start, start + len);
             });
-            return {match_id: item.id, notes: responseNotes};
+            return {match_id: item.siglum, notes: responseNotes};
         });
         return res.json(response)
     } else {

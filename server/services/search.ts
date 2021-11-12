@@ -39,8 +39,8 @@ async function search_maws_solr(maws: string[], collections_to_search: string[],
 
 async function search_ngrams_solr(ngrams: string, collections_to_search: string[], num_results: number, interval: boolean): Promise<any> {
     collections_to_search = collections_to_search.map(quote)
-    const client = solr.createClient(nconf.get('search_ngram'));
-    const qob = interval ? {pitch_ngrams: quote(ngrams)} : {note_ngrams: quote(ngrams)}
+    const client = solr.createClient(nconf.get('search'));
+    const qob = interval ? {intervals: quote(ngrams)} : {notes: quote(ngrams)}
     let query = client.query().q(qob).rows(num_results);
     if (collections_to_search.length) {
         query = query.matchFilter("library", "(" + collections_to_search.join(" OR ") + ")")

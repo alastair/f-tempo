@@ -132,7 +132,7 @@ type NgramSearchResponse = {
     notes: string
     intervals: string
     maws: string
-    page_data: string[]
+    page_data: string
 }
 
 type NgramResponseNote = {
@@ -211,7 +211,7 @@ router.post('/api/ngram', async function (req, res) {
                 position = findSubarray(note_ngrams_arr, search_ngrams_arr, position + ngrams.length);
             }
             // console.debug(`positions: ${positions}`);
-            const pageDocument: NgramResponsePage = JSON.parse(item.page_data[0]);
+            const pageDocument: NgramResponsePage = JSON.parse(item.page_data);
             // Unwind the page/systems/notes structure to a flat array so that we can apply the above positions
             const notes: any[] = [];
             for (const system of pageDocument.systems) {

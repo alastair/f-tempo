@@ -19,5 +19,5 @@ services:
     volumes:
       - ./solr/cores:/solrconfig
       - ./solr/initdb:/docker-entrypoint-initdb.d
-      - ./solr/data:/var/solr/data
+      - ./storage/solr-data:/var/solr/data
     command: "solr-foreground"

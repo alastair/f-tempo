@@ -58,9 +58,9 @@ async function clearSolr() {
 /**
  * Entrypoint for the `import` command.
  */
-function importSolr(argv: any) {
+async function importSolr(argv: any) {
     if (argv.library) {
-        processLibrary(argv.library, argv.cache);
+        await processLibrary(argv.library, argv.cache);
     } else {
         yargs.showHelp();
     }
@@ -89,7 +89,7 @@ type Input = {
  * @param librarypath 
  * @param cache 
  */
-function processLibrary(librarypath: string, cache: boolean) {
+async function processLibrary(librarypath: string, cache: boolean) {
     const data = fs.readFileSync(librarypath);
     const library = JSON.parse(data.toString());
     const meiRoot = nconf.get('config:base_mei_url');
@@ -105,22 +105,35 @@ function processLibrary(librarypath: string, cache: boolean) {
     }
     console.log(`got ${inputList.length} items to do`);
 
-    const chunk = 1000;
+    // This is the number of items that are sent to the `maw` binary at once. It seems
+    // to be buggy when processing 1000 (sometimes it doesn't output data for some inputs)
+    // but with 100 it seems fine.
+    // TODO: Could add this check to the maw generation instead of adding the limit here
+    //  so that we can keep 1000 size chunks but still process maws 10 or 100 at a time.
+    const chunk = 100;
     const len = inputList.length;
     for (let i = 0; i < len; i += chunk) {
         const items = inputList.slice(i, i + chunk);
-        pool.exec('doImport', [items]).then((resp: any[]) => {
-            saveToSolr(resp);
+        if (nconf.get('config:import:threads') === 1) {
+            // If we have 1 thread, don't use the pool, sometimes it terminates early
+            const {doImport} = await import('../lib/mei_to_solr_worker.js');
+            const response = doImport(items);
+            await saveToSolr(response);
             console.log(`${Math.min(i+chunk, len)}/${len}`)
-            // saveCache(documentsWithMaws, cache);
-        }).then(function () {
-            const stats = pool.stats();
-            // This is a bit sketchy - we push all of inputList into the queue as quickly as possible
-            // and hope that the first task doesn't terminate before we finish adding items.
-            if (stats.activeTasks === 0) {
-                pool.terminate();
-            }
-        });
+        } else {
+            pool.exec('doImport', [items]).then((resp: any[]) => {
+                saveToSolr(resp);
+                console.log(`${Math.min(i+chunk, len)}/${len}`)
+                // saveCache(documentsWithMaws, cache);
+            }).then(function () {
+                const stats = pool.stats();
+                // This is a bit sketchy - we push all of inputList into the queue as quickly as possible
+                // and hope that the first task doesn't terminate before we finish adding items.
+                if (stats.activeTasks === 0) {
+                    pool.terminate();
+                }
+            });
+        }
     }
 }
 

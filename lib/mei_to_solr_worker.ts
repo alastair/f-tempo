@@ -9,11 +9,14 @@ if (process.env.NODE_ENV === "production") {
     nconf.file('production_config.json')
 }
 
-workerpool.worker({
-    doImport: doImport
-});
+// Only bind the pool if we have >1 threads
+if (nconf.get('config:import:threads') !== 1) {
+    workerpool.worker({
+        doImport: doImport
+    });
+}
 
-function doImport(param: any[]) {
+export function doImport(param: any[]) {
     const documents = param.map(item => {
         return makeDocumentFromFile(item.filePath, item.id, item.book, item.page, false);
     })
@@ -62,7 +65,9 @@ function makeDocumentFromFile(filePath: string, id: string, book: string, page: 
 function addMaws(documents: any[]) {
     const input: {[k: string]: string} = {}
     for (const doc of documents) {
-        input[doc.siglum] = doc.intervals.split(' ').join('')
+        if (doc.intervals) {
+            input[doc.siglum] = doc.intervals.split(' ').join('')
+        }
     }
     const mawsOutput = get_maws_for_codestrings(input);
 
@@ -70,6 +75,9 @@ function addMaws(documents: any[]) {
         const maws: any = {}
         if (mawsOutput[doc.siglum] !== undefined) {
             maws['maws'] = mawsOutput[doc.siglum].join(' ')
+        } else if (mawsOutput[doc.siglum] !== undefined && doc.intervals) {
+            // If there's no maws output, but there is an interval string, an error
+            console.error(`missing expected maws output for ${doc.siglum}`);
         }
         return {...doc, ...maws};
     });

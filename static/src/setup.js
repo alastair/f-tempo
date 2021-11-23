@@ -275,7 +275,7 @@ var imageSrcs = [];
 
 function show_results(json) {
     imageSrcs.length = 0; // empty the cache altogether
-    var results = json;
+    var results = json.data;
     const provide_judgements = $('#provide_judgements').is(':checked');
 
     if (json.length < 2) {
@@ -670,8 +670,8 @@ function find_book_id(next) {
             new_id = response;
         }
     }).fail((xhr, status) => alert(status)); // TODO: real error handling!
-    query_id = new_id.page.id;
-    current_page = {library: new_id.library, book: new_id.book_id, page: new_id.page.id};
+    query_id = new_id.data.page.id;
+    current_page = {library: new_id.data.library, book: new_id.data.book_id, page: new_id.data.page.id};
     load_page_query(query_id);
 }
 
@@ -696,8 +696,8 @@ function find_page_id(next) {
             new_id = response;
         }
     }).fail((xhr, status) => alert(status)); // TODO: real error handling!
-    query_id = new_id.page.id;
-    current_page = {library: new_id.library, book: new_id.book_id, page: new_id.page.id};
+    query_id = new_id.data.page.id;
+    current_page = {library: new_id.data.library, book: new_id.data.book_id, page: new_id.data.page.id};
     load_page_query(query_id);
 }
 

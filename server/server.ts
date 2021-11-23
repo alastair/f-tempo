@@ -1,16 +1,20 @@
 /*******************************************************************************
  * Imports
  ******************************************************************************/
-import bodyParser from 'body-parser';
-import express from 'express';
-import fileUpload from 'express-fileupload';
 import fs from 'fs';
+import path from 'path';
+
+import express, {NextFunction, Request, Response} from 'express';
+import fileUpload from 'express-fileupload';
+
 import mustacheExpress from 'mustache-express';
 import cors from 'cors';
 import nconf from 'nconf';
+import * as Sentry from "@sentry/node";
+
 import api from "./routes/api.js";
 import webinterface from "./routes/interface.js";
-import path from "path";
+
 
 /*******************************************************************************
  * Globals / init
@@ -20,16 +24,9 @@ if (process.env.NODE_ENV === "production") {
     nconf.file('production_config.json')
 }
 
-interface StringToString {
-    [key: string]: string;
-}
-
 interface StringToAny {
     [key: string]: any;
 }
-
-export const EMO_IDS: string[] = []; // all ids in the system
-export const EMO_IDS_DIAT_MELS: StringToString = {}; // keys are ids, values are the diat_int_code for that id
 
 const TP_JPG_LIST = nconf.get('config:tp_jpg_list');
 export const tp_jpgs: string[] = []; // URLs to title-pages (NB only for D-Mbs!)
@@ -37,6 +34,19 @@ export const tp_jpgs: string[] = []; // URLs to title-pages (NB only for D-Mbs!)
 export const ngr_len = 5;
 
 const app = express();
+const hasSentry = process.env.FTEMPO_SENTRY_DSN !== undefined;
+
+if (hasSentry) {
+    Sentry.init({
+        dsn: process.env.FTEMPO_SENTRY_DSN,
+        integrations: [
+            // enable HTTP calls tracing
+            new Sentry.Integrations.Http({tracing: true}),
+        ],
+        environment: process.env.NODE_ENV === "production" ? "production" : "development"
+    });
+    app.use(Sentry.Handlers.requestHandler());
+}
 
 const databases = nconf.get('databases')
 console.log(`Databases = ${databases}`);
@@ -49,17 +59,24 @@ export const BASE_MEI_URL = nconf.get('config:base_mei_url');
  ******************************************************************************/
 console.log("F-TEMPO server started at " + Date());
 
-load_file(TP_JPG_LIST, parse_tp_jpgs, "Titlepage jpegs");
-
-function parse_tp_jpgs(data_str: string) {
-    let lines = data_str.split("\n");
-    for (let line of lines) {
-        if (line) {
-            tp_jpgs.push(line);
-        }
+// Load Titlepages
+console.log("Loading " + TP_JPG_LIST);
+fs.readFile(TP_JPG_LIST, 'utf8', (err, data) => {
+    if (err) {
+        throw err;
     }
-    console.log(Object.keys(tp_jpgs).length + " title-page urls loaded!");
-}
+    if (!data.length) {
+        console.log("No data!");
+    } else {
+        let lines = data.split("\n");
+        for (let line of lines) {
+            if (line) {
+                tp_jpgs.push(line);
+            }
+        }
+        console.log(Object.keys(tp_jpgs).length + " title-page urls loaded!");
+    }
+});
 
 const db_paths = nconf.get('database_files');
 // TODO: Make this type actually represent a json db entry
@@ -78,38 +95,44 @@ for (const [key, filename] of Object.entries(db_paths)) {
     }
 }
 
-app.listen(
-    nconf.get('server:port'),
-    nconf.get('server:host'),
-    () => console.log('EMO app listening on port 8000!') // success callback
-);
-
 app.engine('html', mustacheExpress()); // render html templates using Mustache
 app.set('view engine', 'html');
 app.set('views', './templates');
 app.set('view cache', false);
 
 app.use(express.static('static')); // serve static files out of /static
-app.use(fileUpload()); // file upload stuff
-app.use(bodyParser.json()); // for parsing application/json
-app.use(bodyParser.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
+app.use(fileUpload());
+app.use(express.json());
+app.use(function(error: Error, request: Request, response: Response, next: NextFunction) {
+    // Error handler, for the json parse r, a SyntaxError means that parsing the JSON failed.
+    if (error instanceof SyntaxError) {
+        return response.status(400).json({error: "Body JSON is invalid"});
+    }
+    next();
+})
+app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
 app.use(cors());
 
 app.use("/", api);
 app.use("/", webinterface);
 
+if (hasSentry) {
+    app.use(Sentry.Handlers.errorHandler());
+}
+app.use(errorMiddleware);
 
-function load_file(file: string, data_callback: (a: string, b: string) => void, source: string) {
-    console.log("Loading " + file);
-    fs.readFile(file, 'utf8', (err, data) => {
-        if (err) {
-            throw err;
-        }
 
-        if (!data.length) {
-            console.log("No data!");
-        } else {
-            data_callback(data, source);
-        }
-    });
+app.listen(
+    nconf.get('server:port'),
+    nconf.get('server:host'),
+    () => console.log('EMO app listening on port 8000!')
+);
+
+function errorMiddleware(error: Error, request: Request, response: Response, next: NextFunction) {
+    console.log("in the error middlewore")
+    console.log(error)
+    if (response.headersSent) {
+        return next(error)
+    }
+    return response.status(500).json({status: 'error', error: 'Unexpected error'})
 }

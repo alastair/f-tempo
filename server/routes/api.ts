@@ -1,16 +1,16 @@
 import express from 'express';
 import fs from 'fs';
-import path from "path";
-import {tp_jpgs, db} from "../server.js";
+import {tp_jpgs} from "../server.js";
 import {
     get_codestring,
-    get_random_id,
+    get_random_id, MawsTooShortError, next_id, NextIdNotFound, NoMawsForDocumentError,
     run_image_query,
     search_by_codestring,
     search_by_id,
-    search_by_ngram
+    search_ngram
 } from "../services/search.js";
 import fileUpload from "express-fileupload";
+import {CannotRunMawError} from "../../lib/maw.js";
 
 const router = express.Router();
 
@@ -20,8 +20,7 @@ router.get('/api/random_id', async function(req, res) {
         const id = await get_random_id();
         return res.status(200).json(id);
     } catch (err) {
-        console.log((err as Error).stack)
-        return res.status(500).send("Unable to contact random server");
+        return res.status(500).json({status: "error", error: "Unable to contact random server"});
     }
 });
 
@@ -35,76 +34,36 @@ Find the next book id or page id for the provided arguments.
    - direction 'next' or 'prev', default next if not set.
  If the `page` argument isn't provided, give the
  */
-router.get('/api/next_id', function (req, res) {
+router.get('/api/next_id', function (req, res, next) {
     const page_full_id = req.query.id as string;
     const library = req.query.library as string;
     const book_id = req.query.book as string;
     const page_id = req.query.page as string;
     const valid_directions = ["next", "prev"];
-    const direction = req.query.direction as string || "next";
+    const direction = req.query.direction === "next" ? "next" : "prev";
 
     if (!valid_directions.includes(direction)) {
-        return res.status(400).json({error: "Invalid `direction` field"});
+        return res.status(400).json({status: "error", error: "Invalid `direction` field"});
     }
 
     if (!page_full_id) {
-        return res.status(400).json({error: "No `id` field provided"});
+        return res.status(400).json({status: "error", error: "No `id` field provided"});
     }
     if (!library) {
-        return res.status(400).json({error: "No `library` field provided"});
+        return res.status(400).json({status: "error", error: "No `library` field provided"});
     }
     if (!book_id) {
-        return res.status(400).json({error: "No `book` field provided"});
+        return res.status(400).json({status: "error", error: "No `book` field provided"});
     }
 
-    const db_library = db[library];
-    if (!db_library) {
-        return res.status(400).json({error: `Library ${library} not found`});
-    }
-
-    if (!db_library.book_ids.includes(book_id)) {
-        return res.status(400).json({error: `Book ${book_id} not found in library ${library}`});
-    }
-
-    if (page_id) {
-        // If a page is set, then we want next/prev page
-        const book = db_library.books[book_id];
-        if (!book.page_ids.includes(page_id)) {
-            return res.status(400).json({error: `Page ${page_id} not found in book ${book_id}`});
+    try {
+        const id = next_id(library, book_id, page_id, direction);
+        return res.json({status: "ok", data: id});
+    } catch (e) {
+        if (e instanceof NextIdNotFound) {
+            return res.status(e.status).json({status: "error", error: e.message})
         }
-        const page_position = book.page_ids.indexOf(page_id)
-        let new_position = page_position + (direction === "prev" ? -1 : 1);
-        if (new_position < 0) {
-            new_position = 0;
-        } else if (new_position >= book.page_ids.length) {
-            new_position = book.page_ids.length - 1;
-        }
-        const new_book_page_id = book.page_ids[new_position];
-        const response = {
-            library,
-            book_id,
-            page: book.pages[new_book_page_id]
-        }
-        return res.json(response);
-    } else {
-        // If page isn't set, we want next/prev book
-        const book_position = db_library.book_ids.indexOf(book_id);
-        let new_position = book_position + (direction === "prev" ? -1 : 1);
-        if (new_position < 0) {
-            new_position = 0;
-        } else if (new_position >= db_library.books.length) {
-            new_position = db_library.books.length - 1;
-        }
-        const new_book_id = db_library.book_ids[new_position];
-        const new_book = db_library.books[new_book_id];
-        // If we get a new book, we want to return the first page from that book
-        const new_book_page_id = new_book.page_ids[0];
-        const response = {
-            library,
-            book_id: new_book_id,
-            page: new_book.pages[new_book_page_id]
-        }
-        return res.json(response);
+        next(e)
     }
 });
 
@@ -116,120 +75,45 @@ router.get('/api/title-pages', function (req, res) {
 
 router.get('/api/get_codestring', async function (req, res) {
     const id = req.query.id as string;
-    if (typeof id === undefined) {
-        return false;
+    if (id === undefined) {
+        return res.status(400).json({status: "error", error: "'id' field required"});
     }
     const searchResult = await get_codestring(id);
-    res.send(JSON.stringify(searchResult));
-});
-
-type NgramSearchResponse = {
-    id: string
-    siglum: string
-    library: string
-    book: string
-    page_number: string
-    notes: string
-    intervals: string
-    maws: string
-    page_data: string
-}
-
-type NgramResponseNote = {
-    p: string
-    o: string
-    id: string
-    x: string
-}
-
-type NgramResponseSystem = {
-    id: string
-    notes: NgramResponseNote[]
-}
-
-type NgramResponsePage = {
-    width: string
-    height: string
-    systems: NgramResponseSystem[]
-}
-
-/**
- * The same as String.prototype.indexOf, but works on arrays instead of strings
- * @param arr the array to search
- * @param subarr the subarray to find
- * @param startat the starting position in arr to search
- */
-function findSubarray(arr: string[], subarr: string[], startat: number) {
-    // TODO: This could be updated to use something like KMP to be faster
-    for (let i = startat; i < 1 + (arr.length - subarr.length); i++) {
-        let j = 0;
-        for (; j < subarr.length; j++) {
-            if (arr[i + j] !== subarr[j]) {
-                break;
-            }
-        }
-        if (j === subarr.length) {
-            return i;
-        }
+    if (searchResult) {
+        res.json({status: "ok", "data": searchResult});
+    } else {
+        res.status(404).json({status: "error", error: "Codestrings not found"})
     }
-    return -1;
-}
+});
 
 /**
  * Perform an ngram search
  * POST a json document with content-type application/json with the following structure
  * {ngrams: a list of ngrams to search}
  */
-router.post('/api/ngram', async function (req, res) {
+router.post('/api/ngram', async function (req, res, next) {
     if (req.body === undefined) {
-        return res.status(400).send("requires a body");
+        return res.status(400).send({error: "Body value required"});
     }
+    try {
+        const num_results = req.body.num_results || 20;
+        const threshold = parseInt(req.body.threshold || "0", 10);
+        const interval = req.body.interval === "true" || false;
 
-    let num_results = 20;
-    let threshold = 0;
-    if (req.body.num_results !== undefined) {
-        num_results = req.body.num_results;
-    }
-    if (req.body.threshold !== undefined) {
-        threshold = parseInt(req.body.threshold, 10);
-    }
+        const ngrams = req.body.ngrams;
+        if (ngrams === undefined) {
+            return res.status(400).json({status: "error", error: "'ngrams' field required"})
+        }
 
-    const ngrams = req.body.ngrams;
-    const interval = req.body.interval;
-    const search_ngrams_arr = ngrams.split(" ");
-    // Convert ngrams from a space separated string to an array
-    if (search_ngrams_arr.length) {
-        const result = await search_by_ngram(ngrams, num_results, threshold, interval);
-        const response = result.map((item: NgramSearchResponse) => {
-            // Find the start position(s) of the search term in the results
-            const positions: number[] = [];
-            // console.debug(`len note ngrams: ${item.note_ngrams.split(" ").length}`)
-            const note_ngrams_arr = interval ? item.intervals.split(" ") : item.notes.split(" ");
-            let position = findSubarray(note_ngrams_arr, search_ngrams_arr, 0)
-            while (position !== -1) {
-                positions.push(position);
-                position = findSubarray(note_ngrams_arr, search_ngrams_arr, position + ngrams.length);
-            }
-            // console.debug(`positions: ${positions}`);
-            const pageDocument: NgramResponsePage = JSON.parse(item.page_data);
-            // Unwind the page/systems/notes structure to a flat array so that we can apply the above positions
-            const notes: any[] = [];
-            for (const system of pageDocument.systems) {
-                for (const note of system.notes) {
-                    notes.push({note: `${note.p}${note.o}`, id: note.id, system: system.id})
-                }
-            }
-            // console.debug(`len unwound notes: ${notes.length}`)
-            const responseNotes = positions.map((start) => {
-                // If it's an interval search select 1 more note because we're working with gaps instead of notes
-                const len = search_ngrams_arr.length + (interval ? 1 : 0);
-                return notes.slice(start, start + len);
-            });
-            return {match_id: item.siglum, notes: responseNotes};
-        });
-        return res.json(response)
-    } else {
-        return res.status(400).json({error: "No ngrams set"})
+        // Convert ngrams from a space separated string to an array
+        if (ngrams && ngrams.trim().length) {
+            const response = await search_ngram(ngrams, num_results, threshold, interval);
+            return res.json({status: "ok", "data": response});
+        } else {
+            return res.status(400).json({status: "error", error: "No ngrams set"})
+        }
+    } catch (e) {
+        return next(e);
     }
 });
 
@@ -244,11 +128,7 @@ router.post('/api/ngram', async function (req, res) {
  *   threshold:
  *   }
  */
-router.post('/api/query', async function (req, res) {
-    if (req.body === undefined) {
-        return res.status(400).send("requires a body");
-    }
-
+router.post('/api/query', async function (req, res, next) {
     // Defaults
     let num_results = 20;
     let jaccard = true;
@@ -264,6 +144,9 @@ router.post('/api/query', async function (req, res) {
     }
     if (req.body.threshold !== undefined) {
         threshold = parseInt(req.body.threshold, 10);
+        if (isNaN(threshold)) {
+            threshold = 0;
+        }
     }
     if (req.body.collections_to_search !== undefined) {
         collections_to_search = req.body.collections_to_search;
@@ -272,20 +155,26 @@ router.post('/api/query', async function (req, res) {
     let result: any[] = [];
     try {
         if (req.body.id) {
+            // TODO: result could be an error, should this be an exception?
             result = await search_by_id(req.body.id, collections_to_search, jaccard, num_results, threshold);
         } else if (req.body.codestring) {
             result = await search_by_codestring(req.body.codestring, collections_to_search, jaccard, num_results, threshold);
+        } else {
+            return res.status(400).json({status: "error", error: "'id' or 'codestring' field required"})
         }
-        return res.send(result);
+        return res.json({status: "ok", data: result});
     } catch (err) {
-        console.error(err);
-        console.trace();
-        return res.status(500).send("Unable to contact search server");
+        if (err instanceof NoMawsForDocumentError || err instanceof MawsTooShortError) {
+            return res.status(404).json({status: "error", error: err.message})
+        } else if (err instanceof CannotRunMawError) {
+            return res.status(500).json({status: "error", error: err.message})
+        }
+        next(err)
     }
 });
 
 
-router.post('/api/image_query', async function (req, res) {
+router.post('/api/image_query', async function (req, res, next) {
     if (!req.files) {
         return res.status(400).send('No files were uploaded.');
     }
@@ -296,11 +185,11 @@ router.post('/api/image_query', async function (req, res) {
         const result = await run_image_query(user_image);
         res.send(result);
     } catch (e) {
-        return res.status(422).send('Could not process this file.');
+        next(e);
     }
 });
 
-router.post('/api/log', function (req, res) {
+router.post('/api/log', function (req, res, next) {
     const log_entry = req.body.log_entry;
     const log = req.body.log;
     if (!log_entry) {
@@ -318,7 +207,7 @@ router.post('/api/log', function (req, res) {
 to log ${log}.`
         );
     } catch (err) {
-        return res.status(500).send("Cannot write log file");
+        next(err);
     }
 
 

@@ -1,6 +1,10 @@
 import cp from "child_process";
 import nconf from "nconf";
 
+export class CannotRunMawError extends Error {
+
+}
+
 /**
  * Get maws for an object of codestrings
  * @param codestrings an object of id: codestring mappings
@@ -20,7 +24,10 @@ export function get_maws_for_codestrings(codestrings: {[k: string]: string}): {[
         {input: inputstr}
     );
     if (maws === undefined) {
-        throw new Error("Cannot find `maw` binary");
+        throw new CannotRunMawError("Cannot find `maw` binary");
+    }
+    if (maws.status !== 0) {
+        throw new CannotRunMawError("Error when computing maws")
     }
     // Output consists of >id on one line and then a maw on each subsequent line until the next >id line
     const maws_output = maws.stdout.toString();

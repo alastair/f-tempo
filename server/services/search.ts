@@ -7,6 +7,61 @@ import {get_maws_for_codestrings} from "../../lib/maw.js";
 import * as path from "path";
 import fileUpload from "express-fileupload";
 import {pageToContourList, parseMei} from "../../lib/mei.js";
+import {db} from "../server.js";
+
+
+type NgramSearchResponse = {
+    id: string
+    siglum: string
+    library: string
+    book: string
+    page_number: string
+    notes: string
+    intervals: string
+    maws: string
+    page_data: string
+}
+
+type NgramResponseNote = {
+    p: string
+    o: string
+    id: string
+    x: string
+}
+
+type NgramResponseSystem = {
+    id: string
+    notes: NgramResponseNote[]
+}
+
+type NgramResponsePage = {
+    width: string
+    height: string
+    systems: NgramResponseSystem[]
+}
+
+
+/**
+ * The same as String.prototype.indexOf, but works on arrays instead of strings
+ * @param arr the array to search
+ * @param subarr the subarray to find
+ * @param startat the starting position in arr to search
+ */
+function findSubarray(arr: string[], subarr: string[], startat: number) {
+    // TODO: This could be updated to use something like KMP to be faster
+    for (let i = startat; i < 1 + (arr.length - subarr.length); i++) {
+        let j = 0;
+        for (; j < subarr.length; j++) {
+            if (arr[i + j] !== subarr[j]) {
+                break;
+            }
+        }
+        if (j === subarr.length) {
+            return i;
+        }
+    }
+    return -1;
+}
 
 function quote(str: string) {
     return `"${str}"`;
@@ -19,6 +74,8 @@ async function get_maws_for_siglum(siglum: string) {
     if (result.response.numFound >= 1) {
         const doc = result.response.docs[0];
         return (doc as any).maws;
+    } else {
+        return "";
     }
 }
 
@@ -69,23 +126,36 @@ export async function get_random_id() {
     return {id: id.siglum, book: id.book, library: id.library}
 }
 
+export class NoMawsForDocumentError extends Error {
+    constructor(message: string) {
+        super(message);
+    }
+}
+
+export class MawsTooShortError extends Error {
+    constructor() {
+        super("Maws are too short");
+    }
+}
+
 export async function search_by_id(id: string, collections_to_search: string[], jaccard: boolean, num_results: number, threshold: number) {
     const maws = await get_maws_for_siglum(id);
-    return await search(maws.split(" "), collections_to_search, jaccard, num_results, threshold);
+    if (maws) {
+        return await search(maws.split(" "), collections_to_search, jaccard, num_results, threshold);
+    } else {
+        throw new NoMawsForDocumentError(`cannot get maws for document ${id}`)
+    }
 }
 
 export async function search_by_codestring(codestring: string, collections_to_search: string[], jaccard: boolean, num_results: number, threshold: number) {
     const maws = get_maws_for_codestrings({cs: codestring});
-    if (maws) {
+    if (maws['cs']) {
         return await search(maws['cs'], collections_to_search, jaccard, num_results, threshold);
     } else {
-        return []
+        // `maw` binary ran successfully, but no maws were generated for this input.
+        // treat this as the same as there not being enough words
+        throw new MawsTooShortError();
     }
-}
-
-export async function search_by_ngram(ngram: string, num_results: number, threshold: number, interval: boolean) {
-    const ngrams = await search_ngrams_solr(ngram, [], num_results, interval);
-    return ngrams;
 }
 
 function set_intersection(setA: Set<string>, setB: Set<string>) {
@@ -116,9 +186,8 @@ type SearchResult = {
  * @returns {boolean|[]|*[]|*}
  */
 async function search(words: string[], collections_to_search: string[], jaccard: boolean, num_results: number, threshold: number): Promise<SearchResult[]> {
-    if (words.length < 6) { // TODO: Need to report to frontend
-        // console.log("Not enough words in query.");
-        return [];
+    if (words.length < 6) {
+        throw new MawsTooShortError();
     }
     //console.time("search");
 
@@ -201,6 +270,99 @@ function gate_scores_by_threshold(scores_pruned: SearchResult[], threshold: "med
     }
 }
 
+export async function search_ngram(query_ngrams: string, num_results: number, threshold: number, interval: boolean) {
+    const query_ngrams_arr = query_ngrams.split(" ");
+    const result = await search_ngrams_solr(query_ngrams, [], num_results, interval);
+    const response = result.map((item: NgramSearchResponse) => {
+        // Find the start position(s) of the search term in the results
+        const positions: number[] = [];
+        // console.debug(`len note ngrams: ${item.note_ngrams.split(" ").length}`)
+        const note_ngrams_arr = interval ? item.intervals.split(" ") : item.notes.split(" ");
+        let position = findSubarray(note_ngrams_arr, query_ngrams_arr, 0)
+        while (position !== -1) {
+            positions.push(position);
+            position = findSubarray(note_ngrams_arr, query_ngrams_arr, position + query_ngrams_arr.length);
+        }
+        // console.debug(`positions: ${positions}`);
+        const pageDocument: NgramResponsePage = JSON.parse(item.page_data);
+        // Unwind the page/systems/notes structure to a flat array so that we can apply the above positions
+        const notes: any[] = [];
+        for (const system of pageDocument.systems) {
+            for (const note of system.notes) {
+                notes.push({note: `${note.p}${note.o}`, id: note.id, system: system.id})
+            }
+        }
+        // console.debug(`len unwound notes: ${notes.length}`)
+        const responseNotes = positions.map((start) => {
+            // If it's an interval search select 1 more note because we're working with gaps instead of notes
+            const len = query_ngrams_arr.length + (interval ? 1 : 0);
+            return notes.slice(start, start + len);
+        });
+        return {match_id: item.siglum, notes: responseNotes};
+    });
+    return response;
+}
+
+export class NextIdNotFound extends Error {
+    public status: number;
+    constructor(message: string) {
+        super();
+        this.message = message;
+        this.status = 404;
+    }
+}
+
+export function next_id(library: string, book_id: string, page_id: string | null, direction: "prev" | "next") {
+    const db_library = db[library];
+    if (!db_library) {
+        throw new NextIdNotFound(`Library ${library} not found`)
+    }
+
+    if (!db_library.book_ids.includes(book_id)) {
+        throw new NextIdNotFound(`Book ${book_id} not found in library ${library}`)
+    }
+    if (page_id) {
+        // If a page is set, then we want next/prev page
+        const book = db_library.books[book_id];
+        if (!book.page_ids.includes(page_id)) {
+            throw new NextIdNotFound(`Page ${page_id} not found in book ${book_id}`)
+        }
+        const page_position = book.page_ids.indexOf(page_id)
+        let new_position = page_position + (direction === "prev" ? -1 : 1);
+        if (new_position < 0) {
+            new_position = 0;
+        } else if (new_position >= book.page_ids.length) {
+            new_position = book.page_ids.length - 1;
+        }
+        const new_book_page_id = book.page_ids[new_position];
+        const response = {
+            library,
+            book_id,
+            page: book.pages[new_book_page_id]
+        }
+        return response;
+    } else {
+        // If page isn't set, we want next/prev book
+        const book_position = db_library.book_ids.indexOf(book_id);
+        let new_position = book_position + (direction === "prev" ? -1 : 1);
+        if (new_position < 0) {
+            new_position = 0;
+        } else if (new_position >= db_library.books.length) {
+            new_position = db_library.books.length - 1;
+        }
+        const new_book_id = db_library.book_ids[new_position];
+        const new_book = db_library.books[new_book_id];
+        // If we get a new book, we want to return the first page from that book
+        const new_book_page_id = new_book.page_ids[0];
+        const response = {
+            library,
+            book_id: new_book_id,
+            page: new_book.pages[new_book_page_id]
+        }
+        return response;
+    }
+}
+
 
 export async function run_image_query(image: fileUpload.UploadedFile) {
     const jaccard = true; // TODO(ra) should probably get this setting through the POST request, too...
@@ -255,55 +417,15 @@ export async function run_image_query(image: fileUpload.UploadedFile) {
     }
 }
 
-type BookId = {
-    RISM?: string
-    book?: string
-    page?: string
-}
-
-// Get library siglum, book siglum and page_code from id
-// The book siglum is the section of the id following the RISM siglum
-// NB The style of underscore-separation differs between collections
-export function parse_id(id: string): BookId {
-//console.log("ID: "+id)
-    let parsed_id: BookId = {};
-    let segment = id.split("_");
-    // The library RISM siglum is always the prefix to the id,
-    // followed by the first underscore in the id.
-    parsed_id.RISM = segment[0];
-    switch (parsed_id.RISM) {
-        case "D-Mbs":
-        case "PL-Wn":
-            parsed_id.book = segment[1];
-            parsed_id.page = segment[2];
-            break;
-        case "F-Pn":
-            // parsed_id.book = segment[1];
-            // parsed_id.page = segment[2]+"_"+segment[3]
-            break;
-        case "GB-Lbl":
-            if (segment.length === 4) {
-                parsed_id.book = segment[1];
-                parsed_id.page = segment[2] + "_" + segment[3];
-            }
-            else {
-                parsed_id.book = segment[1] + "_" + segment[2];
-                parsed_id.page = segment[3] + "_" + segment[4];
-            }
-            break;
-    }
-    return parsed_id;
-}
-
 export async function get_codestring(id: string) {
     const client = solr.createClient(nconf.get('search'));
-    const query = client.query().q(`siglum:"${id}"`).fl('codestring');
+    const query = client.query().q(`siglum:"${id}"`).fl('intervals');
     const result = await client.search(query);
-    if (result.response.numFound >= 1) {
+    if (result.response.numFound >= 1 && result.response.docs.length) {
         const doc: any = result.response.docs[0];
-        return doc.codestring;
+        return doc.intervals?.split(" ").join("");
     }
-    return "";
+    return undefined;
 }
 
 function jacc_delta (array: SearchResult[], n: number) {

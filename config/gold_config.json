@@ -21,10 +21,10 @@
     "import": {
       "threads": 4
     },
-    "storage": "/storage/ftempo/",
+    "storage": "/storage/",
     "tp_jpg_list": "static/src/jpg_list.txt",
     "base_image_url": "https://uk-dev-ftempo.rism.digital/img/jpg/",
-    "base_mei_url": "/storage/ftempo/locations/all/mei/",
+    "base_mei_url": "/storage/locations/all/mei/",
     "maw_path": "/usr/local/bin/maw"
   }
 }

@@ -183,7 +183,7 @@ router.post('/api/image_query', async function (req, res, next) {
 
     try {
         const result = await run_image_query(user_image);
-        res.send(result);
+        res.send({status: "ok", data: result});
     } catch (e) {
         next(e);
     }

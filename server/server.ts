@@ -19,9 +19,24 @@ import webinterface from "./routes/interface.js";
 /*******************************************************************************
  * Globals / init
  ******************************************************************************/
-nconf.argv().file('default_config.json')
-if (process.env.NODE_ENV === "production") {
-    nconf.file('production_config.json')
+
+if (process.env.FTEMPO_CONFIG) {
+    console.log("`FTEMPO_CONFIG` environment variable set");
+    if (fs.existsSync(process.env.FTEMPO_CONFIG)) {
+        console.log(`Loading config from "${process.env.FTEMPO_CONFIG}"`)
+        nconf.argv().file({file: process.env.FTEMPO_CONFIG})
+    } else {
+        throw new Error(`Cannot find config file ${process.env.FTEMPO_CONFIG}`)
+    }
+    console.log("Config");
+    console.log(nconf.get())
+} else {
+    console.log("Loading default config");
+    nconf.argv().file({file: './config/default_config.json'})
+    if (process.env.NODE_ENV === "production") {
+        console.log("NODE_ENV=production, Loading production config");
+        nconf.file('./config/production_config.json')
+    }
 }
 
 interface StringToAny {

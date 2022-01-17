@@ -4,9 +4,9 @@ import {pageToContourList, pageToNoteList, parseMei} from "./mei.js";
 import nconf from 'nconf';
 import workerpool from 'workerpool';
 
-nconf.argv().file('default_config.json')
+nconf.argv().file('./config/default_config.json')
 if (process.env.NODE_ENV === "production") {
-    nconf.file('production_config.json')
+    nconf.file('./config/production_config.json')
 }
 
 // Only bind the pool if we have >1 threads

@@ -69,6 +69,12 @@ console.log(`Databases = ${databases}`);
 export const BASE_IMG_URL = nconf.get('config:base_image_url');
 export const BASE_MEI_URL = nconf.get('config:base_mei_url');
 
+let base_route =  nconf.get('config:base_route')
+if (!base_route) {
+    base_route = "/";
+}
+export const SERVER_BASE_ROUTE = base_route;
+
 /*******************************************************************************
  * Setup
  ******************************************************************************/
@@ -115,7 +121,7 @@ app.set('view engine', 'html');
 app.set('views', './templates');
 app.set('view cache', false);
 
-app.use(express.static('static')); // serve static files out of /static
+app.use(base_route, express.static('static'))
 app.use(fileUpload());
 app.use(express.json());
 app.use(function(error: Error, request: Request, response: Response, next: NextFunction) {
@@ -128,8 +134,8 @@ app.use(function(error: Error, request: Request, response: Response, next: NextF
 app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
 app.use(cors());
 
-app.use("/", api);
-app.use("/", webinterface);
+app.use(base_route, api);
+app.use(base_route, webinterface);
 
 if (hasSentry) {
     app.use(Sentry.Handlers.errorHandler());

@@ -1,6 +1,6 @@
 import fs from "fs";
 import express from "express";
-import {BASE_IMG_URL, BASE_MEI_URL, ngr_len} from "../server.js";
+import {BASE_IMG_URL, BASE_MEI_URL, ngr_len, SERVER_BASE_ROUTE} from "../server.js";
 import {get_codestring} from "../services/search.js";
 
 
@@ -9,16 +9,17 @@ export default router;
 
 
 router.get('/', function (req, res) {
-    res.render('index', {cache: false});
+    const data = {cache: false, base_route: SERVER_BASE_ROUTE}
+    res.render('index', data);
 });
 
 router.get('/id_searches', function (req, res) {
-    const data = { id_searches: true };
+    const data = { id_searches: true, base_route: SERVER_BASE_ROUTE };
     res.render('index', data);
 });
 
 router.get('/code_searches', function (req, res) {
-    const data = { code_searches: true };
+    const data = { code_searches: true, base_route: SERVER_BASE_ROUTE };
     res.render('index', data);
 });
 

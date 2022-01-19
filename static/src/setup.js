@@ -173,7 +173,7 @@ function search(id, jaccard, num_results, collections_to_search, record) {
     }
     $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>');
     $.ajax({
-        url: 'api/query',
+        url: baseRoute + '/api/query',
         method: 'POST',
         data: search_data,
         contentType: 'application/json',
@@ -662,7 +662,7 @@ function find_book_id(next) {
 
     let new_id = {};
     $.ajax({
-        url: '/api/next_id',
+        url: baseRoute + '/api/next_id',
         data: {id: this_id, library: current_page.library, book: current_page.book, direction: direction},
         method: 'GET',
         async: false,
@@ -682,7 +682,7 @@ function find_page_id(next) {
 
     let new_id = {};
     $.ajax({
-        url: '/api/next_id',
+        url: baseRoute + '/api/next_id',
         data: {
             id: this_id,
             library: current_page.library,
@@ -703,7 +703,7 @@ function find_page_id(next) {
 
 function find_random_page() {
     $.ajax({
-        url: '/api/random_id',
+        url: baseRoute + '/api/random_id',
         method: 'GET',
         async: false,
         success: function (response) {

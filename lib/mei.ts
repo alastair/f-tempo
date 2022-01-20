@@ -106,10 +106,10 @@ export function notesToContour(notes: Note[], chunkSize?: number) {
 export function pitchesToIntervalMapping(pitches: Note[]): string[] {
     const interval_mapping = '-abcdefghijklmnopqrstuvwxyz'.split('');
 
-    const alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    const alphabet = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 
     const pitch_nums = pitches.map(function(e) {
-        return (alphabet.indexOf(e.p.toUpperCase())) % 7 + ((7 * parseInt(e.o, 10)) % 7);
+        return alphabet.indexOf(e.p.toUpperCase()) + (7 * parseInt(e.o, 10));
     });
 
     let pitch_intervals = [];

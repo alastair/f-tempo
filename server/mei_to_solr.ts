@@ -44,6 +44,16 @@ const argv = yargs(process.argv.slice(2)).usage('Parse MEI files to solr')
             },
         })
     })
+    .command({
+        command: 'debug <file>',
+        describe: 'Show generated output for a single file',
+        handler: debugFile,
+        builder: yargs =>
+            yargs.positional('file', {
+                description: 'path to file to process',
+                default: undefined
+            })
+    })
     .demandCommand()
     .argv;
 
@@ -64,6 +74,19 @@ async function importSolr(argv: any) {
     } else {
         yargs.showHelp();
     }
+}
+
+/**
+ * Entrypoint for the `debug` command.
+ */
+ async function debugFile(argv: any) {
+     console.debug(argv)
+     if (argv.file) {
+        const {doImport} = await import('../lib/mei_to_solr_worker.js');
+        const input = [{filePath: argv.file, id: "11_11", book: "11", page: "1"}]
+        const response = doImport(input);
+        console.debug(response);
+     }
 }
 
 type Input = {

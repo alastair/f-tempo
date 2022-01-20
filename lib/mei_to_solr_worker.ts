@@ -52,6 +52,7 @@ function makeDocumentFromFile(filePath: string, id: string, book: string, page: 
 
     return {
         siglum: id,
+        id: id,
         library: library,
         book: book,
         page_number: page,

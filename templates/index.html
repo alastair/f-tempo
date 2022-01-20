@@ -50,7 +50,7 @@
 		position: relative;
 		bottom:95%;
 	}
-	#about_btn, #queries_btn, #random_btn, #navigation_btn, #feedback_btn, #ranking_btn, #results_btn, #comp_btn, #uplo_btn 	{
+	#about_btn, #queries_btn, #random_btn, #navigation_btn, #feedback_btn, #ranking_btn, #results_btn, #comp_btn, #uplo_btn, #t-p_btn 	{
 		position:relative;
  		color: red; 
 	}
@@ -326,15 +326,22 @@ function ngram_array(str, n) {
 							<button id="uplo_btn" class="tablink w3-bar-item w3-button"  onclick="openitem(event, 'Upload')">Uploading an image</button>
 						</td>
 					</tr>
+								<tr>
+						<td>
+							<button id="t-p_btn" class="tablink w3-bar-item w3-button"  onclick="openitem(event, 'Title-pages')">Book title-pages</button>
+						</td>
+					</tr>
 				</table>
 			  </div>
 		  </div>
 		  <div id="About" class="w3-container help_text">
 		   <h2>About Early Music Online Search</h2>
-		   <p>Early Music Online (EMO) was originally (July 2018) based on a collection of digital images of 16c printed music from the British Library (GB-Lbl). At that time the interface provided content-based search to about 32,000 pages from just under 200 of these books. Since then, it has been considerably expanded, to include about the same number of images from other European music libraries, such as the Bibliothèque nationale in Paris (F-Pn), the Berlin Staatsbibliothek (D-Bsb) and the Polish National Library in Warsaw (PL-Wn). Very soon we shall be incorporating half-a-million pages from the Bayerische Staatsbibliothek in Munich (D-Mbs).</p> <p>
+		   <p>Early Music Online (EMO) was originally (July 2018) based on a collection of digital images of 16c printed music from the British Library (GB-Lbl). At that time the interface provided content-based search to about 32,000 pages from just under 200 of these books. Since then, it has been considerably expanded, to include about the same number of images from other European music libraries, such as the Bibliothèque nationale in Paris (F-Pn), the Berlin Staatsbibliothek (D-Bsb) and the Polish National Library in Warsaw (PL-Wn). We have now further incorporated almost half-a-million pages from the Bayerische Staatsbibliothek in Munich (D-Mbs).</p> <p>
 		   The images have been subjected to optical music recognition using <a href="https://www.verovio.org/">Aruspix</a>, and the musical contents indexed for efficient searching using a <a href="http://doc.gold.ac.uk/~mas01tc/ISMIR2018_draft.pdf" target="_blank">state-of-the-art method</a>.</p><p> 
 			This interface simply allows searches for pages containing music similar to that contained in a query page. It does not yet allow searching for an arbitrary musical sequence of notes, though this is planned for a future version. Also, it makes no use of library metadata - information about the books (titles, composers, printers, dates, places, etc.); this, too, will be incorporated in a later version.</p><p>	
+<!-- 
 		   This experimental system runs on a server at <a href="https://www.gold.ac.uk/computing/research/music-and-art-computing/">Goldsmiths, University of London</a>.</p>
+ -->
 		<p>
 			Enquiries to <a href="mailto:t.crawford@gold.ac.uk?Subject=EMO%20Search%20Enquiry" target="_top">Tim Crawford</a>
 		</p><br>
@@ -342,25 +349,25 @@ function ngram_array(str, n) {
 		  <div id="Queries" class="w3-container help_text">
 		   <h2> Queries - Search box</h2>
 		   <p>
-			Queries may be entered into the Search box in the form of an ID based on the shelf-mark of a book in the British Library, the image-number from the microfilms which were digitised for EMO, and the left/right page selected. As such, they were never intended for user-entry but they may be entered for test purposes. (To explore the collection, it will be easier to start with a Random Search.)</p>
+			When you open this page, you will see the image of a single page from a book in the collection on the left. You can easily move through books and pages in the collection (see Navigation for more details), but to explore the collection, it will probably be easier to start with a Random Search.</p>
 			<p>
-			The currently-searched page's ID will be displayed in the Search box, and the left/right arrow-keys can be used to navigate to and search the previous/next page. You can also skip to the first page of the previous/next book by holding down the shift key as you click on the respective arrows.
+			The <!-- currently-searched page's ID will be displayed in the Search box, and the --> left/right arrow-keys can be used to navigate to and search the previous/next page. You can also skip to the first page of the previous/next book by holding down the shift key as you click on the respective arrows.
 		</p>
-			To perform a search, simply hit the Enter or Return key.
+			To perform a search, simply hit the Enter or Return key, or click on the Search button. (The button called 'Repeat last Search' does what it says, but not in an intelligent way - we intend to improve this in future.)
 		<br>
 		  </div>
 		  <div id="Random" class="w3-container help_text">
 		   <h2> Random Search</h2>
 		   <p>
-			This simply chooses a page at random from the entire collection. You can use the backslash ('\') as a keyboard shortcut.
+			This simply chooses a page at random from the entire collection. You can use the backslash ('\') as a keyboard shortcut. Be warned, if this leads to a page that contains little or no music (as is often the case - again, we intend to improve this) a search will not result in any meaningful results!
 		   </p><br>
 		  </div>
 		  <div id="Feedback" class="w3-container help_text">
 		   <h2> Feedback - Relation to query</h2>
 		   <p>
 			You can provide feedback concerning the nature of a result by entering your own judgements. To do this, before doing a search check the box marked &ldquo;Provide judgements to help improve the system&rdquo;. The result list will then contain drop-down menus which you can use to enter your judgements. </p>
-			<p> You are not obliged to do this, but all feedback is saved (anonymously) on the server and will be used in future for refining the way the interface operates (e.g. by initially eliminating all non-music pages). This will be enormously useful to us, and it takes very little time. By activating the &ldquo;Provide judgements&rdquo; menus we assume you are giving your consent. There is no way we can trace back the information saved by us to you.</p><p>
-			The first result will always be the query itself, but this may be a page which doesn't contain any music (e.g. a title-page, or just text, or an image) - in which case, choose 'Not music!'. For all other results, do the same if the page does not contain music. Otherwise, choose from the categories 'Duplicate page' (where it is an extra copy of the same page), 'Same music' (from a different book or edition) or 'Related music' (which might be from a different voice-part, or a different section of a work). Use your own judgement about these decisions, as it is difficult to establish hard and fast rules for the last case in particular.</p><p>
+			<p> You are not obliged to do this, but all feedback is saved (anonymously) on the server and will be used in future for refining the way the interface operates (e.g. by initially eliminating non-music pages). This will be enormously useful to us, and it takes very little time. By activating the &ldquo;Provide judgements&rdquo; menus we assume you are giving your consent. There is no way we can trace back the information saved by us to you.</p><p>
+			The first result should always be the query itself (unless you have uploaded an image for searching - see below under 'Uploading an image'), but this may be a page which doesn't contain any music (e.g. a title-page, or just text, or an image) - in which case, choose 'Not music!'. For all other results, do the same if the page does not contain music. Otherwise, choose from the categories 'Duplicate page' (where it is an extra copy of the same page), 'Same music' (from a different book or edition) or 'Related music' (which might be from a different voice-part, or a different section of a work). Use your own judgement about these decisions, as it is difficult to establish hard and fast rules for the last case in particular.</p><p>
 			If you make a mistake, simply re-do it immediately - all feedback is time-stamped, so we will know if a change has been made within a short time.
 		   </p><br>
 		  </div>
@@ -370,20 +377,22 @@ function ngram_array(str, n) {
 			Basically, matches are made by finding the pages with the maximum 'overlap' with the query. However, this means that pages containing a lot of notes are more likely to contain such overlaps by accident.</p><p>
 			There are two 'modes' for ranking results. The 'Basic' mode takes no account of the number of notes on a page, which can lead to false matches with long pages. The default 'Jaccard' mode, however, uses the <a href="http://www.statisticshowto.com/jaccard-index" target="_blank">Jaccard distance</a> measure instead, which tends on the whole to give better results.</p><p>
 			When you change this setting by choosing from the &ldquo;Result Ranking&rdquo; menu your search will be re-run.
+			(NB At present this choice is disabled, and only the 'Jaccard' mode is available.)
 		   </p><br>
 		  </div>
 		  <div id="Results" class="w3-container help_text">
 		   <h2> Results to display</h2>
 		   <p>
-			You can choose a number of results to display, or 'Best matches', which simply shows our estimate of the best results to be found. Very occasionally an interesting match can be found below this threshold (e.g. when the music is only fleetingly similar), but it is hard to predict when this might occur, so you might find it interesting to explore these options.
+			You can choose a number of results to display, or 'Best matches', which simply shows our estimate of the best results to be found. Caveat: Very occasionally an interesting match can be found below this threshold (e.g. when the music is only fleetingly similar), but it is hard to predict when this might occur, so you might find it interesting to explore these options.
 		   </p><p>
 			When you change this setting by choosing from the &ldquo;Result Ranking&rdquo; menu your search will be re-run.
+			(NB At present this choice is disabled, and the 'Best matches' option is unavailable. We intend to restore this option soon. Be aware that there are many ways to filter the 'best' matches, so the above caveat will continue to apply)
 		   </p><br>
 		  </div>
 		  <div id="Upload" class="w3-container help_text">
 		   <h2> Uploading an image</h2>
 		   <p>
-			If you click on &ldquo;Search with Image Upload&rdquo; in the page header, you will be able to upload your own query page in one of a variety of common graphics formats. On clicking &ldquo;Upload and Search&rdquo; your image will be uploaded to our server (which will usually take a few extra seconds), recognised and encoded as a query which is then run against the database, and the result list presented as usual. (This is an experimental feature which has not been exhaustively tested, and may produce an error message from time to time. It will also give nonsense results if the page-image uploaded is not of music!)
+			If you click on &ldquo;Search with Image Upload&rdquo; in the page header, you will be able to upload your own query page in one of a variety of common graphics formats. On clicking &ldquo;Upload and Search&rdquo; your image will be uploaded to our server (which will usually take a few extra seconds, depending on the speed of your internet connection), recognised and encoded as a query which is then run against the database, and the result list presented as usual. <br>(NB This is an experimental feature which has not been exhaustively tested, and may produce an error message from time to time. It will also give nonsense results if the page-image uploaded is not of music!)
 		   </p><br>
 		  </div>
 		  <div id="Navigation" class="w3-container help_text">
@@ -398,6 +407,13 @@ function ngram_array(str, n) {
 		   <p>
 			In order to gain some feeling for the quality of the recognition, and the nature and extent of a match, you can see a visualisation of the matched sequences of notes superimposed on the original image. Simply click on the 'magnifying glass' displayed on the right of the result-list. This will bring up a new window displaying the two pages side-by-side; this will take a few extra seconds to display, since it uses a different mechanism to verify the match. Sometimes, one or other of the pages lacks the necessary data for the comparison, in which case an error message is shown.<p>
 			NB: Results generated by a search with an uploaded image currently lack the data necessary for this parallel display; we intend to include this data for all pages in the near future.
+		   </p><br>
+		  </div>
+		  <div id="Title-pages" class="w3-container help_text">
+		   <h2> Book title-pages</h2>
+		   <p>
+			Where the system has a stored 'thumbnail' image of a book's title-page (as is the case for all the books from the Munich collection) you can view it by clicking on the 'open-book' button to the left of a result. NB Some books do not have title-pages in a library's copy; in this case, the first page of music is usually displayed. <p>
+			We intend in a future version to incorporate proper metadata (titles, authors, printers, places, dates, etc.) as supplied by the libraries, which will be displayed on request within this interface.
 		   </p><br>
 		  </div>
 		  <div class="w3-container w3-light-grey w3-padding">

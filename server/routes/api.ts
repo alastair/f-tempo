@@ -141,7 +141,10 @@ router.post('/api/query', async function (req, res, next) {
         jaccard = req.body.jaccard;
     }
     if (req.body.num_results !== undefined) {
-        num_results = req.body.num_results;
+        num_results = parseInt(req.body.num_results, 10);
+        if (isNaN(num_results)) {
+            return res.status(404).json({status: "error", error: "num_results field must be a number"})
+        }
     }
     if (req.body.threshold !== undefined) {
         threshold = parseInt(req.body.threshold, 10);
@@ -166,7 +169,7 @@ router.post('/api/query', async function (req, res, next) {
             const maws = req.body.maws.split(" ");
             result = await search(maws, collections_to_search, jaccard, num_results, threshold, similarity_type);
         } else {
-            return res.status(400).json({status: "error", error: "'id' or 'codestring' field required"})
+            return res.status(400).json({status: "error", error: "'id' or 'codestring' or 'maws' field required"})
         }
         return res.json({status: "ok", data: result});
     } catch (err) {

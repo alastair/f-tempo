@@ -23,7 +23,7 @@
     },
     "storage": "./storage/ftempo/",
     "tp_jpg_list": "static/src/jpg_list.txt",
-    "base_image_url": "http://f-tempo-mbs.rism-ch.org/img/jpg/",
+    "base_image_url": "https://search.f-tempo.org/img/jpg/",
     "base_mei_url": "./storage/scores/",
     "maw_path": "./src/maw"
   }

@@ -36,12 +36,18 @@ const argv = yargs(process.argv.slice(2)).usage('Parse MEI files to solr')
                 description: 'path to library definition file',
                 default: undefined
             }).options({
-            'cache': {
+            'saveCache': {
                 type: 'boolean',
                 description: 'if set, cache the mei data',
                 required: false,
                 default: false
             },
+            'readCache': {
+                type: 'boolean',
+                description: 'if set, make the index from saved cache data',
+                required: false,
+                default: false
+            }
         })
     })
     .command({
@@ -70,7 +76,7 @@ async function clearSolr() {
  */
 async function importSolr(argv: any) {
     if (argv.library) {
-        await processLibrary(argv.library, argv.cache);
+        await processLibrary(argv.library, argv.saveCache, argv.readCache);
     } else {
         yargs.showHelp();
     }
@@ -90,20 +96,24 @@ async function importSolr(argv: any) {
 }
 
 type Input = {
-    filePath: string, id: string, book: string, page: string
+    filePath: string,
+    id: string,
+    library: string,
+    book: string,
+    page: string
 }
 
 /**
  * Process a single library file and import into solr
  * 
- * In batches of 1000:
+ * In batches of 100:
  *  - Open MEI
  *  - Extract pitches
  *  - Convert pitches to intervals
  *  - Compute MAWs for the full batch of 1000 items at once.
  * 
  * We compute the MAWs in a batch because it's much faster than execing to the maw binary
- * once per file (1000 items finishes ~5x faster)
+ * once per file (100 items finishes ~5x faster)
  * 
  * Use worker_threads to process batches in parallel. The main implementation of the 
  * file processing is performed in mei_to_solr_worker.ts. worker.js is used to 
@@ -112,7 +122,7 @@ type Input = {
  * @param librarypath 
  * @param cache 
  */
-async function processLibrary(librarypath: string, cache: boolean) {
+async function processLibrary(librarypath: string, doSaveCache: boolean, readCache: boolean) {
     const data = fs.readFileSync(librarypath);
     const library = JSON.parse(data.toString());
     const meiRoot = nconf.get('config:base_mei_url');
@@ -123,7 +133,7 @@ async function processLibrary(librarypath: string, cache: boolean) {
             const parts = page_id.split("_");
             const library = parts[0];
             const page2 = (page as any);
-            inputList.push({filePath: path.join(meiRoot, library, page2.mei), id: page2.id, book: book_id, page: page2.id})
+            inputList.push({filePath: path.join(meiRoot, library, page2.mei), library, id: page2.id, book: book_id, page: page2.id})
         }
     }
     console.log(`got ${inputList.length} items to do`);
@@ -132,22 +142,42 @@ async function processLibrary(librarypath: string, cache: boolean) {
     // to be buggy when processing 1000 (sometimes it doesn't output data for some inputs)
     // but with 100 it seems fine.
     // TODO: Could add this check to the maw generation instead of adding the limit here
-    //  so that we can keep 1000 size chunks but still process maws 10 or 100 at a time.
-    const chunk = 100;
+    //  so that we can keep large chunks for solr import but still process maws 100 at a time.
+    const chunk = readCache ? 2000 : 100;
     const len = inputList.length;
     for (let i = 0; i < len; i += chunk) {
         const items = inputList.slice(i, i + chunk);
-        if (nconf.get('config:import:threads') === 1) {
+        if (readCache) {
+            // If we're reading from the cache then don't use the pool, just load chunks and save them
+            // Use a larger chunk size as we're not running `maw`
+            const documents = readFromCache(items);
+            await saveToSolr(documents);
+            if (i % (chunk * 10) === 0) {
+                await commit();
+            }
+            console.log(`${Math.min(i+chunk, len)}/${len}`)
+        } else if (nconf.get('config:import:threads') === 1) {
             // If we have 1 thread, don't use the pool, sometimes it terminates early
             const {doImport} = await import('../lib/mei_to_solr_worker.js');
             const response = doImport(items);
             await saveToSolr(response);
+            if (i % (chunk * 10) === 0) {
+                await commit();
+            }
             console.log(`${Math.min(i+chunk, len)}/${len}`)
+            if (doSaveCache) {
+                saveCache(response);
+            }
         } else {
             pool.exec('doImport', [items]).then((resp: any[]) => {
                 saveToSolr(resp);
-                console.log(`${Math.min(i+chunk, len)}/${len}`)
-                // saveCache(documentsWithMaws, cache);
+                if (i % (chunk * 10) === 0) {
+                    commit();
+                }
+                console.log(`${Math.min(i+chunk, len)}/${len}`);
+                if (doSaveCache) {
+                    saveCache(resp);
+                }
             }).then(function () {
                 const stats = pool.stats();
                 // This is a bit sketchy - we push all of inputList into the queue as quickly as possible
@@ -158,6 +188,7 @@ async function processLibrary(librarypath: string, cache: boolean) {
             });
         }
     }
+    //await commit();
 }
 
 /**
@@ -168,34 +199,51 @@ async function saveToSolr(documents: any[]) {
     const client = solr.createClient(nconf.get('search'));
     const response = await client.add(documents)
     console.log(response);
-    await client.commit();
+    //await client.commit();
     return response;
 }
+
+
+async function commit() {
+    const client = solr.createClient(nconf.get('search'));
+    await client.commit();
+}
+
 
 /**
  * Save a list of documents to a cache file
  * @param documents 
  * @param cache 
  */
-function saveCache(documents: any[], cache: boolean) {
-    if (cache) {
-        documents.forEach(element => {
-            const parts = element.id.split("_");
-            const book = element.id.split("_");
-            const library = parts[0];
+function saveCache(documents: any[]) {
+    documents.forEach(doc => {
+        const book = doc.book;
+        const library = doc.library;
 
-            const dirname = path.join('solr', 'cache', library, book)
-            const fpath = path.join(dirname, `${element.id}.json`);
-            const data = {
-                page_number: element.page,
-                page_data: JSON.parse(element.page),
-                notes: element.notes.split(' '),
-                intervals: element.intervals.split(' ')
-            }
-            fs.mkdirSync(dirname, { recursive: true })
-            fs.writeFileSync(fpath, JSON.stringify(data));
-        });
-    }
+        const dirname = path.join('solr', 'cache', library, book)
+        const fpath = path.join(dirname, `${doc.siglum}.json`);
+        fs.mkdirSync(dirname, { recursive: true })
+        fs.writeFileSync(fpath, JSON.stringify(doc));
+    });
+}
+
+/**
+ * Read json cache files
+ * @param files
+ */
+function readFromCache(files: Input[]) {
+    const response: any[] = [];
+    files.forEach(input => {
+        const dirname = path.join('solr', 'cache', input.library, input.book)
+        const fpath = path.join(dirname, `${input.id}.json`);
+        try {
+            const data = JSON.parse(fs.readFileSync(fpath, 'utf-8'));
+            response.push(data);
+        } catch {
+            //console.error(`No such file? ${fpath}`);
+        }
+    });
+    return response;
 }
 
 function pprint(obj: any): string {

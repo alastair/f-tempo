@@ -94,18 +94,17 @@ export class UnknownSearchTypeError extends Error {
  * @returns 
  */
 async function search_maws_solr(maws: string[], collections_to_search: string[], num_results: number, similarity_type: 'boolean'|'jaccard'|'solr'): Promise<any> {
+    maws = maws.map(quote);
     collections_to_search = collections_to_search.map(quote)
     const client = solr.createClient(nconf.get('search'));
     const fields: {maws_boolean?: number, maws?: number} = {};
     let query :any;
     if (similarity_type === 'boolean') {
-        maws = maws.map(quote);
-        fields.maws_boolean = 1;
-        query = client.query().defType('dismax').q(maws.join(" ")).fl('*,score').qf(fields).mm(1).rows(num_results);
+        const fieldname = "maws_boolean";
+        query = client.query().q(`${fieldname}: (${maws.join(" ")})`).fl('*,score').rows(num_results);
     } else if (similarity_type === 'solr') {
-        maws = maws.map(quote);
-        fields.maws = 1;
-        query = client.query().defType('dismax').q(maws.join(" ")).fl('*,score').qf(fields).mm(1).rows(num_results);
+        const fieldname = "maws";
+        query = client.query().q(`${fieldname}: (${maws.join(" ")})`).fl('*,score').rows(num_results);
     } else if (similarity_type === 'jaccard') {
         // If we know the number of items in the search term, we can get solr to compute jaccaard itself and
         // sort by it:
@@ -117,7 +116,8 @@ async function search_maws_solr(maws: string[], collections_to_search: string[],
         // search query in js, and re-compute $q again for the number in intersection again
         const sortparam = `div(query($q), sub(add(nummaws, ${maws.length}), query($q)))`;
         let sortquery: Record<string, any> = {[sortparam]: "desc"}
-        query = client.query().q(`{!min_hash field="maws_minhash" sim="0.0"}${maws.join(" ")}`).fl('*,score').rows(num_results).sort(sortquery);
+        const fieldname = "maws_boolean";
+        query = client.query().q(`${fieldname}: (${maws.join(" ")})`).fl(`*,score,jaccard:${sortparam}`).sort(sortquery).rows(num_results);
     } else {
         throw new UnknownSearchTypeError();
     }

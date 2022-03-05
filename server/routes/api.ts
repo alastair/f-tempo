@@ -3,8 +3,9 @@ import fs from 'fs';
 import {tp_jpgs} from "../server.js";
 import {
     get_codestring,
-    get_random_id, MawsTooShortError, next_id, NextIdNotFound, NoMawsForDocumentError,
+    get_random_id, MawsTooShortError, next_id, NextIdNotFound, NoMawsForDocumentError, UnknownSearchTypeError,
     run_image_query,
+    search,
     search_by_codestring,
     search_by_id,
     search_ngram
@@ -152,13 +153,18 @@ router.post('/api/query', async function (req, res, next) {
         collections_to_search = req.body.collections_to_search;
     }
 
+    const similarity_type = req.body.similarity_type;
+
     let result: any[] = [];
     try {
         if (req.body.id) {
             // TODO: result could be an error, should this be an exception?
-            result = await search_by_id(req.body.id, collections_to_search, jaccard, num_results, threshold);
+            result = await search_by_id(req.body.id, collections_to_search, jaccard, num_results, threshold,  similarity_type);
         } else if (req.body.codestring) {
-            result = await search_by_codestring(req.body.codestring, collections_to_search, jaccard, num_results, threshold);
+            result = await search_by_codestring(req.body.codestring, collections_to_search, jaccard, num_results, threshold, similarity_type);
+        } else if (req.body.maws) {
+            const maws = req.body.maws.split(" ");
+            result = await search(maws, collections_to_search, jaccard, num_results, threshold, similarity_type);
         } else {
             return res.status(400).json({status: "error", error: "'id' or 'codestring' field required"})
         }
@@ -168,6 +174,8 @@ router.post('/api/query', async function (req, res, next) {
             return res.status(404).json({status: "error", error: err.message})
         } else if (err instanceof CannotRunMawError) {
             return res.status(500).json({status: "error", error: err.message})
+        } else if (err instanceof UnknownSearchTypeError) {
+            return res.status(400).json({status: "error", error: err.message})
         }
         next(err)
     }

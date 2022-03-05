@@ -76,6 +76,7 @@ function addMaws(documents: any[]) {
         const maws: any = {}
         if (mawsOutput[doc.siglum] !== undefined) {
             maws['maws'] = mawsOutput[doc.siglum].join(' ')
+            maws['nummaws'] = mawsOutput[doc.siglum].length;
         } else if (mawsOutput[doc.siglum] !== undefined && doc.intervals) {
             // If there's no maws output, but there is an interval string, an error
             console.error(`missing expected maws output for ${doc.siglum}`);

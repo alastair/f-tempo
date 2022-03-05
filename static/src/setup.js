@@ -70,7 +70,7 @@ let num_results = 15; // default
 let query_id = "";
 let db_name = "";
 let highlighted_result_row = 0;
-let jaccard = true;
+let similarity_type = 'jaccard';
 let corpus_search_mode = true; // false when image search mode
 let matched_words = []; // Arrays for displaying match stats in result list
 let words_in_page = []; // ''
@@ -165,8 +165,8 @@ function display_cosine_sim_line(json) {
 }
 
 // Basic remote search function.
-function search(id, jaccard, num_results, collections_to_search, record) {
-    let search_data = JSON.stringify({id, jaccard, num_results, threshold, collections_to_search});
+function search(id, similarity_type, num_results, collections_to_search, record) {
+    let search_data = JSON.stringify({id, num_results, threshold, collections_to_search, similarity_type});
     console.log(search_data);
     if (record) {
         searches.push({search_data: JSON.parse(search_data)});
@@ -194,16 +194,16 @@ function repeat_search(n) {
     load_page_query(id);
     search(
         searches[n].search_data.id,
-        searches[n].search_data.jaccard,
+        searches[n].search_data.similarity_type,
         searches[n].search_data.num_results,
         searches[n].search_data.collections_to_search,
         false // don't record this as a new search!
     );
 }
 
-function code_search(codestring, jaccard, num_results, collections_to_search, record) {
+function code_search(codestring, similarity_type, num_results, collections_to_search, record) {
     $('#results_table').html('<tr><td><img src="img/ajax-loader.gif" alt="search in progress"></td></tr>');
-    let search_data = JSON.stringify({codestring, jaccard, num_results, threshold, collections_to_search});
+    let search_data = JSON.stringify({codestring, similarity_type, num_results, threshold, collections_to_search});
     if (record) {
         searches.push({search_data: JSON.parse(search_data)});
     }
@@ -225,7 +225,7 @@ function search_by_active_query_id(load_query_image = false, ngram_search, colle
         load_page_query(query_id);
     }
     update_colls_to_search();
-    search(query_id, jaccard, num_results, ngram_search, collections_to_search, true);
+    search(query_id, similarity_type, num_results, ngram_search, collections_to_search, true);
 }
 
 function show_tp(id, isquery) {
@@ -301,11 +301,15 @@ function show_results(json) {
 
         // NOTE: the else here is wrong if we don't assume that the
         // 0th result is the identity match
+        /*
         if (jaccard) {
             rank_factor = 1 - results[q].jaccard;
         } else {
             rank_factor = results[q].num_matched_words / results[0].num_words;
         }
+        */
+        rank_factor = results[q].num_matched_words / results[0].num_words;
+        rank_factor = 1 - results[q].jaccard;
 
         matched_words[q] = results[q].num_matched_words;
         words_in_page[q] = results[q].num_words;
@@ -387,11 +391,14 @@ function show_results(json) {
 
     const top_result_id = results[0].id;
     let top_result_rank_factor;
+    /*
     if (jaccard) {
         top_result_rank_factor = 1 - results[0].jaccard;
     } else {
         top_result_rank_factor = results[0].num_matched_words / results[0].num_words;
     }
+    */
+    top_result_rank_factor = 1 - results[0].jaccard;
 
     load_result_image(top_result_id, 0, top_result_rank_factor);
 
@@ -828,11 +835,7 @@ function change_search_method() {
 function change_ranking_method() {
     const ranking_select = document.getElementById('ranking_select');
     const v = ranking_select.options[ranking_select.selectedIndex].value;
-    if (v == 0) {
-        jaccard = true;
-    } else {
-        jaccard = false;
-    }
+    similarity_type = v;
     if (!$('#results_table').is(':empty')) {
         search_by_active_query_id();
     }
@@ -869,7 +872,7 @@ function do_search() {
     load_page_query(query_id);
     update_colls_to_search();
     var search_num_results = parseInt(document.getElementById("res_disp_select").value);
-    search(query_id, jaccard, search_num_results, collections_to_search, true);
+    search(query_id, similarity_type, search_num_results, collections_to_search, true);
 }
 
 /*******************************************************************************
@@ -927,7 +930,7 @@ $(document).ready(() => {
         if (!query_code.length) {
             alert("You must enter some code!");
         } else {
-            code_search(query_code, jaccard, num_results, collections_to_search);
+            code_search(query_code, similarity_type, num_results, collections_to_search);
         }
     });
 

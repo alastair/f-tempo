@@ -538,8 +538,9 @@ function ngram_array(str, n) {
            <div class='form-group mt-2 mb-0'>
                 <label for='ranking_select'>Result Ranking</label>
                 <select id="ranking_select" name="num_to_disp" onchange="change_ranking_method();">
-                    <option value=0 selected>Jaccard Distance</option>
-                    <option disabled value=1>Basic</option>
+                    <option value='jaccard' selected>Jaccard Distance</option>
+                    <option value='boolean'>Basic</option>
+                    <option value='solr'>Solr</option>
                 </select>
             </div>
 

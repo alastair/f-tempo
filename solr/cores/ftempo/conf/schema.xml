@@ -453,6 +453,14 @@
     </analyzer>
     <similarity class="solr.BooleanSimilarityFactory"/>
   </fieldType>
+  <fieldType name="text_min_hash" class="solr.TextField" positionIncrementGap="100">
+    <analyzer>
+      <tokenizer class="solr.WhitespaceTokenizerFactory"/>
+<!--      <filter class="solr.ShingleFilterFactory" minShingleSize="1" outputUnigrams="false" outputUnigramsIfNoShingles="false" maxShingleSize="1" tokenSeparator=" "/>-->
+      <filter class="org.apache.lucene.analysis.minhash.MinHashFilterFactory"    hashSetSize="5" />
+<!--     bucketCount="1024" hashCount="1" -->
+    </analyzer>
+  </fieldType>
   <field name="_nest_path_" type="_nest_path_"/>
   <field name="_root_" type="string" docValues="false" indexed="true" stored="false"/>
   <field name="_text_" type="text_general" multiValued="true" indexed="true" stored="false"/>
@@ -462,14 +470,19 @@
   <field name="intervals" type="text_ws" uninvertible="true" indexed="true" stored="true"/>
   <field name="library" type="string" uninvertible="true" indexed="true" stored="true"/>
   <field name="maws" type="text_ws" uninvertible="true" indexed="true" stored="true"/>
+  <field name="nummaws" type="pint" uninvertible="true" indexed="true" stored="true"/>
+  <field name="maws_boolean" type="text_ws_boolean" uninvertible="true" indexed="true" stored="false"/>
+  <field name="maws_minhash" type="text_min_hash" uninvertible="true" indexed="true" stored="false"/>
   <field name="notes" type="text_ws" uninvertible="true" indexed="true" stored="true"/>
-  <field name="maws_boolean" type="text_ws_boolean" uninvertible="true" indexed="true" stored="true"/>
-  <field name="notes_boolean" type="text_ws_boolean" uninvertible="true" indexed="true" stored="true"/>
+  <field name="notes_boolean" type="text_ws_boolean" uninvertible="true" indexed="true" stored="false"/>
+  <field name="notes_minhash" type="text_min_hash" uninvertible="true" indexed="true" stored="false"/>
   <field name="page_data" type="text_ws" uninvertible="true" indexed="true" stored="true"/>
   <field name="page_number" type="string" uninvertible="true" indexed="true" stored="true"/>
   <field name="siglum" type="string" uninvertible="true" indexed="true" stored="true"/>
   <dynamicField name="random_*" type="random"/>
   <copyField source="maws" dest="maws_boolean"/>
+  <copyField source="maws" dest="maws_minhash"/>
   <copyField source="notes" dest="notes_boolean"/>
+  <copyField source="notes" dest="notes_minhash"/>
 
 </schema>

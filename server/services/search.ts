@@ -79,15 +79,53 @@ async function get_maws_for_siglum(siglum: string) {
     }
 }
 
-async function search_maws_solr(maws: string[], collections_to_search: string[], num_results: number): Promise<any> {
-    maws = maws.map(quote);
+export class UnknownSearchTypeError extends Error {
+    constructor() {
+        super("Unknown search type, must be one of 'boolean', 'solr', or 'jaccard'");
+    }
+}
+
+/**
+ * 
+ * @param maws A list of maws
+ * @param collections_to_search A list of collections/libraries to search
+ * @param num_results how many results to return
+ * @param boolean_sim if true, use solr's BooleanSimilarity instead of BM25
+ * @returns 
+ */
+async function search_maws_solr(maws: string[], collections_to_search: string[], num_results: number, similarity_type: 'boolean'|'jaccard'|'solr'): Promise<any> {
     collections_to_search = collections_to_search.map(quote)
     const client = solr.createClient(nconf.get('search'));
-    let query = client.query().defType('dismax').q(maws.join(" ")).qf({maws:1}).mm(1).rows(num_results);
+    const fields: {maws_boolean?: number, maws?: number} = {};
+    let query :any;
+    if (similarity_type === 'boolean') {
+        maws = maws.map(quote);
+        fields.maws_boolean = 1;
+        query = client.query().defType('dismax').q(maws.join(" ")).fl('*,score').qf(fields).mm(1).rows(num_results);
+    } else if (similarity_type === 'solr') {
+        maws = maws.map(quote);
+        fields.maws = 1;
+        query = client.query().defType('dismax').q(maws.join(" ")).fl('*,score').qf(fields).mm(1).rows(num_results);
+    } else if (similarity_type === 'jaccard') {
+        // If we know the number of items in the search term, we can get solr to compute jaccaard itself and
+        // sort by it:
+        //  div(query($q), sub(add(nummaws, 270), query($q))) desc
+        // $q is a solr variable based on the ?q parameter, and query() re-runs a query. This has the effect
+        // of returning the "score", which is the number of matching elements (intersection)
+        // we know the list of maws is unique, so we can compute set union by nummawsA + nummawsB - intersection
+        // store the number of maws in each doc in the 'nummaws' field, count the number of maws in the
+        // search query in js, and re-compute $q again for the number in intersection again
+        const sortparam = `div(query($q), sub(add(nummaws, ${maws.length}), query($q)))`;
+        let sortquery: Record<string, any> = {[sortparam]: "desc"}
+        query = client.query().q(`{!min_hash field="maws_minhash" sim="0.0"}${maws.join(" ")}`).fl('*,score').rows(num_results).sort(sortquery);
+    } else {
+        throw new UnknownSearchTypeError();
+    }
+
     if (collections_to_search.length) {
         query = query.matchFilter("library", "(" + collections_to_search.join(" OR ") + ")")
     }
-    const result = await client.search(query);
+    const result = await client.search(query!);
     if (result.response.numFound >= 1) {
         return result.response.docs;
     }
@@ -138,19 +176,19 @@ export class MawsTooShortError extends Error {
     }
 }
 
-export async function search_by_id(id: string, collections_to_search: string[], jaccard: boolean, num_results: number, threshold: number) {
+export async function search_by_id(id: string, collections_to_search: string[], jaccard: boolean, num_results: number, threshold: number,  similarity_type: 'boolean'|'jaccard'|'solr') {
     const maws = await get_maws_for_siglum(id);
     if (maws) {
-        return await search(maws.split(" "), collections_to_search, jaccard, num_results, threshold);
+        return await search(maws.split(" "), collections_to_search, jaccard, num_results, threshold, similarity_type);
     } else {
         throw new NoMawsForDocumentError(`cannot get maws for document ${id}`)
     }
 }
 
-export async function search_by_codestring(codestring: string, collections_to_search: string[], jaccard: boolean, num_results: number, threshold: number) {
+export async function search_by_codestring(codestring: string, collections_to_search: string[], jaccard: boolean, num_results: number, threshold: number, similarity_type: 'boolean'|'jaccard'|'solr') {
     const maws = get_maws_for_codestrings({cs: codestring});
     if (maws['cs']) {
-        return await search(maws['cs'], collections_to_search, jaccard, num_results, threshold);
+        return await search(maws['cs'], collections_to_search, jaccard, num_results, threshold, similarity_type);
     } else {
         // `maw` binary ran successfully, but no maws were generated for this input.
         // treat this as the same as there not being enough words
@@ -185,7 +223,7 @@ type SearchResult = {
  * @param threshold
  * @returns {boolean|[]|*[]|*}
  */
-async function search(words: string[], collections_to_search: string[], jaccard: boolean, num_results: number, threshold: number): Promise<SearchResult[]> {
+export async function search(words: string[], collections_to_search: string[], jaccard: boolean, num_results: number, threshold: number,  similarity_type: 'boolean'|'jaccard'|'solr'): Promise<SearchResult[]> {
     if (words.length < 6) {
         throw new MawsTooShortError();
     }
@@ -194,8 +232,8 @@ async function search(words: string[], collections_to_search: string[], jaccard:
     // Safety check that the words are all unique:
     const search_uniq_words = new Set(words);
 
-    const maws_results = await search_maws_solr(words, collections_to_search, num_results * 2);
-    const maws_with_scores: SearchResult[] = maws_results.map((doc: { maws: string; siglum: string; intervals: string; book: string; library: string;}) => {
+    const maws_results = await search_maws_solr(words, collections_to_search, num_results * 2, similarity_type);
+    const maws_with_scores: SearchResult[] = maws_results.map((doc: { score: number; maws: string; siglum: string; intervals: string; book: string; library: string;}) => {
         const unique_maws = new Set(doc.maws.split(" "));
         const num_matched_words = set_intersection(unique_maws, search_uniq_words).size;
         return {
@@ -203,6 +241,7 @@ async function search(words: string[], collections_to_search: string[], jaccard:
             id: doc.siglum,
             book: doc.book,
             library: doc.library,
+            score: doc.score,
             codestring: doc.intervals.split(" ").join(""),
             // Number of words in common between search term and document
             num_matched_words: num_matched_words,
@@ -400,7 +439,7 @@ export async function run_image_query(image: fileUpload.UploadedFile) {
         const page = parseMei(path.join(tmpDir, "page.mei"));
         const intervals = pageToContourList(page)
 
-        return search_by_codestring(intervals.join(""), [], jaccard, num_results, threshold);
+        return search_by_codestring(intervals.join(""), [], jaccard, num_results, threshold, 'jaccard');
     }
     catch (e) {
         console.error(`error when running stuff ${e}`);

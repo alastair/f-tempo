@@ -1,6 +1,7 @@
 import fs from "fs";
 import express from "express";
-import {BASE_IMG_URL, BASE_MEI_URL, ngr_len, SERVER_BASE_ROUTE} from "../server.js";
+import {BASE_IMG_URL, BASE_MEI_URL, db, ngr_len, SERVER_BASE_ROUTE} from "../server.js";
+import path from "path";
 import {get_codestring} from "../services/search.js";
 
 
@@ -23,10 +24,21 @@ router.get('/code_searches', function (req, res) {
     res.render('index', data);
 });
 
+function get_mei_path(library: string, book: string, id: string) {
+    const directory_per_book = db[library]?.directory_per_book;
+    const book_directory = directory_per_book ? book : "";
+    const page = db[library].books[book].pages[id]
+    return path.join(BASE_MEI_URL, library, book_directory, "mei", page.mei)
+}
+
 router.get('/compare', async function (req, res) {
 
     // q for 'query', m for 'match'
+    const q_lib = req.query.qlib?.toString();
+    const q_book = req.query.qbook?.toString();
     const q_id = req.query.qid?.toString();
+    const m_lib = req.query.mlib?.toString();
+    const m_book = req.query.mbook?.toString();
     const m_id = req.query.mid?.toString();
 
     let ngram_length;
@@ -46,11 +58,10 @@ router.get('/compare', async function (req, res) {
 
 
     // Get both MEI files
-    const mei_ext = '.mei';
-    const base_mei_url = BASE_MEI_URL;
-    const q_mei_url = base_mei_url + q_id + mei_ext;
-    const m_mei_url = base_mei_url + m_id + mei_ext;
+    const q_mei_url = get_mei_path(q_lib!, q_book!, q_id!);
+    const m_mei_url = get_mei_path(m_lib!, m_book!, m_id!);
     console.log("q_mei_url: " + q_mei_url);
+    console.log("m_mei_url: " + m_mei_url);
 
 
     const q_diat_str = await get_codestring(q_id)
@@ -133,18 +144,6 @@ router.get('/compare', async function (req, res) {
         if(query) return q_com_ng_loc.filter(Boolean); //remove null entries
         else return m_com_ng_loc.filter(Boolean); //remove null entries
     }
-
-    // const q_comm = ngrams_in_common(q_diat_str, m_diat_str, ngram_length, true);
-    // const m_comm = ngrams_in_common(q_diat_str, m_diat_str, ngram_length, false);
-
-    // const sorted_q_comm = q_comm.sort(function(a, b){return a[0].q_ind - b[0].q_ind});
-    // const sorted_m_comm = m_comm.sort(function(a, b){return a[0].m_ind - b[0].m_ind});
-
-    // TODO(ra) probably expose this in the frontend like this...
-    // const show_top_ngrams = req.body.show_top_ngrams;
-    // const show_top_ngrams = true;
-    // const show_top_ngrams = false;
-    // const [q_index_to_colour, m_index_to_colour] = generate_index_to_colour_maps(q_diat_str, m_diat_str, show_top_ngrams);
 
     let q_mei = get_mei(q_mei_url);
     let m_mei = get_mei(m_mei_url);

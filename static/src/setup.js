@@ -364,7 +364,7 @@ function show_results(json) {
                 + '<div class="progress" id="progress' + q + '" width="15%">'
                 + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
                 + "</td>"
-                + "<td><img class='mag-glass' width='16' height='16' src='img/magnifying-glass.svg' onclick='compare(\"" + query_id + "\",\"" + results[q].id + "\")'/></td>";
+                + "<td><img class='mag-glass' width='16' height='16' src='img/magnifying-glass.svg' onclick='compare(" + JSON.stringify(current_page) + ',' + JSON.stringify(results[q]) + ")'/></td>";
             if (provide_judgements) {
                 table_html += "<td id='" + sim_choice_id + "'>"
                     + "<select  class='drop_downs'"
@@ -408,8 +408,8 @@ function show_results(json) {
 }
 
 
-function compare(a, b) {
-    var url = "compare?qid=" + a + "&mid=" + b;
+function compare(query, match) {
+    var url = "compare?qlib=" + query.library + "&qbook=" + query.book + "&qid=" + query.page + "&mlib=" + match.library + "&mbook=" + match.book + "&mid=" + match.id;
     window.open(url, "_blank",
         'width=1200, \
          height=600, \

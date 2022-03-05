@@ -123,17 +123,21 @@ type Input = {
  * @param cache 
  */
 async function processLibrary(librarypath: string, doSaveCache: boolean, readCache: boolean) {
-    const data = fs.readFileSync(librarypath);
-    const library = JSON.parse(data.toString());
+    const data = fs.readFileSync(librarypath, 'utf-8');
+    const library = JSON.parse(data);
     const meiRoot = nconf.get('config:base_mei_url');
 
     const inputList: Input[] = []
+    const directory_per_book = library.directory_per_book === true;
     for (const [book_id, book] of Object.entries(library.books)) {
         for (const [page_id, page] of Object.entries((book as any).pages)) {
             const parts = page_id.split("_");
             const library = parts[0];
             const page2 = (page as any);
-            inputList.push({filePath: path.join(meiRoot, library, page2.mei), library, id: page2.id, book: book_id, page: page2.id})
+            // The library file says if books are in subdirectories
+            // Scores are always in an "mei" subdirectory, either in the library dir, or the book dir
+            const book_directory = directory_per_book ? book_id : "";
+            inputList.push({filePath: path.join(meiRoot, library, book_directory, "mei", page2.mei), library, id: page2.id, book: book_id, page: page2.id})
         }
     }
     console.log(`got ${inputList.length} items to do`);

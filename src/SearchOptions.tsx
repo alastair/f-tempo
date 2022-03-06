@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {Button, Col, Form, Row} from "react-bootstrap-v5";
+import {Button, ButtonToolbar, Col, Form, Row} from "react-bootstrap-v5";
 
 type SelectOptions = {
     value: string
@@ -13,7 +13,8 @@ const searchTypes: SelectOptions[] = [
 
 const rankingTypes: SelectOptions[] = [
     {value: 'jaccard', label: 'Jaccard Distance'},
-    {value: 'basic', label: 'Basic'}
+    {value: 'basic', label: 'Basic'},
+    {value: 'solr', label: 'Solr'},
 ];
 
 const numResultsTypes: SelectOptions[] = [
@@ -38,7 +39,7 @@ const SearchOptions = (props: SearchOptionsProps) => {
     const [ranking, setRanking] = useState('jaccard');
     const [numResults, setNumResults] = useState('10');
     const [provideFeedback, setProvideFeedback] = useState(false);
-    const [collections, setCollections] = useState(new Array(collectionList.length).fill(false));
+    const [collections, setCollections] = useState(new Array(collectionList.length).fill(true));
 
     const handleCollectionTick = (position: number) => {
         const updatedCheckedState = collections.map((item, index) =>
@@ -49,73 +50,80 @@ const SearchOptions = (props: SearchOptionsProps) => {
 
     const doSearch = () => {
         props.onSearch({
-            searchType,
-            ranking,
-            numResults,
-            provideFeedback,
-            collections
+            similarity_type: ranking,
+            num_results: numResults,
+            collections_to_search: collectionList.filter(
+                (element, index) => collections[index]
+            )
         });
     };
 
     return <>
         <Form.Group as={Row} className="mb-3" controlId="form-search-type">
-            <Form.Label column sm={2}>Search Type</Form.Label>
+            <Form.Label column sm={4}>Search Type</Form.Label>
             <Col>
                 <Form.Select value={searchType} onChange={
                     (e) => setSearchType(e.currentTarget.value)
                 }>
                     {searchTypes.map(st => {
-                        return <option value={st.value}>{st.label}</option>;
+                        return <option key={st.value} value={st.value}>{st.label}</option>;
                     })}
                 </Form.Select>
             </Col>
         </Form.Group>
         <Form.Group as={Row} className="mb-3" controlId="form-result-ranking">
-            <Form.Label column sm={2}>Result Ranking</Form.Label>
+            <Form.Label column sm={4}>Result Ranking</Form.Label>
             <Col>
                 <Form.Select value={ranking} onChange={
                     (e) => setRanking(e.currentTarget.value)
                 }>
                     {rankingTypes.map(rt => {
-                        return <option value={rt.value}>{rt.label}</option>;
+                        return <option key={rt.value} value={rt.value}>{rt.label}</option>;
                     })}
                 </Form.Select>
             </Col>
         </Form.Group>
         <Form.Group as={Row} className="mb-3" controlId="form-num-results">
-            <Form.Label column sm={2}>Results to display</Form.Label>
+            <Form.Label column sm={4}>Results to display</Form.Label>
             <Col>
                 <Form.Select value={numResults} onChange={
                     (e) => setNumResults(e.currentTarget.value)
                 }>
                     {numResultsTypes.map(rt => {
-                        return <option value={rt.value}>{rt.label}</option>;
+                        return <option key={rt.value} value={rt.value}>{rt.label}</option>;
                     })}
                 </Form.Select>
             </Col>
         </Form.Group>
         <Form.Group as={Row} className="mb-3" controlId="form-provide-responses">
-            <Form.Check type={"checkbox"}
-                id={"form-provide-responses-check"}
-                label={"Provide judgements to help improve the system"}
-                checked={provideFeedback}
-                onChange={() => setProvideFeedback(!provideFeedback)}
-            />
+            <Col>
+                <Form.Check type={"checkbox"}
+                    id={"form-provide-responses-check"}
+                    label={"Provide judgements to help improve the system"}
+                    checked={provideFeedback}
+                    onChange={() => setProvideFeedback(!provideFeedback)}
+                />
+            </Col>
         </Form.Group>
         <Form.Group as={Row} className="mb-3" controlId="form-collections">
-            {collectionList.map((col, i) => {
-                return <Form.Check
-                    inline
-                    label={col}
-                    name={"group1"}
-                    type={"checkbox"}
-                    id={`form-collection-check-${i}`}
-                    onChange={() => handleCollectionTick(i)} />;
-            })}
+            <label>Collections to search</label>
+            <Col>
+                {collectionList.map((collection, i) => {
+                    return <Form.Check
+                        key={collection}
+                        inline
+                        label={collection}
+                        type={"checkbox"}
+                        checked={collections[i]}
+                        id={`form-collection-check-${i}`}
+                        onChange={() => handleCollectionTick(i)} />;
+                })}
+            </Col>
         </Form.Group>
 
-        <Button variant="primary" type="submit" onClick={doSearch}>Search</Button>
-        <Button variant="primary" type="submit">Repeat last Search</Button>
+        <ButtonToolbar>
+            <Button variant="primary" type="submit" onClick={doSearch}>Search</Button>
+        </ButtonToolbar>
     </>;
 };
 

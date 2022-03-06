@@ -1,13 +1,15 @@
-import {Button, Col, Row} from "react-bootstrap-v5";
+import {Button, ButtonGroup, Row} from "react-bootstrap-v5";
 import ImageView from "./ImageView";
 
 const LeftPane = () => {
     return (<><Row>
-        <Col><Button>Previous Book</Button></Col>
-        <Col><Button>Previous Page</Button></Col>
-        <Col><Button>Random Page</Button></Col>
-        <Col><Button>Next Page</Button></Col>
-        <Col><Button>Next Book</Button></Col>
+        <ButtonGroup>
+            <Button variant="outline-secondary" size="sm">Previous Book</Button>&nbsp;
+            <Button variant="outline-secondary" size="sm">Previous Page</Button>&nbsp;
+            <Button variant="outline-secondary" size="sm">Random Page</Button>&nbsp;
+            <Button variant="outline-secondary" size="sm">Next Page</Button>&nbsp;
+            <Button variant="outline-secondary" size="sm">Next Book</Button>
+        </ButtonGroup>
     </Row>
     <Row>
         <ImageView />

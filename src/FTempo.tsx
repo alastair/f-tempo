@@ -1,7 +1,7 @@
 import {Col, Row} from "react-bootstrap";
 import LeftPane from "./LeftPane";
 import SearchOptions from "./SearchOptions";
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import SearchResultList from "./SearchResultList";
 import SearchResultView from "./SearchResultView";
 import {useNavigate, useParams} from "react-router-dom";
@@ -45,9 +45,13 @@ const FTempo = () => {
         });
     }, [navigate, params.book, params.id, params.library]);
 
-    const onDoSearch = (searchOptions: any) => {
+    const onDoSearch = useCallback((searchOptions: any) => {
         setSearchResults(null);
         setSearchError("");
+        if (!currentPage?.id) {
+            console.log("trying to search but I have no current page");
+            return;
+        }
         const query = {...searchOptions, id: currentPage.id};
         fetch("/api/query", {
             method: "POST",
@@ -67,7 +71,7 @@ const FTempo = () => {
         }).catch((error) => {
             setSearchError(error.toString());
         });
-    };
+    }, [currentPage?.id]);
 
     return <Row>
         <Col>
@@ -75,8 +79,8 @@ const FTempo = () => {
         </Col>
         <Col md={3}>
             {searchError && <div>{searchError}</div>}
-            {searchResults && <SearchResultList results={searchResults} selectedResult={searchResultSelectedIndex} onSelectResult={setSearchResultSelectedIndex} currentPage={currentPage}/>}
-            <SearchOptions onSearch={onDoSearch}/>
+            {searchResults && <SearchResultList results={searchResults} onSelectResult={setSearchResultSelectedIndex} currentPage={currentPage}/>}
+            <SearchOptions onSearch={onDoSearch} readyToSearch={Boolean(currentPage?.id)}/>
         </Col>
         <Col>
             {searchResults && <SearchResultView result={searchResults[searchResultSelectedIndex]} />}

@@ -1,19 +1,15 @@
-import {useState} from "react";
-import {Button, ButtonToolbar, Col, Form, Row} from "react-bootstrap-v5";
+import {useCallback, useEffect, useState} from "react";
+import {Button, ButtonToolbar, Col, Form, Row} from "react-bootstrap";
+import {useNavigate, useSearchParams} from "react-router-dom";
 
 type SelectOptions = {
     value: string
     label: string
 }
 
-const searchTypes: SelectOptions[] = [
-    {value: 'maw', label: 'Minimum Absent Words'},
-    {value: 'ngram', label: '5-Grams'}
-];
-
 const rankingTypes: SelectOptions[] = [
     {value: 'jaccard', label: 'Jaccard Distance'},
-    {value: 'basic', label: 'Basic'},
+    {value: 'boolean', label: 'Basic'},
     {value: 'solr', label: 'Solr'},
 ];
 
@@ -32,14 +28,15 @@ const collectionList = [
 
 type SearchOptionsProps = {
     onSearch: (searchOptions: any) => void
+    readyToSearch: boolean
 };
 
 const SearchOptions = (props: SearchOptionsProps) => {
-    const [searchType, setSearchType] = useState('maw');
     const [ranking, setRanking] = useState('jaccard');
     const [numResults, setNumResults] = useState('10');
-    const [provideFeedback, setProvideFeedback] = useState(false);
     const [collections, setCollections] = useState(new Array(collectionList.length).fill(true));
+
+    const [searchParams, setSearchParams] = useSearchParams();
 
     const handleCollectionTick = (position: number) => {
         const updatedCheckedState = collections.map((item, index) =>
@@ -48,29 +45,85 @@ const SearchOptions = (props: SearchOptionsProps) => {
         setCollections(updatedCheckedState);
     };
 
-    const doSearch = () => {
-        props.onSearch({
+    // when the button is pressed
+    const doSearch = useCallback(() => {
+        const searchOptions = {
             similarity_type: ranking,
             num_results: numResults,
             collections_to_search: collectionList.filter(
                 (element, index) => collections[index]
-            )
-        });
-    };
+            ).join(" ")
+        };
+        setSearchParams(searchOptions);
+    }, [collections, numResults, ranking, setSearchParams]);
+
+    const paramCollections = searchParams.get('collections_to_search');
+    const paramNumResults = searchParams.get('num_results');
+    const paramSimilarityType = searchParams.get('similarity_type');
+    const {readyToSearch, onSearch} = props;
+
+    useEffect(() => {
+        // Check that the search parameters are valid and if they are,
+        // perform a search
+        const validNumResults = numResultsTypes.map((r) => r.value);
+        const validRanking = rankingTypes.map((r) => r.value);
+
+        let isGood = true;
+        // If any parameter is invalid, clear them all
+        if (paramNumResults && !validNumResults.includes(paramNumResults)) {
+            isGood = false;
+            console.log('set search params empty - bad num results');
+            setSearchParams({});
+            return;
+        } else if (paramNumResults) {
+            console.log('set numresults');
+            setNumResults(paramNumResults);
+        }
+
+        if (paramSimilarityType && !validRanking.includes(paramSimilarityType)) {
+            isGood = false;
+            console.log('set search params empty - bad similarity');
+            setSearchParams({});
+            return;
+        } else if (paramSimilarityType) {
+            console.log('set similairty ');
+            setRanking(paramSimilarityType);
+        }
+
+        let goodCollections = true;
+        let collectionsToSet: boolean[] = [];
+        const paramCollectionParts = paramCollections?.split(" ");
+        if (paramCollectionParts) {
+            paramCollectionParts.forEach((col) => {
+                if (col && !collectionList.includes(col)) {
+                    goodCollections = false;
+                    isGood = false;
+                    console.log('set search params empty - bad collections');
+                    setSearchParams({});
+                    return;
+                }
+            });
+            if (goodCollections) {
+                collectionsToSet = collectionList.map((col) => {
+                    return paramCollectionParts.includes(col);
+                });
+                console.log('set collections', collectionsToSet);
+                setCollections(collectionsToSet);
+            }
+        }
+        console.log(`is goof? ${isGood}`);
+        if (isGood && readyToSearch) {
+            onSearch({
+                similarity_type: paramSimilarityType,
+                num_results: paramNumResults,
+                collections_to_search: collectionList.filter(
+                    (element, index) => collectionsToSet[index]
+                )
+            });
+        }
+    }, [paramCollections, paramNumResults, paramSimilarityType, setSearchParams, readyToSearch, onSearch]);
 
     return <>
-        <Form.Group as={Row} className="mb-3" controlId="form-search-type">
-            <Form.Label column sm={4}>Search Type</Form.Label>
-            <Col>
-                <Form.Select value={searchType} onChange={
-                    (e) => setSearchType(e.currentTarget.value)
-                }>
-                    {searchTypes.map(st => {
-                        return <option key={st.value} value={st.value}>{st.label}</option>;
-                    })}
-                </Form.Select>
-            </Col>
-        </Form.Group>
         <Form.Group as={Row} className="mb-3" controlId="form-result-ranking">
             <Form.Label column sm={4}>Result Ranking</Form.Label>
             <Col>
@@ -93,16 +146,6 @@ const SearchOptions = (props: SearchOptionsProps) => {
                         return <option key={rt.value} value={rt.value}>{rt.label}</option>;
                     })}
                 </Form.Select>
-            </Col>
-        </Form.Group>
-        <Form.Group as={Row} className="mb-3" controlId="form-provide-responses">
-            <Col>
-                <Form.Check type={"checkbox"}
-                    id={"form-provide-responses-check"}
-                    label={"Provide judgements to help improve the system"}
-                    checked={provideFeedback}
-                    onChange={() => setProvideFeedback(!provideFeedback)}
-                />
             </Col>
         </Form.Group>
         <Form.Group as={Row} className="mb-3" controlId="form-collections">

@@ -37,7 +37,7 @@ const LeftPane = (props: LeftPaneProps) => {
 
     // Navigation for next/prev page/book
     useEffect(() => {
-        const downHandler = (event) => {
+        const downHandler = (event: KeyboardEvent) => {
             if ([37, 39].indexOf(event.keyCode) > -1) {
                 event.preventDefault();
             }

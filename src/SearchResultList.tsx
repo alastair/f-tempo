@@ -1,27 +1,45 @@
-import {useEffect} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {ProgressBar} from "react-bootstrap";
 import {CurrentPageData} from "./FTempo";
+import {useLocation} from "react-router-dom";
 
 type SearchResultProps = {
-    currentPage: CurrentPageData
+    currentPage?: CurrentPageData
     results: any;
-    selectedResult: number
     onSelectResult: (resultIndex: number) => void;
 }
 
 const SearchResultList = (props: SearchResultProps) => {
+    const location = useLocation();
+    const locationHash = location.hash.replace('#', '');
+    const locationSelectedIndex = Number(locationHash);
+    const [selectedResult, setSelectedResult] = useState(Number.isInteger(locationSelectedIndex) ? locationSelectedIndex : 0);
+
+    const setResultCallback = useCallback((selectedResult: number) => {
+        setSelectedResult(selectedResult);
+    }, []);
+
+    const {onSelectResult, results} = props;
+
+    useEffect(() => {
+        onSelectResult(selectedResult);
+        location.hash = `#${selectedResult}`;
+    }, [onSelectResult, selectedResult]);
+
     useEffect(() => {
         function downHandler(event: any): void {
             if ([38, 39].indexOf(event.keyCode) > -1) {
                 event.preventDefault();
             }
             if (event.keyCode === 38) {    // up arrow
-                if (props.selectedResult > 0) {
-                    props.onSelectResult(props.selectedResult - 1);
+                if (selectedResult > 0) {
+                    setResultCallback(selectedResult - 1);
+                    //props.onSelectResult(selectedResult - 1);
                 }
             } else if (event.keyCode === 40) {    // down arrow
-                if (props.selectedResult < props.results.length - 1) {
-                    props.onSelectResult(props.selectedResult + 1);
+                if (selectedResult < results.length - 1) {
+                    setResultCallback(selectedResult + 1);
+                    //props.onSelectResult(selectedResult + 1);
                 }
             }
         }
@@ -29,7 +47,7 @@ const SearchResultList = (props: SearchResultProps) => {
         return () => {
             window.removeEventListener("keydown", downHandler);
         };
-    }, [props]);
+    }, [results.length, selectedResult, setResultCallback]);
 
     return <table>
         <thead>
@@ -49,7 +67,7 @@ const SearchResultList = (props: SearchResultProps) => {
                 console.log(result);
                 console.log(props.currentPage);
 
-                if (props.currentPage.id !== result.id) {
+                if (props.currentPage && props.currentPage.id !== result.id) {
                     const cp = props.currentPage;
                     const url = `/compare?qlib=${cp.library}&qbook=${cp.book}&qid=${cp.id}&mlib=${result.library}&mbook=${result.book}&mid=${result.id}`;
                     compare = <img alt="compare query and result"
@@ -70,8 +88,8 @@ const SearchResultList = (props: SearchResultProps) => {
                 }
                 return <tr
                     key={result.id}
-                    onClick={() => props.onSelectResult(index)}
-                    style={{backgroundColor: props.selectedResult === index ? "lightpink" : "white",
+                    onClick={() => setResultCallback(index)}
+                    style={{backgroundColor: selectedResult === index ? "lightpink" : "white",
                         cursor: "pointer"
                     }}>
                     <td />

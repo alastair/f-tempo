@@ -58,30 +58,30 @@ if (args.length > 3) {
     data.num_results = args[3];
 }
 
-for (let rankPart of rankParts) {
-    let url;
-    if (rankPart === "legacy") {
-        url = "https://search.f-tempo.org/api/query";
-    } else {
-        url = "https://solrdev.f-tempo.org/api/query";
+(async function() {
+    for (let rankPart of rankParts) {
+        let url;
+        if (rankPart === "legacy") {
+            url = "https://search.f-tempo.org/api/query";
+        } else {
+            url = "https://solrdev.f-tempo.org/api/query";
+        }
+
+        data.similarity_type = rankPart;
+
+        const {default: fetch} = await import("node-fetch");
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            const j = await response.json();
+            processResults(j, query, rankPart);
+
     }
-
-    data.similarity_type = rankPart;
-
-    (async function() {
-
-	const {default: fetch} = await import("node-fetch");
-        const response = await fetch(url, {
-            method: "POST",
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        });
-        const j = await response.json();
-        processResults(j, query, rankPart);
-    })();
-}
+})();
 
 function processResults(results, query, simType) {
     // Results from old server are different to the new one, so rewrite the response

@@ -15,11 +15,12 @@ Where:
    evaluate.js id solr,jaccard GB-Lbl_A103b_025_0 10
 */
 
-import fetch from "node-fetch";
 
 const args = process.argv.slice(2);
 if (args.length < 3) {
     console.error(`usage: ${process.argv[1]} QUERYTYPE RANKTYPE QUERY NUMRESULTS`);
+    console.error(`       QUERYTYPE: id, codestring, or maws`);
+    console.error(`        RANKTYPE: boolean, solr, jaccard, legacy`);
     process.exit();
 }
 
@@ -67,15 +68,19 @@ for (let rankPart of rankParts) {
 
     data.similarity_type = rankPart;
 
-    const response = await fetch(url, {
-        method: "POST",
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    });
-    const j = await response.json();
-    processResults(j, query, rankPart);
+    (async function() {
+
+	const {default: fetch} = await import("node-fetch");
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        const j = await response.json();
+        processResults(j, query, rankPart);
+    })();
 }
 
 function processResults(results, query, simType) {

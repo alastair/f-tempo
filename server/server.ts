@@ -70,8 +70,8 @@ export const BASE_IMG_URL = nconf.get('config:base_image_url');
 export const BASE_MEI_URL = nconf.get('config:base_mei_url');
 
 let base_route =  nconf.get('config:base_route')
-if (!base_route) {
-    base_route = "/";
+if (base_route === undefined) {
+    base_route = "";
 }
 export const SERVER_BASE_ROUTE = base_route;
 

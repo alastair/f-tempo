@@ -49,10 +49,9 @@ Find the next book id or page id for the provided arguments.
    - book
    - page [optional]
    - direction 'next' or 'prev', default next if not set.
- If the `page` argument isn't provided, give the
+ If the `page` argument isn't provided, give the next or previous book
  */
 router.get('/api/next_id', function (req, res, next) {
-    const page_full_id = req.query.id as string;
     const library = req.query.library as string;
     const book_id = req.query.book as string;
     const page_id = req.query.page as string;
@@ -63,9 +62,6 @@ router.get('/api/next_id', function (req, res, next) {
         return res.status(400).json({status: "error", error: "Invalid `direction` field"});
     }
 
-    if (!page_full_id) {
-        return res.status(400).json({status: "error", error: "No `id` field provided"});
-    }
     if (!library) {
         return res.status(400).json({status: "error", error: "No `library` field provided"});
     }

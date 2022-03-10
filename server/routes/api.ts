@@ -137,21 +137,17 @@ router.post('/api/ngram', async function (req, res, next) {
  * POST a json document with content-type application/json with the following structure
  * { id: if set, perform a search using the document with this siglum
  *   codestring: if set, perform a search with this codestring
- *   jaccard: if true, rank results with jaccard distance, otherwise by number of matching words
  *   threshold:
+ *   similarity_type:
  *   }
  */
 router.post('/api/query', async function (req, res, next) {
     // Defaults
     let num_results = 20;
-    let jaccard = true;
     let threshold = 0;
     let collections_to_search = [];
 
     // Set values if given in query
-    if (req.body.jaccard !== undefined) {
-        jaccard = req.body.jaccard;
-    }
     if (req.body.num_results !== undefined) {
         num_results = parseInt(req.body.num_results, 10);
         if (isNaN(num_results)) {
@@ -174,12 +170,12 @@ router.post('/api/query', async function (req, res, next) {
     try {
         if (req.body.id) {
             // TODO: result could be an error, should this be an exception?
-            result = await search_by_id(req.body.id, collections_to_search, jaccard, num_results, threshold,  similarity_type);
+            result = await search_by_id(req.body.id, collections_to_search, num_results, threshold,  similarity_type);
         } else if (req.body.codestring) {
-            result = await search_by_codestring(req.body.codestring, collections_to_search, jaccard, num_results, threshold, similarity_type);
+            result = await search_by_codestring(req.body.codestring, collections_to_search, num_results, threshold, similarity_type);
         } else if (req.body.maws) {
             const maws = req.body.maws.split(" ");
-            result = await search(maws, collections_to_search, jaccard, num_results, threshold, similarity_type);
+            result = await search(maws, collections_to_search, num_results, threshold, similarity_type);
         } else {
             return res.status(400).json({status: "error", error: "'id' or 'codestring' or 'maws' field required"})
         }

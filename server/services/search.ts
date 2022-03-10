@@ -158,6 +158,16 @@ async function search_random_id(timestamp: string) {
     return {};
 }
 
+export async function get_metadata(id: string) {
+    const client = solr.createClient(nconf.get('search'));
+    const query = client.query().q(`siglum:${id}`).fl("siglum,library,book").start(0).rows(1);
+    const result: any = await client.search(query);
+    if (result.response.numFound >= 1) {
+        return result.response.docs[0];
+    }
+    return {};
+}
+
 export async function get_random_id() {
     const now = new Date().getTime();
     const id = await search_random_id(now.toString());

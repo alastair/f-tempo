@@ -8,7 +8,8 @@ import {
     search,
     search_by_codestring,
     search_by_id,
-    search_ngram
+    search_ngram,
+    get_metadata
 } from "../services/search.js";
 import fileUpload from "express-fileupload";
 import {CannotRunMawError} from "../../lib/maw.js";
@@ -20,6 +21,21 @@ router.get('/api/random_id', async function(req, res) {
     try {
         const id = await get_random_id();
         return res.status(200).json(id);
+    } catch (err) {
+        return res.status(500).json({status: "error", error: "Unable to contact random server"});
+    }
+});
+
+// Get metadata (library, book, image location) for a given ID
+router.get('/api/metadata', async function(req, res) {
+    const page_id = req.query.id as string;
+    try {
+        const metadata = await get_metadata(page_id);
+        if (metadata) {
+            return res.status(200).json(metadata);
+        } else {
+            return res.status(404).json(metadata);
+        }
     } catch (err) {
         return res.status(500).json({status: "error", error: "Unable to contact random server"});
     }

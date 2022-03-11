@@ -920,6 +920,14 @@ $(document).ready(() => {
     $('#result_image_display').zoom();
 
     $('#search_by_id_button').click(() => {
+        $.ajax({
+            type: "GET",
+            url: "api/metadata?id=" + document.getElementById("query_id").value,
+            async: false,
+            success: function (data) {
+                current_page = {library: data.library, book: data.book, page: data.siglum};
+            }
+        });
         do_search();
     });
 

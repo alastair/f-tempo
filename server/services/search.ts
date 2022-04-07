@@ -1,13 +1,13 @@
 import fs from 'fs';
 import os from 'os';
-import cp from 'child_process';
 import solr from 'solr-client';
 import nconf from 'nconf';
 import {get_maws_for_codestrings} from "../../lib/maw.js";
 import * as path from "path";
 import fileUpload from "express-fileupload";
-import {pageToContourList, parseMei} from "../../lib/mei.js";
+import {pageToContourList, parseMeiData} from "../../lib/mei.js";
 import {db} from "../server.js";
+import { perform_omr_image } from './omr.js';
 
 
 type NgramSearchResponse = {
@@ -82,12 +82,6 @@ async function get_maws_for_siglum(siglum: string) {
 export class UnknownSearchTypeError extends Error {
     constructor() {
         super("Unknown search type, must be one of 'boolean', 'solr', or 'jaccard'");
-    }
-}
-
-export class NoSuchBinaryError extends Error {
-    constructor(program: string) {
-        super(`Program '${program}' doesn't exist`);
     }
 }
 
@@ -434,41 +428,9 @@ export async function run_image_query(image: fileUpload.UploadedFile) {
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), appPrefix));
         await image.mv(path.join(tmpDir, image.name));
 
-        const status = cp.spawnSync(
-            "convert",
-            [image.name, "-alpha", "off", "page.tiff"],
-            {cwd: tmpDir})
-        if (status.status !== 0) {
-            console.error("Error when running 'convert'");
-            if ((status.error as NodeJS.ErrnoException).code === 'ENOENT') {
-                throw new NoSuchBinaryError('convert');
-            }
-            console.error(status.error);
-            console.error(status.stdout)
-            console.error(status.stderr)
-        }
+        const data = perform_omr_image(tmpDir, image.name);
 
-        const aruspixStatus = cp.spawnSync(
-            "aruspix-cmdline",
-            ["-m", "/storage/ftempo/aruspix_models", "page.tiff"],
-            {cwd: tmpDir})
-        if (aruspixStatus.status !== 0) {
-            console.error("Error when running aruspix");
-            console.error(aruspixStatus.stdout);
-            console.error(aruspixStatus.stderr);
-        }
-
-        const zipStatus = cp.spawnSync(
-            "unzip",
-            ["-q", "page.axz", "page.mei"],
-            {cwd: tmpDir})
-        if (zipStatus.status !== 0) {
-            console.error("Error when uncompressing archive");
-            console.error(zipStatus.stdout);
-            console.error(zipStatus.stderr);
-        }
-
-        const page = parseMei(path.join(tmpDir, "page.mei"));
+        const page = parseMeiData(data);
         const intervals = pageToContourList(page)
 
         return search_by_codestring(intervals.join(""), [], num_results, threshold, 'jaccard');

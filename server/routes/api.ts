@@ -1,6 +1,5 @@
 import express from 'express';
 import fs from 'fs';
-import {tp_jpgs} from "../server.js";
 import {
     get_codestring,
     get_random_id, MawsTooShortError, next_id, NextIdNotFound, NoMawsForDocumentError, UnknownSearchTypeError,
@@ -9,7 +8,8 @@ import {
     search_by_codestring,
     search_by_id,
     search_ngram,
-    get_metadata
+    get_metadata,
+    SearchResponse
 } from "../services/search.js";
 import fileUpload from "express-fileupload";
 import {CannotRunMawError} from "../../lib/maw.js";
@@ -79,12 +79,6 @@ router.get('/api/next_id', function (req, res, next) {
         next(e)
     }
 });
-
-// Returns an array of all title-page jpg urls
-router.get('/api/title-pages', function (req, res) {
-    res.send(tp_jpgs);
-});
-
 
 router.get('/api/get_codestring', async function (req, res) {
     const id = req.query.id as string;
@@ -166,7 +160,7 @@ router.post('/api/query', async function (req, res, next) {
 
     const similarity_type = req.body.similarity_type;
 
-    let result: any[] = [];
+    let result: SearchResponse;
     try {
         if (req.body.id) {
             // TODO: result could be an error, should this be an exception?

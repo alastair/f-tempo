@@ -125,6 +125,7 @@ async function search_maws_solr(maws: string[], collections_to_search: string[],
     if (collections_to_search.length) {
         query = query.matchFilter("library", "(" + collections_to_search.join(" OR ") + ")")
     }
+    query = query.matchFilter("-notmusic", "true");
     const result = await client.search(query!);
     if (result.response.numFound >= 1) {
         return result.response.docs;
@@ -216,6 +217,12 @@ function set_intersection(setA: Set<string>, setB: Set<string>) {
     return _intersection;
 }
 
+export type SearchResponse = {
+    numQueryWords: number
+    numResults: number
+    results: SearchResult[]
+}
+
 type SearchResult = {
     id: string
     codestring: string
@@ -223,6 +230,7 @@ type SearchResult = {
     num_words: number
     jaccard: number
     delta?: number
+    titlepage?: string
 }
 
 /**
@@ -233,7 +241,7 @@ type SearchResult = {
  * @param similarity_type
  * @returns {boolean|[]|*[]|*}
  */
-export async function search(words: string[], collections_to_search: string[], num_results: number, threshold: number,  similarity_type: 'boolean'|'jaccard'|'solr'): Promise<SearchResult[]> {
+export async function search(words: string[], collections_to_search: string[], num_results: number, threshold: number,  similarity_type: 'boolean'|'jaccard'|'solr'): Promise<SearchResponse> {
     if (words.length < 6) {
         throw new MawsTooShortError();
     }
@@ -243,7 +251,7 @@ export async function search(words: string[], collections_to_search: string[], n
     const search_uniq_words = new Set(words);
 
     const maws_results = await search_maws_solr(words, collections_to_search, num_results * 2, similarity_type);
-    const maws_with_scores: SearchResult[] = maws_results.map((doc: { score: number; maws: string; siglum: string; intervals: string; book: string; library: string;}) => {
+    const maws_with_scores: SearchResult[] = maws_results.map((doc: { score: number; maws: string; siglum: string; intervals: string; book: string; library: string; titlepage?: string;}) => {
         const unique_maws = new Set(doc.maws.split(" "));
         const num_matched_words = set_intersection(unique_maws, search_uniq_words).size;
         return {
@@ -258,7 +266,8 @@ export async function search(words: string[], collections_to_search: string[], n
             // Number of unique words in the document
             num_words: unique_maws.size,
             // Jaccard similarity
-            jaccard: 1 - (num_matched_words / (unique_maws.size + search_uniq_words.size - num_matched_words))
+            jaccard: 1 - (num_matched_words / (unique_maws.size + search_uniq_words.size - num_matched_words)),
+            titlepage: doc.titlepage
         };
     });
 
@@ -266,7 +275,11 @@ export async function search(words: string[], collections_to_search: string[], n
     const result = gate_scores_by_threshold(maws_with_scores, threshold, similarity_type === 'jaccard', num_results);
     //console.timeEnd("search");
     //console.log(result);
-    return result;
+    return {
+        numQueryWords: search_uniq_words.size,
+        numResults: maws_results.numResults,
+        results: result
+     };
 }
 
 /**

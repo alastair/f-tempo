@@ -218,6 +218,8 @@
   <field name="page_data" type="text_ws" uninvertible="true" indexed="true" stored="true"/>
   <field name="page_number" type="string" uninvertible="true" indexed="true" stored="true"/>
   <field name="siglum" type="string" uninvertible="true" indexed="true" stored="true"/>
+  <field name="notmusic" type="boolean" uninvertible="true" indexed="true" stored="true"/>
+  <field name="titlepage" type="string" indexed="false" stored="true"/>
   <dynamicField name="random_*" type="random"/>
   <copyField source="maws" dest="maws_boolean"/>
   <copyField source="maws" dest="maws_minhash"/>

@@ -89,7 +89,7 @@ async function importSolr(argv: any) {
      console.debug(argv)
      if (argv.file) {
         const {doImport} = await import('../lib/mei_to_solr_worker.js');
-        const input = [{filePath: argv.file, id: "11_11", book: "11", page: "1"}]
+        const input = [{filePath: argv.file, id: "11_11", book: "11", page: "1", library: "x"}]
         const response = doImport(input);
         console.debug(response);
      }
@@ -100,7 +100,9 @@ type Input = {
     id: string,
     library: string,
     book: string,
-    page: string
+    page: string,
+    notmusic?: boolean,
+    titlepage?: string,
 }
 
 /**
@@ -137,7 +139,15 @@ async function processLibrary(librarypath: string, doSaveCache: boolean, readCac
             // The library file says if books are in subdirectories
             // Scores are always in an "mei" subdirectory, either in the library dir, or the book dir
             const book_directory = directory_per_book ? book_id : "";
-            inputList.push({filePath: path.join(meiRoot, library, book_directory, "mei", page2.mei), library, id: page2.id, book: book_id, page: page2.id})
+            const filePath = path.join(meiRoot, library, book_directory, "mei", page2.mei);
+            const input: Input = {filePath, library, id: page2.id, book: book_id, page: page2.id}
+            if ((book as any).titlepage) {
+                input.titlepage = (book as any).titlepage;
+            }
+            if (page2.notmusic) {
+                input.notmusic = page2.notmusic;
+            }
+            inputList.push(input)
         }
     }
     console.log(`got ${inputList.length} items to do`);

@@ -138,7 +138,7 @@ function lineAt(canvas, startx, starty, colour) {
 }
 
 function display_cosine_sim_line(json) {
-    var results = json;
+    var results = json.data.results;
     var q_str = results[0].codestring;
     for (let q = 1; q < num_results; q++) {
         let progID = 'progress' + q;
@@ -275,10 +275,10 @@ var imageSrcs = [];
 
 function show_results(json) {
     imageSrcs.length = 0; // empty the cache altogether
-    var results = json.data;
+    var results = json.data.results;
     const provide_judgements = $('#provide_judgements').is(':checked');
 
-    if (json.length < 2) {
+    if (results.length < 2) {
         console.log("No results for " + query_id + "!");
         document.getElementById("result_id_msg").innerHTML = "<font color='red'>No results!!</font>";
         return false;

@@ -10,7 +10,7 @@ import {db} from "../server.js";
 import { perform_omr_image } from './omr.js';
 
 
-type NgramSearchResponse = {
+type SubsequenceSearchResponse = {
     id: string
     siglum: string
     library: string
@@ -22,22 +22,22 @@ type NgramSearchResponse = {
     page_data: string
 }
 
-type NgramResponseNote = {
+type SubsequenceResponseNote = {
     p: string
     o: string
     id: string
     x: string
 }
 
-type NgramResponseSystem = {
+type SubsequenceResponseSystem = {
     id: string
-    notes: NgramResponseNote[]
+    notes: SubsequenceResponseNote[]
 }
 
-type NgramResponsePage = {
+type SubsequenceResponsePage = {
     width: string
     height: string
-    systems: NgramResponseSystem[]
+    systems: SubsequenceResponseSystem[]
 }
 
 
@@ -133,10 +133,10 @@ async function search_maws_solr(maws: string[], collections_to_search: string[],
     return []
 }
 
-async function search_ngrams_solr(ngrams: string, collections_to_search: string[], num_results: number, interval: boolean): Promise<any> {
+async function search_subsequences_solr(subsequence: string, collections_to_search: string[], num_results: number, interval: boolean): Promise<any> {
     collections_to_search = collections_to_search.map(quote)
     const client = solr.createClient(nconf.get('search'));
-    const qob = interval ? {intervals: quote(ngrams)} : {notes: quote(ngrams)}
+    const qob = interval ? {intervals: quote(subsequence)} : {notes: quote(subsequence)}
     let query = client.query().q(qob).rows(num_results);
     if (collections_to_search.length) {
         query = query.matchFilter("library", "(" + collections_to_search.join(" OR ") + ")")
@@ -320,21 +320,20 @@ function gate_scores_by_threshold(scores_pruned: SearchResult[], threshold: "med
     }
 }
 
-export async function search_ngram(query_ngrams: string, num_results: number, threshold: number, interval: boolean) {
-    const query_ngrams_arr = query_ngrams.split(" ");
-    const result = await search_ngrams_solr(query_ngrams, [], num_results, interval);
-    const response = result.map((item: NgramSearchResponse) => {
+export async function search_subsequence(query_subsequence: string, num_results: number, threshold: number, interval: boolean) {
+    const query_subsequences_arr = query_subsequence.split(" ");
+    const result = await search_subsequences_solr(query_subsequence, [], num_results, interval);
+    const response = result.map((item: SubsequenceSearchResponse) => {
         // Find the start position(s) of the search term in the results
         const positions: number[] = [];
-        // console.debug(`len note ngrams: ${item.note_ngrams.split(" ").length}`)
-        const note_ngrams_arr = interval ? item.intervals.split(" ") : item.notes.split(" ");
-        let position = findSubarray(note_ngrams_arr, query_ngrams_arr, 0)
+        // console.debug(`len note subsequences: ${item.note_subsequences.split(" ").length}`)
+        const note_subsequences_arr = interval ? item.intervals.split(" ") : item.notes.split(" ");
+        let position = findSubarray(note_subsequences_arr, query_subsequences_arr, 0)
         while (position !== -1) {
             positions.push(position);
-            position = findSubarray(note_ngrams_arr, query_ngrams_arr, position + query_ngrams_arr.length);
+            position = findSubarray(note_subsequences_arr, query_subsequences_arr, position + query_subsequences_arr.length);
         }
-        // console.debug(`positions: ${positions}`);
-        const pageDocument: NgramResponsePage = JSON.parse(item.page_data);
+        const pageDocument: SubsequenceResponsePage = JSON.parse(item.page_data);
         // Unwind the page/systems/notes structure to a flat array so that we can apply the above positions
         const notes: any[] = [];
         for (const system of pageDocument.systems) {
@@ -342,13 +341,28 @@ export async function search_ngram(query_ngrams: string, num_results: number, th
                 notes.push({note: `${note.p}${note.o}`, id: note.id, system: system.id})
             }
         }
-        // console.debug(`len unwound notes: ${notes.length}`)
         const responseNotes = positions.map((start) => {
             // If it's an interval search select 1 more note because we're working with gaps instead of notes
-            const len = query_ngrams_arr.length + (interval ? 1 : 0);
-            return notes.slice(start, start + len);
+            const len = query_subsequences_arr.length + (interval ? 1 : 0);
+
+            return {
+                start_position: start,
+                start_note_id: notes[start].id,
+                end_position: start + len,
+                end_note_id: notes[start + len - 1].id,
+                length: len,
+                notes: notes.slice(start, start + len)
+            };
         });
-        return {match_id: item.siglum, notes: responseNotes};
+        return {
+            id: item.siglum,
+            book: item.book,
+            library: item.library,
+            codestring_intervals: item.intervals.split(" ").join(""),
+            codestring_notes: item.notes,
+            num_matches: responseNotes.length,
+            matches: responseNotes
+        };
     });
     return response;
 }

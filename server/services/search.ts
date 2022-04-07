@@ -85,6 +85,12 @@ export class UnknownSearchTypeError extends Error {
     }
 }
 
+export class NoSuchBinaryError extends Error {
+    constructor(program: string) {
+        super(`Program '${program}' doesn't exist`);
+    }
+}
+
 /**
  * 
  * @param maws A list of maws
@@ -426,13 +432,18 @@ export async function run_image_query(image: fileUpload.UploadedFile) {
     const appPrefix = 'emo-upload';
     try {
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), appPrefix));
-        await image.mv(path.join(tmpDir, image.name))
+        await image.mv(path.join(tmpDir, image.name));
 
         const status = cp.spawnSync(
             "convert",
             [image.name, "-alpha", "off", "page.tiff"],
             {cwd: tmpDir})
         if (status.status !== 0) {
+            console.error("Error when running 'convert'");
+            if ((status.error as NodeJS.ErrnoException).code === 'ENOENT') {
+                throw new NoSuchBinaryError('convert');
+            }
+            console.error(status.error);
             console.error(status.stdout)
             console.error(status.stderr)
         }
@@ -441,11 +452,21 @@ export async function run_image_query(image: fileUpload.UploadedFile) {
             "aruspix-cmdline",
             ["-m", "/storage/ftempo/aruspix_models", "page.tiff"],
             {cwd: tmpDir})
+        if (aruspixStatus.status !== 0) {
+            console.error("Error when running aruspix");
+            console.error(aruspixStatus.stdout);
+            console.error(aruspixStatus.stderr);
+        }
 
         const zipStatus = cp.spawnSync(
             "unzip",
             ["-q", "page.axz", "page.mei"],
             {cwd: tmpDir})
+        if (zipStatus.status !== 0) {
+            console.error("Error when uncompressing archive");
+            console.error(zipStatus.stdout);
+            console.error(zipStatus.stderr);
+        }
 
         const page = parseMei(path.join(tmpDir, "page.mei"));
         const intervals = pageToContourList(page)
@@ -458,7 +479,7 @@ export async function run_image_query(image: fileUpload.UploadedFile) {
     } finally {
         try {
             if (tmpDir) {
-                //fs.rmdirSync(tmpDir, { recursive: true });
+                fs.rmdirSync(tmpDir, { recursive: true });
             }
         }
         catch (e) {

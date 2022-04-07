@@ -11,10 +11,16 @@ import {
     get_metadata,
     SearchResponse
 } from "../services/search.js";
+import {db} from "../server.js"
 import fileUpload from "express-fileupload";
 import {CannotRunMawError} from "../../lib/maw.js";
 
 const router = express.Router();
+
+// Get a list of all catalogues loaded in the server
+router.get('/api/catalogues', async function(req, res) {
+    return res.status(200).json({status: "ok", data: Object.keys(db)});
+});
 
 // Returns a random id from the database
 router.get('/api/random_id', async function(req, res) {

@@ -1,16 +1,16 @@
 import fs from 'fs';
 import os from 'os';
-import cp from 'child_process';
 import solr from 'solr-client';
 import nconf from 'nconf';
 import {get_maws_for_codestrings} from "../../lib/maw.js";
 import * as path from "path";
 import fileUpload from "express-fileupload";
-import {pageToContourList, parseMei} from "../../lib/mei.js";
+import {pageToContourList, parseMeiData} from "../../lib/mei.js";
 import {db} from "../server.js";
+import { perform_omr_image } from './omr.js';
 
 
-type NgramSearchResponse = {
+type SubsequenceSearchResponse = {
     id: string
     siglum: string
     library: string
@@ -22,22 +22,22 @@ type NgramSearchResponse = {
     page_data: string
 }
 
-type NgramResponseNote = {
+type SubsequenceResponseNote = {
     p: string
     o: string
     id: string
     x: string
 }
 
-type NgramResponseSystem = {
+type SubsequenceResponseSystem = {
     id: string
-    notes: NgramResponseNote[]
+    notes: SubsequenceResponseNote[]
 }
 
-type NgramResponsePage = {
+type SubsequenceResponsePage = {
     width: string
     height: string
-    systems: NgramResponseSystem[]
+    systems: SubsequenceResponseSystem[]
 }
 
 
@@ -125,6 +125,7 @@ async function search_maws_solr(maws: string[], collections_to_search: string[],
     if (collections_to_search.length) {
         query = query.matchFilter("library", "(" + collections_to_search.join(" OR ") + ")")
     }
+    query = query.matchFilter("-notmusic", "true");
     const result = await client.search(query!);
     if (result.response.numFound >= 1) {
         return result.response.docs;
@@ -132,10 +133,10 @@ async function search_maws_solr(maws: string[], collections_to_search: string[],
     return []
 }
 
-async function search_ngrams_solr(ngrams: string, collections_to_search: string[], num_results: number, interval: boolean): Promise<any> {
+async function search_subsequences_solr(subsequence: string, collections_to_search: string[], num_results: number, interval: boolean): Promise<any> {
     collections_to_search = collections_to_search.map(quote)
     const client = solr.createClient(nconf.get('search'));
-    const qob = interval ? {intervals: quote(ngrams)} : {notes: quote(ngrams)}
+    const qob = interval ? {intervals: quote(subsequence)} : {notes: quote(subsequence)}
     let query = client.query().q(qob).rows(num_results);
     if (collections_to_search.length) {
         query = query.matchFilter("library", "(" + collections_to_search.join(" OR ") + ")")
@@ -216,6 +217,12 @@ function set_intersection(setA: Set<string>, setB: Set<string>) {
     return _intersection;
 }
 
+export type SearchResponse = {
+    numQueryWords: number
+    numResults: number
+    results: SearchResult[]
+}
+
 type SearchResult = {
     id: string
     codestring: string
@@ -223,6 +230,7 @@ type SearchResult = {
     num_words: number
     jaccard: number
     delta?: number
+    titlepage?: string
 }
 
 /**
@@ -233,7 +241,7 @@ type SearchResult = {
  * @param similarity_type
  * @returns {boolean|[]|*[]|*}
  */
-export async function search(words: string[], collections_to_search: string[], num_results: number, threshold: number,  similarity_type: 'boolean'|'jaccard'|'solr'): Promise<SearchResult[]> {
+export async function search(words: string[], collections_to_search: string[], num_results: number, threshold: number,  similarity_type: 'boolean'|'jaccard'|'solr'): Promise<SearchResponse> {
     if (words.length < 6) {
         throw new MawsTooShortError();
     }
@@ -243,7 +251,7 @@ export async function search(words: string[], collections_to_search: string[], n
     const search_uniq_words = new Set(words);
 
     const maws_results = await search_maws_solr(words, collections_to_search, num_results * 2, similarity_type);
-    const maws_with_scores: SearchResult[] = maws_results.map((doc: { score: number; maws: string; siglum: string; intervals: string; book: string; library: string;}) => {
+    const maws_with_scores: SearchResult[] = maws_results.map((doc: { score: number; maws: string; siglum: string; intervals: string; book: string; library: string; titlepage?: string;}) => {
         const unique_maws = new Set(doc.maws.split(" "));
         const num_matched_words = set_intersection(unique_maws, search_uniq_words).size;
         return {
@@ -258,7 +266,8 @@ export async function search(words: string[], collections_to_search: string[], n
             // Number of unique words in the document
             num_words: unique_maws.size,
             // Jaccard similarity
-            jaccard: 1 - (num_matched_words / (unique_maws.size + search_uniq_words.size - num_matched_words))
+            jaccard: 1 - (num_matched_words / (unique_maws.size + search_uniq_words.size - num_matched_words)),
+            titlepage: doc.titlepage
         };
     });
 
@@ -266,7 +275,11 @@ export async function search(words: string[], collections_to_search: string[], n
     const result = gate_scores_by_threshold(maws_with_scores, threshold, similarity_type === 'jaccard', num_results);
     //console.timeEnd("search");
     //console.log(result);
-    return result;
+    return {
+        numQueryWords: search_uniq_words.size,
+        numResults: maws_results.numResults,
+        results: result
+     };
 }
 
 /**
@@ -307,21 +320,20 @@ function gate_scores_by_threshold(scores_pruned: SearchResult[], threshold: "med
     }
 }
 
-export async function search_ngram(query_ngrams: string, num_results: number, threshold: number, interval: boolean) {
-    const query_ngrams_arr = query_ngrams.split(" ");
-    const result = await search_ngrams_solr(query_ngrams, [], num_results, interval);
-    const response = result.map((item: NgramSearchResponse) => {
+export async function search_subsequence(query_subsequence: string, num_results: number, threshold: number, interval: boolean) {
+    const query_subsequences_arr = query_subsequence.split(" ");
+    const result = await search_subsequences_solr(query_subsequence, [], num_results, interval);
+    const response = result.map((item: SubsequenceSearchResponse) => {
         // Find the start position(s) of the search term in the results
         const positions: number[] = [];
-        // console.debug(`len note ngrams: ${item.note_ngrams.split(" ").length}`)
-        const note_ngrams_arr = interval ? item.intervals.split(" ") : item.notes.split(" ");
-        let position = findSubarray(note_ngrams_arr, query_ngrams_arr, 0)
+        // console.debug(`len note subsequences: ${item.note_subsequences.split(" ").length}`)
+        const note_subsequences_arr = interval ? item.intervals.split(" ") : item.notes.split(" ");
+        let position = findSubarray(note_subsequences_arr, query_subsequences_arr, 0)
         while (position !== -1) {
             positions.push(position);
-            position = findSubarray(note_ngrams_arr, query_ngrams_arr, position + query_ngrams_arr.length);
+            position = findSubarray(note_subsequences_arr, query_subsequences_arr, position + query_subsequences_arr.length);
         }
-        // console.debug(`positions: ${positions}`);
-        const pageDocument: NgramResponsePage = JSON.parse(item.page_data);
+        const pageDocument: SubsequenceResponsePage = JSON.parse(item.page_data);
         // Unwind the page/systems/notes structure to a flat array so that we can apply the above positions
         const notes: any[] = [];
         for (const system of pageDocument.systems) {
@@ -329,13 +341,28 @@ export async function search_ngram(query_ngrams: string, num_results: number, th
                 notes.push({note: `${note.p}${note.o}`, id: note.id, system: system.id})
             }
         }
-        // console.debug(`len unwound notes: ${notes.length}`)
         const responseNotes = positions.map((start) => {
             // If it's an interval search select 1 more note because we're working with gaps instead of notes
-            const len = query_ngrams_arr.length + (interval ? 1 : 0);
-            return notes.slice(start, start + len);
+            const len = query_subsequences_arr.length + (interval ? 1 : 0);
+
+            return {
+                start_position: start,
+                start_note_id: notes[start].id,
+                end_position: start + len,
+                end_note_id: notes[start + len - 1].id,
+                length: len,
+                notes: notes.slice(start, start + len)
+            };
         });
-        return {match_id: item.siglum, notes: responseNotes};
+        return {
+            id: item.siglum,
+            book: item.book,
+            library: item.library,
+            codestring_intervals: item.intervals.split(" ").join(""),
+            codestring_notes: item.notes,
+            num_matches: responseNotes.length,
+            matches: responseNotes
+        };
     });
     return response;
 }
@@ -413,28 +440,11 @@ export async function run_image_query(image: fileUpload.UploadedFile) {
     const appPrefix = 'emo-upload';
     try {
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), appPrefix));
-        await image.mv(path.join(tmpDir, image.name))
+        await image.mv(path.join(tmpDir, image.name));
 
-        const status = cp.spawnSync(
-            "convert",
-            [image.name, "-alpha", "off", "page.tiff"],
-            {cwd: tmpDir})
-        if (status.status !== 0) {
-            console.error(status.stdout)
-            console.error(status.stderr)
-        }
+        const data = perform_omr_image(tmpDir, image.name);
 
-        const aruspixStatus = cp.spawnSync(
-            "aruspix-cmdline",
-            ["-m", "/storage/ftempo/aruspix_models", "page.tiff"],
-            {cwd: tmpDir})
-
-        const zipStatus = cp.spawnSync(
-            "unzip",
-            ["-q", "page.axz", "page.mei"],
-            {cwd: tmpDir})
-
-        const page = parseMei(path.join(tmpDir, "page.mei"));
+        const page = parseMeiData(data);
         const intervals = pageToContourList(page)
 
         return search_by_codestring(intervals.join(""), [], num_results, threshold, 'jaccard');
@@ -445,7 +455,7 @@ export async function run_image_query(image: fileUpload.UploadedFile) {
     } finally {
         try {
             if (tmpDir) {
-                //fs.rmdirSync(tmpDir, { recursive: true });
+                fs.rmdirSync(tmpDir, { recursive: true });
             }
         }
         catch (e) {

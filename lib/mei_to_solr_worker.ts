@@ -16,50 +16,56 @@ if (nconf.get('config:import:threads') !== 1) {
     });
 }
 
-export function doImport(param: any[]) {
+type Input = {
+    filePath: string,
+    id: string,
+    library: string,
+    book: string,
+    page: string,
+    notmusic?: boolean,
+    titlepage?: string,
+}
+
+export function doImport(param: Input[]) {
     const documents = param.map(item => {
-        return makeDocumentFromFile(item.filePath, item.id, item.book, item.page, false);
+        return makeDocumentFromFile(item);
     })
     const mawDocuments = addMaws(documents.filter(d => {return d !== undefined}));
     return mawDocuments
 }
 
-type MeiCacheData = {page: Page, maws: string[], notes: string[], intervals: string[]}
-
-function makeDocumentFromFile(filePath: string, id: string, book: string, page: string, cache: boolean) {
-    let data: MeiCacheData | undefined = undefined;
+function makeDocumentFromFile(item: Input) {
+    const {filePath, id, book, page, notmusic, titlepage} = item;
 
     const parts = id.split("_");
     const library = parts[0];
 
-    if (data === undefined) {
-        try {
-            const page = parseMei(filePath);
-            const intervals = pageToContourList(page)
+    try {
+        const pageData = parseMei(filePath);
+        const intervals = pageToContourList(pageData)
 
-            data = {
-                intervals: intervals,
-                maws: [],
-                notes: pageToNoteList(page),
-                page: page
-            }
-        } catch {
-            // Probably means the file isn't there
-            //console.log(`error reading file ${filePath}`);
-            return undefined;
+        const data: any = {
+            siglum: id,
+            id: id,
+            library: library,
+            book: book,
+            page_number: page,
+            page_data: JSON.stringify(pageData),
+            notes: pageToNoteList(pageData).join(' '),
+            intervals: intervals.join(' ')
+        };
+        if (notmusic) {
+            data.notmusic = notmusic;
         }
+        if (titlepage) {
+            data.titlepage = titlepage;
+        }
+        return data;
+    } catch {
+        // Probably means the file isn't there
+        //console.log(`error reading file ${filePath}`);
+        return undefined;
     }
-
-    return {
-        siglum: id,
-        id: id,
-        library: library,
-        book: book,
-        page_number: page,
-        page_data: JSON.stringify(data.page),
-        notes: data.notes.join(' '),
-        intervals: data.intervals.join(' ')
-    };
 }
 
 

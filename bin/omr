@@ -1,0 +1,10 @@
+#!/bin/env bash
+
+set -e
+
+if [ $# -lt 1 ]; then
+    echo "usage: $0 <imagefile>"
+    exit 1
+fi
+
+node --no-warnings --loader ts-node/esm server/omr_image.ts "$1"

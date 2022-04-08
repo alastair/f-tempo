@@ -3,8 +3,12 @@ import fs from 'fs';
 import {JSDOM} from 'jsdom';
 
 
-export function parseMei(filename: string): Page {
+function parseMeiFile(filename: string): Page {
     const data = fs.readFileSync( filename, 'utf-8');
+    return parseMeiData(data);
+}
+
+export function parseMeiData(data: string): Page {
     const dom = new JSDOM("")
     const DOMParser = dom.window.DOMParser;
     const parser = new DOMParser();

@@ -1,6 +1,5 @@
 import express from 'express';
 import fs from 'fs';
-import {tp_jpgs} from "../server.js";
 import {
     get_codestring,
     get_random_id, MawsTooShortError, next_id, NextIdNotFound, NoMawsForDocumentError, UnknownSearchTypeError,
@@ -8,13 +7,20 @@ import {
     search,
     search_by_codestring,
     search_by_id,
-    search_ngram,
-    get_metadata
+    search_subsequence,
+    get_metadata,
+    SearchResponse
 } from "../services/search.js";
+import {db} from "../server.js"
 import fileUpload from "express-fileupload";
 import {CannotRunMawError} from "../../lib/maw.js";
 
 const router = express.Router();
+
+// Get a list of all catalogues loaded in the server
+router.get('/api/catalogues', async function(req, res) {
+    return res.status(200).json({status: "ok", data: Object.keys(db)});
+});
 
 // Returns a random id from the database
 router.get('/api/random_id', async function(req, res) {
@@ -80,12 +86,6 @@ router.get('/api/next_id', function (req, res, next) {
     }
 });
 
-// Returns an array of all title-page jpg urls
-router.get('/api/title-pages', function (req, res) {
-    res.send(tp_jpgs);
-});
-
-
 router.get('/api/get_codestring', async function (req, res) {
     const id = req.query.id as string;
     if (id === undefined) {
@@ -100,11 +100,11 @@ router.get('/api/get_codestring', async function (req, res) {
 });
 
 /**
- * Perform an ngram search
+ * Perform an subsequence search
  * POST a json document with content-type application/json with the following structure
- * {ngrams: a list of ngrams to search}
+ * {subsequences: a list of subsequences to search}
  */
-router.post('/api/ngram', async function (req, res, next) {
+router.post('/api/query_subsequence', async function (req, res, next) {
     if (req.body === undefined) {
         return res.status(400).send({error: "Body value required"});
     }
@@ -113,17 +113,18 @@ router.post('/api/ngram', async function (req, res, next) {
         const threshold = parseInt(req.body.threshold || "0", 10);
         const interval = req.body.interval === "true" || false;
 
-        const ngrams = req.body.ngrams;
-        if (ngrams === undefined) {
-            return res.status(400).json({status: "error", error: "'ngrams' field required"})
+        const subsequence = req.body.subsequence;
+        if (subsequence === undefined) {
+            return res.status(400).json({status: "error", error: "'subsequence' field required"})
         }
 
-        // Convert ngrams from a space separated string to an array
-        if (ngrams && ngrams.trim().length) {
-            const response = await search_ngram(ngrams, num_results, threshold, interval);
-            return res.json({status: "ok", "data": response});
+        // Convert subsequences from a space separated string to an array
+        if (subsequence && subsequence.trim().length) {
+            const response = await search_subsequence(subsequence, num_results, threshold, interval);
+            const match_type = interval ? "interval" : "note";
+            return res.json({status: "ok", "data": {match_type, results: response}});
         } else {
-            return res.status(400).json({status: "error", error: "No ngrams set"})
+            return res.status(400).json({status: "error", error: "No subsequences set"})
         }
     } catch (e) {
         return next(e);
@@ -166,7 +167,7 @@ router.post('/api/query', async function (req, res, next) {
 
     const similarity_type = req.body.similarity_type;
 
-    let result: any[] = [];
+    let result: SearchResponse;
     try {
         if (req.body.id) {
             // TODO: result could be an error, should this be an exception?

@@ -8,7 +8,7 @@
     "host": "0.0.0.0",
     "port": 8000
   },
-  "databases": ["D-Mbs", "D-Bsb", "F-Pn", "GB-Lbl", "PL-Wn", "PL-Kj"],
+  "databases": ["D-Mbs", "D-Bsb", "F-Pn", "GB-Lbl", "PL-Wn"],
   "database_files": {
     "D-Mbs":  "index-D-Mbs.json",
     "D-Bsb": "index-D-Bsb.json",
@@ -22,7 +22,6 @@
       "threads": 4
     },
     "storage": "/storage/ftempo/",
-    "tp_jpg_list": "static/src/jpg_list.txt",
     "base_image_url": "https://uk-dev-ftempo.rism.digital/img/jpg/",
     "base_mei_url": "/storage/ftempo/scores/",
     "maw_path": "/usr/local/bin/maw",

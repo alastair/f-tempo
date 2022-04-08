@@ -43,9 +43,6 @@ interface StringToAny {
     [key: string]: any;
 }
 
-const TP_JPG_LIST = nconf.get('config:tp_jpg_list');
-export const tp_jpgs: string[] = []; // URLs to title-pages (NB only for D-Mbs!)
-
 export const ngr_len = 5;
 
 const app = express();
@@ -80,31 +77,17 @@ export const SERVER_BASE_ROUTE = base_route;
  ******************************************************************************/
 console.log("F-TEMPO server started at " + Date());
 
-// Load Titlepages
-console.log("Loading " + TP_JPG_LIST);
-fs.readFile(TP_JPG_LIST, 'utf8', (err, data) => {
-    if (err) {
-        throw err;
-    }
-    if (!data.length) {
-        console.log("No data!");
-    } else {
-        let lines = data.split("\n");
-        for (let line of lines) {
-            if (line) {
-                tp_jpgs.push(line);
-            }
-        }
-        console.log(Object.keys(tp_jpgs).length + " title-page urls loaded!");
-    }
-});
-
 const db_paths = nconf.get('database_files');
 // TODO: Make this type actually represent a json db entry
 export const db: StringToAny = {};
 const storage_location = nconf.get('config:storage');
-for (const [key, filename] of Object.entries(db_paths)) {
-    console.log(`Loading ${key}`)
+for (const key of databases) {
+    console.log(`Loading ${key}`);
+    if (!db_paths.hasOwnProperty(key)) {
+        console.error(`Cannot find data file for collection ${key}`);
+        continue;
+    }
+    const filename = db_paths[key];
     const full_path = path.join(storage_location, filename as string)
     try {
         fs.accessSync(full_path, fs.constants.R_OK)

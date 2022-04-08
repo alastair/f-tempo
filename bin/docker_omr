@@ -1,0 +1,28 @@
+#!/bin/env bash
+
+set -e
+
+if [ $# -lt 1 ]; then
+    echo "usage: $0 <imagefile>"
+    exit 1
+fi
+
+script=$(readlink -f "$0")
+arg=$(readlink -f "$1")
+
+if [ ! -f "$arg" ]; then
+    echo "no such file $1"
+    exit 2
+fi
+
+argdir=$(dirname "$arg")
+argfile=$(basename "$arg")
+scriptdir=$(dirname "$script")
+projectdir=$(cd $scriptdir/..; pwd -P)
+
+echo $script
+echo $arg
+echo $projectdir
+
+cd "$projectdir"
+docker-compose run --rm -v "$argdir":/work ftempo node --no-warnings --loader ts-node/esm server/omr_image.ts /work/"$argfile"

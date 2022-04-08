@@ -91,7 +91,8 @@ function processResults(results, query, simType) {
     if (results.status === "ok") {
         console.log(`Search query: ${query}`);
         console.log(`Ranking method: ${simType}`);
-        results.data.forEach((row, index) => {
+        const data = simType === 'legacy' ? results.data : results.data.results;
+        data.forEach((row, index) => {
             let score;
             if (simType === 'jaccard' || simType === 'legacy') {
                 score = row.jaccard;

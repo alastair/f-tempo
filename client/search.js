@@ -41,7 +41,7 @@ fetch("https://solrdev.f-tempo.org/api/query", {
 
 function processResults(results) {
     if (results.status === "ok") {
-        results.data.forEach((row, index) => {
+        results.data.results.forEach((row, index) => {
             console.log(`${index + 1}\t${row.id}\t${Number.parseFloat(row.jaccard).toFixed(2)}`);
         });
     } else if (results.status === "error") {

@@ -20,9 +20,5 @@ argfile=$(basename "$arg")
 scriptdir=$(dirname "$script")
 projectdir=$(cd $scriptdir/..; pwd -P)
 
-echo $script
-echo $arg
-echo $projectdir
-
 cd "$projectdir"
 docker-compose run --rm -v "$argdir":/work ftempo node --no-warnings --loader ts-node/esm server/omr_image.ts /work/"$argfile"

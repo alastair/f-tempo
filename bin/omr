@@ -7,4 +7,8 @@ if [ $# -lt 1 ]; then
     exit 1
 fi
 
+scriptdir=$(dirname "$script")
+projectdir=$(cd $scriptdir/..; pwd -P)
+
+cd "$projectdir"
 node --no-warnings --loader ts-node/esm server/omr_image.ts "$1"

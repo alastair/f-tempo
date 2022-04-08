@@ -11,7 +11,7 @@ export class NoSuchBinaryError extends Error {
 export function perform_omr_image(workingDir: string, imageName: string) {
     const status = cp.spawnSync(
         "convert",
-        [imageName, "-alpha", "off", "page.tiff"],
+        [imageName, "-alpha", "off", "-compress", "none", "page.tiff"],
         {cwd: workingDir})
     if (status.status !== 0) {
         console.error("Error when running 'convert'");

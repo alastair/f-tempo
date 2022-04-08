@@ -197,14 +197,14 @@ router.post('/api/query', async function (req, res, next) {
 
 router.post('/api/image_query', async function (req, res, next) {
     if (!req.files) {
-        return res.status(400).send('No files were uploaded.');
+        return res.status(400).json({status: "error", error: 'No files were uploaded.'});
     }
 
     let user_image = req.files.user_image_file as fileUpload.UploadedFile;
 
     try {
         const result = await run_image_query(user_image);
-        res.send({status: "ok", data: result});
+        return res.json({status: "ok", data: result});
     } catch (e) {
         next(e);
     }

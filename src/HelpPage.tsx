@@ -14,7 +14,7 @@ const HelpPage = () => {
             </p>
             <p>
                 The images have been subjected to optical music recognition using <a href="https://www.verovio.org/">Aruspix</a>, and the musical contents indexed for efficient searching
-                using a <a href="http://doc.gold.ac.uk/~mas01tc/ISMIR2018_draft.pdf" rel="noopener" target="_blank">state-of-the-art
+                using a <a href="http://doc.gold.ac.uk/~mas01tc/ISMIR2018_draft.pdf" rel="noreferrer" target="_blank">state-of-the-art
                 method</a>.
             </p>
             <p>
@@ -83,7 +83,7 @@ const HelpPage = () => {
             <p>
                 There are two 'modes' for ranking results. The 'Basic' mode takes no account of the number of notes on a
                 page, which can lead to false matches with long pages. The default 'Jaccard' mode, however, uses the
-                <a href="https://www.statisticshowto.com/jaccard-index" rel="noopener" target="_blank">Jaccard distance</a> measure
+                <a href="https://www.statisticshowto.com/jaccard-index" rel="noreferrer" target="_blank">Jaccard distance</a> measure
                 instead, which tends on the whole to give better results.</p><p>
                 When you change this setting by choosing from the &ldquo;Result Ranking&rdquo; menu your search will be
                 re-run.

@@ -17,7 +17,7 @@ const FakeSearchResultList = (props: SearchResultProps) => {
             <tr>
                 <th style={{width: `37px`}} />
                 <th><Skeleton width={`80%`} /></th>
-                <th style={{width: `200px`}}><Skeleton width={`80%`} /></th>
+                <th style={{maxWidth: `200px`}}><Skeleton width={`80%`} /></th>
                 <th style={{width: `30px`}} />
             </tr>
         </thead>

@@ -1,6 +1,6 @@
 import {useCallback, useEffect} from "react";
 import {ProgressBar, Table} from "react-bootstrap";
-import {CurrentPageData} from "./FTempo";
+import {CurrentPageData} from "../ApiClient";
 import {useLocation, useNavigate} from "react-router-dom";
 
 type SearchResultProps = {
@@ -61,10 +61,10 @@ const SearchResultList = (props: SearchResultProps) => {
         <thead>
             <tr><th colSpan={4}>{results.results.length} results &mdash; {results.numQueryWords} words in query</th></tr>
             <tr>
-                <th />
+                <th style={{width: `37px`}} />
                 <th>Page ID</th>
-                <th>Match Score</th>
-                <th />
+                <th style={{maxWidth: `200px`}}>Match Score</th>
+                <th style={{width: `30px`}} />
             </tr>
         </thead>
         <tbody>
@@ -74,9 +74,9 @@ const SearchResultList = (props: SearchResultProps) => {
                 let compare = <></>;
                 let titlePage = <></>;
 
-                if (props.currentPage && props.currentPage.id !== result.id) {
+                if (props.currentPage && props.currentPage.page_id !== result.id) {
                     const cp = props.currentPage;
-                    const url = `/compare?qlib=${cp.library}&qbook=${cp.book}&qid=${cp.id}&mlib=${result.library}&mbook=${result.book}&mid=${result.id}`;
+                    const url = `/compare?qlib=${cp.library}&qbook=${cp.book_id}&qid=${cp.page_id}&mlib=${result.library}&mbook=${result.book}&mid=${result.id}`;
                     compare = <img alt="compare query and result"
                         width='16' height='16' src='/img/magnifying-glass.svg'
                         onClick={() => {
@@ -86,7 +86,7 @@ const SearchResultList = (props: SearchResultProps) => {
                     />;
                 }
                 if (result.titlepage) {
-                    titlePage = <img src="/img/tp_book.svg" height="20" />;
+                    titlePage = <img src="/img/tp_book.svg" alt="View the title page for this result's book" height="20" />;
                 }
                 return <tr
                     key={result.id}

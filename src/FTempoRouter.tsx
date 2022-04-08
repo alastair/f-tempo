@@ -4,7 +4,7 @@ import {
     Routes,
 } from "react-router-dom";
 import ResourceLoader from "./ResourceLoader";
-import FTempo from "./FTempo";
+import FTempo from "./ftempo/FTempo";
 import HelpPage from "./HelpPage";
 import ExampleLoader from "./ExampleLoader";
 import SearchLoader from "./SearchLoader";

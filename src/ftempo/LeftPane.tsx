@@ -1,8 +1,9 @@
 import {Button, ButtonGroup, Row} from "react-bootstrap";
 import ImageView from "./ImageView";
-import {CurrentPageData} from "./FTempo";
+import {CurrentPageData} from "../ApiClient";
 import {useCallback, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
+import {useApiClient} from "../App";
 
 type LeftPaneProps = {
     page: CurrentPageData;
@@ -10,30 +11,25 @@ type LeftPaneProps = {
 
 const LeftPane = (props: LeftPaneProps) => {
     const navigate = useNavigate();
+    const apiClient = useApiClient();
 
     const change_book = useCallback((direction: 'next'|'prev') => {
-        fetch(`/api/next_id?direction=${direction}&library=${props.page.library}&book=${props.page.book}`).then(r =>
-            r.json()
-        ).then(response => {
-            navigate(`/ftempo/${response.data.library}/${response.data.book_id}/${response.data.page.id}`);
+        apiClient.changeBook(direction, props.page.library, props.page.book_id).then(page => {
+            navigate(`/ftempo/${page.library}/${page.book_id}/${page.page_id}`);
         });
-    }, [navigate, props.page.book, props.page.library]);
+    }, [apiClient, navigate, props.page.book_id, props.page.library]);
 
     const change_page = useCallback((direction: 'next'|'prev') => {
-        fetch(`/api/next_id?direction=${direction}&library=${props.page.library}&book=${props.page.book}&page=${props.page.id}`).then(r =>
-            r.json()
-        ).then(response => {
-            navigate(`/ftempo/${response.data.library}/${response.data.book_id}/${response.data.page.id}`);
+        apiClient.changePage(direction, props.page.library, props.page.book_id, props.page.page_id).then(page => {
+            navigate(`/ftempo/${page.library}/${page.book_id}/${page.page_id}`);
         });
-    }, [navigate, props.page.book, props.page.id, props.page.library]);
+    }, [apiClient, navigate, props.page.book_id, props.page.library]);
 
     const change_random_page = useCallback(() => {
-        fetch(`/api/random_id`).then(r =>
-            r.json()
-        ).then(response => {
-            navigate(`/ftempo/${response.library}/${response.book}/${response.id}`);
+        apiClient.randomPage().then(page => {
+            navigate(`/ftempo/${page.library}/${page.book_id}/${page.page_id}`);
         });
-    }, [navigate]);
+    }, [apiClient, navigate]);
 
     // Navigation for next/prev page/book
     useEffect(() => {

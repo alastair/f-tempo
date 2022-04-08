@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useState} from "react";
 import {Button, ButtonToolbar, Col, Form, Row} from "react-bootstrap";
 import {useSearchParams} from "react-router-dom";
+import {useApiClient} from "../App";
 
 type SelectOptions = {
     value: string
@@ -49,6 +50,7 @@ const SearchOptions = (props: SearchOptionsProps) => {
     const [collections, setCollections] = useState<boolean[]>([]);
     const [searchParams, setSearchParams] = useSearchParams();
 
+    const apiClient = useApiClient();
     const paramCollections = searchParams.get('collections_to_search');
     const paramNumResults = searchParams.get('num_results');
     const paramSimilarityType = searchParams.get('similarity_type');
@@ -62,17 +64,11 @@ const SearchOptions = (props: SearchOptionsProps) => {
 
     // On component load get the list of catalogues
     useEffect(() => {
-        fetch(`/api/catalogues`).then(r => {
-            if (r.status === 200) {
-                return r.json();
-            } else {
-                alert('error');
-            }
-        }).then(response => {
-            setCollections(new Array(response.data.length).fill(true));
-            setCollectionList(response.data);
+        apiClient.catalogues().then(response => {
+            setCollections(new Array(response.length).fill(true));
+            setCollectionList(response);
         });
-    }, []);
+    }, [apiClient]);
 
     // when the search button is pressed, set the query parameters to the current state
     const doSearch = useCallback(() => {

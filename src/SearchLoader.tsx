@@ -1,23 +1,21 @@
 import {useState} from "react";
 import {Button, Col, Form, Row, Stack} from "react-bootstrap";
 import {useNavigate} from "react-router-dom";
+import {useApiClient} from "./App";
 
 const SearchLoader = () => {
     const navigate = useNavigate();
+    const apiClient = useApiClient();
 
     const [documentId, setDocumentId] = useState('');
     const [documentIdError, setDocumentIdError] = useState(false);
 
-    const loadDocument = (documentId) => {
+    const loadDocument = (documentId: string) => {
         setDocumentIdError(false);
-        fetch(`/api/metadata?id=${documentId}`).then(r => {
-            if (r.status === 200) {
-                return r.json();
-            } else {
-                setDocumentIdError(true);
-            }
-        }).then(response => {
-            navigate(`/ftempo/${response.library}/${response.book}/${response.siglum}`);
+        apiClient.metadata(documentId).then(response => {
+            navigate(`/ftempo/${response.library}/${response.book_id}/${response.page_id}`);
+        }).catch(e => {
+            setDocumentIdError(true);
         });
     };
 

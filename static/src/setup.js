@@ -288,7 +288,7 @@ function show_results(json) {
 
     let table_html = "<thead><tr><th colspan=3>" + num_results + " results - "
         + results[0].num_words + " words in query</th></tr>"
-        + "<tr><th>Page ID</th>"
+        + "<tr><th></th><th>Page ID</th>"
         + "<th>Match Score</th>";
     if (provide_judgements) {
         table_html += "<th>Judge Match</th>";
@@ -331,7 +331,7 @@ function show_results(json) {
             } else {
                 table_html += "<td></td>";
             }
-            table_html += "<td text-align='center' style='color:blue; font-size: 10px'>" + target_id + "</td>";
+            table_html += "<td text-align='center' style='color:blue; font-size: 10px'>"+(q+1)+ ". " + target_id + "</td>";
             table_html += "<td>"
                 + '<div class="progress" width="15%">'
                 + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'
@@ -359,7 +359,7 @@ function show_results(json) {
                 + "' onclick='load_result_image(\"" + target_id + "\"," + q + "," + book + ");'>";
             if (target_id.startsWith("D-Mbs")) table_html += "<td id='title_page_link'><img src='img/tp_book.svg' height='20' onmousedown='show_tp(\"" + target_id + "\"," + false + ")'></td>";
             else table_html += "<td></td>";
-            table_html += "<td text-align='center' style='color:blue; font-size: 10px'>" + target_id + "</td>"
+            table_html += "<td text-align='center' style='color:blue; font-size: 10px'>"+(q+1)+ ". " + target_id + "</td>"
                 + "<td >"
                 + '<div class="progress" id="progress' + q + '" width="15%">'
                 + '<div class="progress-bar" role="progressbar" style="width: ' + rank_percentage + '%;" aria-valuenow="' + rank_percentage + '" aria-valuemin="0" aria-valuemax="100">' + rank_percentage + '</div>'

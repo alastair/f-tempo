@@ -102,7 +102,8 @@ router.get('/api/get_codestring', async function (req, res) {
 /**
  * Perform an subsequence search
  * POST a json document with content-type application/json with the following structure
- * {subsequences: a list of subsequences to search}
+ * {subsequence: a space separated string of notes or intervals to search
+ *  interval: true if search is intervals, false if notes}
  */
 router.post('/api/query_subsequence', async function (req, res, next) {
     if (req.body === undefined) {
@@ -111,7 +112,7 @@ router.post('/api/query_subsequence', async function (req, res, next) {
     try {
         const num_results = req.body.num_results || 20;
         const threshold = parseInt(req.body.threshold || "0", 10);
-        const interval = req.body.interval === "true" || false;
+        const interval = req.body.interval === "true" || req.body.interval === true || false;
 
         const subsequence = req.body.subsequence;
         if (subsequence === undefined) {

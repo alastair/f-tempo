@@ -358,8 +358,8 @@ export async function search_subsequence(query_subsequence: string, num_results:
             id: item.siglum,
             book: item.book,
             library: item.library,
-            codestring_intervals: item.intervals.split(" ").join(""),
-            codestring_notes: item.notes,
+            codestring_intervals: item.intervals.split(" "),
+            codestring_notes: item.notes.split(" "),
             num_matches: responseNotes.length,
             matches: responseNotes
         };

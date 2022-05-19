@@ -8,17 +8,20 @@ type Note = {
     p: string
     o: string
     id: string
-    x: string
+    x?: string
 }
 
 type System = {
     id: string
-    y: string
+    y?: string
     notes: Note[]
 }
 
 type Page = {
-    width: string
-    height: string
+    label?: string
+    partNumber?: string
+    meiPath?: string
+    width?: string
+    height?: string
     systems: System[]
 }

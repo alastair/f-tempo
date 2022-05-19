@@ -1,6 +1,6 @@
 /// <reference types="./types" />
 import { get_maws_for_codestrings } from './maw.js';
-import {pageToContourList, pageToNoteList, parseMei} from "./mei.js";
+import {pageToContourList, pageToNoteList, parseMeiFile, parseMeiParts} from "./mei.js";
 import nconf from 'nconf';
 import workerpool from 'workerpool';
 
@@ -8,6 +8,8 @@ nconf.argv().file('./config/default_config.json')
 if (process.env.NODE_ENV === "production") {
     nconf.file('./config/production_config.json')
 }
+
+const meiRoot = nconf.get('config:base_mei_url');
 
 // Only bind the pool if we have >1 threads
 if (nconf.get('config:import:threads') !== 1) {
@@ -17,6 +19,7 @@ if (nconf.get('config:import:threads') !== 1) {
 }
 
 type Input = {
+    type: 'aruspix'|'mxml',
     filePath: string,
     id: string,
     library: string,
@@ -27,26 +30,31 @@ type Input = {
 }
 
 export function doImport(param: Input[]) {
-    const documents = param.map(item => {
-        return makeDocumentFromFile(item);
+    const documents = param.flatMap(item => {
+        return makeDocumentsFromFile(item);
     })
     const mawDocuments = addMaws(documents.filter(d => {return d !== undefined}));
     return mawDocuments
 }
 
-function makeDocumentFromFile(item: Input) {
-    const {filePath, id, book, page, notmusic, titlepage} = item;
+function makeDocumentsFromFile(item: Input) {
+    const {filePath, id, book, page, notmusic, titlepage, type} = item;
 
     const parts = id.split("_");
     const library = parts[0];
 
-    try {
-        const pageData = parseMei(filePath);
+    const pageDataToSolr = (pageData: Page) => {
         const intervals = pageToContourList(pageData)
 
+        // We use this label when running the maws binary, and it can only accept letters/numbers
+        const label = pageData.label ? `_${pageData.label.replaceAll(/[^A-Za-z-_]/g, '_')}` : '';
+        // TODO: Type for this
         const data: any = {
-            siglum: id,
-            id: id,
+            part_number: pageData.partNumber,
+            part_name: pageData.label,
+            mei_path: pageData.meiPath,
+            siglum: id + label,
+            id: id + label,
             library: library,
             book: book,
             page_number: page,
@@ -61,10 +69,25 @@ function makeDocumentFromFile(item: Input) {
             data.titlepage = titlepage;
         }
         return data;
-    } catch {
+    }
+
+    try {
+        if (type === 'aruspix') {
+            // Aruspix files have just 1 part, so return it as a list
+            const pageData = parseMeiFile(meiRoot, filePath);
+            return [pageDataToSolr(pageData)];
+        } else if (type === 'mxml') {
+            // Files from CPDL/musicxml may have multiple parts, so return each of them
+            const pageParts = parseMeiParts(meiRoot, filePath);
+            return pageParts.map((pagePart) => {
+                return pageDataToSolr(pagePart);
+            });
+        }
+    } catch (e) {
         // Probably means the file isn't there
         //console.log(`error reading file ${filePath}`);
-        return undefined;
+        throw e;
+        return [undefined];
     }
 }
 

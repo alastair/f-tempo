@@ -9,7 +9,8 @@ import {
     search_by_id,
     search_subsequence,
     get_metadata,
-    SearchResponse
+    SearchResponse,
+    get_mei
 } from "../services/search.js";
 import {db} from "../server.js"
 import fileUpload from "express-fileupload";
@@ -99,6 +100,20 @@ router.get('/api/get_codestring', async function (req, res) {
     }
 });
 
+router.get('/api/get_mei', async function (req, res) {
+    const id = req.query.id as string;
+    if (id === undefined) {
+        return res.status(400).json({status: "error", error: "'id' field required"});
+    }
+    const searchResult = await get_mei(id);
+    if (searchResult) {
+        res.setHeader('content-type', 'text/xml');
+        res.send(searchResult);
+    } else {
+        res.status(404).json({status: "error", error: "Codestrings not found"})
+    }
+});
+
 /**
  * Perform an subsequence search
  * POST a json document with content-type application/json with the following structure
@@ -113,6 +128,10 @@ router.post('/api/query_subsequence', async function (req, res, next) {
         const num_results = req.body.num_results || 20;
         const threshold = parseInt(req.body.threshold || "0", 10);
         const interval = req.body.interval === "true" || req.body.interval === true || false;
+        let collections_to_search = [];
+        if (req.body.collections_to_search !== undefined) {
+            collections_to_search = req.body.collections_to_search;
+        }
 
         const subsequence = req.body.subsequence;
         if (subsequence === undefined) {
@@ -121,7 +140,7 @@ router.post('/api/query_subsequence', async function (req, res, next) {
 
         // Convert subsequences from a space separated string to an array
         if (subsequence && subsequence.trim().length) {
-            const response = await search_subsequence(subsequence, num_results, threshold, interval);
+            const response = await search_subsequence(subsequence, num_results, threshold, interval, collections_to_search);
             const match_type = interval ? "interval" : "note";
             return res.json({status: "ok", "data": {match_type, results: response}});
         } else {

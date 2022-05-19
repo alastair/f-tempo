@@ -9,8 +9,16 @@ import {pageToContourList, parseMeiData} from "../../lib/mei.js";
 import {db} from "../server.js";
 import { perform_omr_image } from './omr.js';
 
+nconf.argv().file('./config/default_config.json')
+if (process.env.NODE_ENV === "production") {
+    nconf.file('./config/production_config.json')
+}
+
+const meiRoot = nconf.get('config:base_mei_url');
 
 type SubsequenceSearchResponse = {
+    part_name?: string
+    part_number?: string
     id: string
     siglum: string
     library: string
@@ -320,9 +328,9 @@ function gate_scores_by_threshold(scores_pruned: SearchResult[], threshold: "med
     }
 }
 
-export async function search_subsequence(query_subsequence: string, num_results: number, threshold: number, interval: boolean) {
+export async function search_subsequence(query_subsequence: string, num_results: number, threshold: number, interval: boolean, collections_to_search: string[]) {
     const query_subsequences_arr = query_subsequence.split(" ");
-    const result = await search_subsequences_solr(query_subsequence, [], num_results, interval);
+    const result = await search_subsequences_solr(query_subsequence, collections_to_search, num_results, interval);
     const response = result.map((item: SubsequenceSearchResponse) => {
         // Find the start position(s) of the search term in the results
         const positions: number[] = [];
@@ -358,6 +366,8 @@ export async function search_subsequence(query_subsequence: string, num_results:
             id: item.siglum,
             book: item.book,
             library: item.library,
+            part_number: item.part_number,
+            part_name: item.part_name,
             codestring_intervals: item.intervals.split(" "),
             codestring_notes: item.notes.split(" "),
             num_matches: responseNotes.length,
@@ -444,7 +454,7 @@ export async function run_image_query(image: fileUpload.UploadedFile) {
 
         const data = perform_omr_image(tmpDir, image.name);
 
-        const page = parseMeiData(data);
+        const page = parseMeiData(data, '');
         const intervals = pageToContourList(page)
 
         return search_by_codestring(intervals.join(""), [], num_results, threshold, 'jaccard');
@@ -471,6 +481,24 @@ export async function get_codestring(id: string) {
     if (result.response.numFound >= 1 && result.response.docs.length) {
         const doc: any = result.response.docs[0];
         return doc.intervals?.split(" ").join("");
+    }
+    return undefined;
+}
+
+export async function get_mei(id: string) {
+    const client = solr.createClient(nconf.get('search'));
+    const query = client.query().q(`siglum:"${id}"`).fl('mei_path');
+    const result = await client.search(query);
+    if (result.response.numFound >= 1 && result.response.docs.length) {
+        const doc: any = result.response.docs[0];
+        const meiPath = doc.mei_path;
+        const fullMeiPath = path.join(meiRoot, meiPath);
+        try {
+            const data = fs.readFileSync(fullMeiPath, 'utf-8');
+            return data;
+        } catch {
+            return "Exception when reading file";
+        }
     }
     return undefined;
 }

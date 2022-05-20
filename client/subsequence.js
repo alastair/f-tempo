@@ -66,6 +66,11 @@ function processResults(results, is_interval, query_length) {
             });
             console.log(`\t${row.num_matches} matches at ${matchPositions.join(", ")}`);
             console.log("\t" + codestring.join(" "));
+            if (row.part_number && row.part_name) {
+                matchPositions.forEach(m => {
+                    console.log(`\thttps://solrdev.f-tempo.org/ngram/view/${row.id}?staff=${row.part_number}&start=${m}&count=${query_length}`);
+                });
+            }
             // Alternatively, print a line for each match, highlighting the section where it occurs
             // row.matches.forEach((match, matchindex) => {
             //     const matchCodestring = [...codestring];

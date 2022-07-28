@@ -9,7 +9,7 @@
     "parserOptions": {
         "sourceType": "module"
     },
-    "extends": "eslint:recommended",
+    "extends": ["eslint:recommended", "react-app", "react-app/jest"],
     "rules": {
         "comma-spacing": [
             "error", 

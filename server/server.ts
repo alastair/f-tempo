@@ -101,10 +101,11 @@ for (const key of databases) {
 
 app.engine('html', mustacheExpress()); // render html templates using Mustache
 app.set('view engine', 'html');
-app.set('views', './templates');
+app.set('views', ['./templates', './build']);
 app.set('view cache', false);
 
-app.use('/', express.static('static'))
+app.use('/', express.static('static'));
+app.use('/static', express.static('build/static'));
 app.use(fileUpload());
 app.use(express.json());
 app.use(function(error: Error, request: Request, response: Response, next: NextFunction) {

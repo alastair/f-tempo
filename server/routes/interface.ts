@@ -14,6 +14,10 @@ router.get('/', function (req, res) {
     res.render('index', data);
 });
 
+router.get('/ftempo', function (req, res) {
+    res.render('react');
+});
+
 router.get('/id_searches', function (req, res) {
     const data = { id_searches: true, base_route: SERVER_BASE_ROUTE };
     res.render('index', data);

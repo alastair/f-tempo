@@ -5,6 +5,9 @@ import {useCallback, useEffect, useState} from "react";
 import SearchResultList from "./SearchResultList";
 import SearchResultView from "./SearchResultView";
 import {useNavigate, useParams} from "react-router-dom";
+import FakeSearchResultList from "./FakeSearchResultList";
+import { CSSTransition, TransitionGroup } from 'react-transition-group';
+
 
 type FTempoSearchResults = {
     status: 'ok' | 'error';
@@ -20,10 +23,12 @@ export type CurrentPageData = {
 
 const FTempo = () => {
 
-    const [searchResults, setSearchResults] = useState<null | any>();
+    const [searchResults, setSearchResults] = useState<null | any>(null);
     const [searchError, setSearchError] = useState("");
     const [searchResultSelectedIndex, setSearchResultSelectedIndex] = useState(0);
     const [currentPage, setCurrentPage] = useState<CurrentPageData|undefined>(undefined);
+    const [numSearchResults, setNumSearchResults] = useState(0);
+    const [resultsLoading, setResultsLoading] = useState(false);
 
     const params = useParams();
     const navigate = useNavigate();
@@ -48,10 +53,11 @@ const FTempo = () => {
     const onDoSearch = useCallback((searchOptions: any) => {
         setSearchResults(null);
         setSearchError("");
+        setNumSearchResults(parseInt(searchOptions.num_results, 10) || 10);
         if (!currentPage?.id) {
-            console.log("trying to search but I have no current page");
             return;
         }
+        setResultsLoading(true);
         const query = {...searchOptions, id: currentPage.id};
         fetch("/api/query", {
             method: "POST",
@@ -68,8 +74,10 @@ const FTempo = () => {
             } else {
                 setSearchError(result.error!);
             }
+            setResultsLoading(false);
         }).catch((error) => {
             setSearchError(error.toString());
+            setResultsLoading(false);
         });
     }, [currentPage?.id]);
 
@@ -79,11 +87,16 @@ const FTempo = () => {
         </Col>
         <Col md={3}>
             {searchError && <div>{searchError}</div>}
-            {searchResults && <SearchResultList results={searchResults} onSelectResult={setSearchResultSelectedIndex} currentPage={currentPage}/>}
-            <SearchOptions onSearch={onDoSearch} readyToSearch={Boolean(currentPage?.id)}/>
+            <SearchOptions onSearch={onDoSearch} readyToSearch={Boolean(currentPage?.id)} hasActiveSearch={Boolean(searchResults)} />
+            <CSSTransition in={searchResults !== null || resultsLoading} timeout={300} classNames="results">
+                <div style={{overflow:"hidden"}}>
+                    {searchResults && <SearchResultList results={searchResults} onSelectResult={setSearchResultSelectedIndex} currentPage={currentPage} />}
+                    {!searchResults && resultsLoading && <FakeSearchResultList numResults={numSearchResults} />}
+                </div>
+            </CSSTransition>
         </Col>
         <Col>
-            {searchResults && <SearchResultView result={searchResults[searchResultSelectedIndex]} />}
+            {searchResults && <SearchResultView result={searchResults.results[searchResultSelectedIndex]} />}
         </Col>
     </Row>;
 };

@@ -1,7 +1,7 @@
-import {useCallback, useEffect, useState} from "react";
-import {ProgressBar} from "react-bootstrap";
+import {useCallback, useEffect} from "react";
+import {ProgressBar, Table} from "react-bootstrap";
 import {CurrentPageData} from "./FTempo";
-import {useLocation} from "react-router-dom";
+import {useLocation, useNavigate} from "react-router-dom";
 
 type SearchResultProps = {
     currentPage?: CurrentPageData
@@ -11,35 +11,43 @@ type SearchResultProps = {
 
 const SearchResultList = (props: SearchResultProps) => {
     const location = useLocation();
-    const locationHash = location.hash.replace('#', '');
-    const locationSelectedIndex = Number(locationHash);
-    const [selectedResult, setSelectedResult] = useState(Number.isInteger(locationSelectedIndex) ? locationSelectedIndex : 0);
+    const hash = location.hash.replace('#', '');
+    const hashNumber = Number(hash);
+    const navigate = useNavigate();
 
     const setResultCallback = useCallback((selectedResult: number) => {
-        setSelectedResult(selectedResult);
-    }, []);
+        navigate(location.pathname + location.search + `#${selectedResult}`);
+    }, [navigate, location.pathname, location.search]);
 
     const {onSelectResult, results} = props;
 
     useEffect(() => {
-        onSelectResult(selectedResult);
-        location.hash = `#${selectedResult}`;
-    }, [onSelectResult, selectedResult]);
+        if (hash === '') {
+            // No hash, add one
+            navigate(location.pathname + location.search + `#1`);
+        } else if (Number.isInteger(hashNumber)) {
+            // Hash is set and is a number, select the result
+            onSelectResult(hashNumber - 1);
+        } else {
+            // Hash is set but isn't a number, go back to result 1
+            navigate(location.pathname + location.search + `#1`);
+        }
+    }, [onSelectResult, hash, hashNumber, navigate, location.pathname, location.search]);
 
+    // TODO: enter to search
+    // TODO: Left/right move l/r based on selected item
     useEffect(() => {
         function downHandler(event: any): void {
-            if ([38, 39].indexOf(event.keyCode) > -1) {
+            if ([38, 40].indexOf(event.keyCode) > -1) {
                 event.preventDefault();
             }
             if (event.keyCode === 38) {    // up arrow
-                if (selectedResult > 0) {
-                    setResultCallback(selectedResult - 1);
-                    //props.onSelectResult(selectedResult - 1);
+                if (hashNumber > 1) {
+                    setResultCallback(hashNumber - 1);
                 }
             } else if (event.keyCode === 40) {    // down arrow
-                if (selectedResult < results.length - 1) {
-                    setResultCallback(selectedResult + 1);
-                    //props.onSelectResult(selectedResult + 1);
+                if (hashNumber < results.results.length) {
+                    setResultCallback(hashNumber + 1);
                 }
             }
         }
@@ -47,10 +55,11 @@ const SearchResultList = (props: SearchResultProps) => {
         return () => {
             window.removeEventListener("keydown", downHandler);
         };
-    }, [results.length, selectedResult, setResultCallback]);
+    }, [results.results.length, hashNumber, setResultCallback]);
 
-    return <table>
+    return <Table>
         <thead>
+            <tr><th colSpan={4}>{results.results.length} results &mdash; {results.numQueryWords} words in query</th></tr>
             <tr>
                 <th />
                 <th>Page ID</th>
@@ -59,13 +68,11 @@ const SearchResultList = (props: SearchResultProps) => {
             </tr>
         </thead>
         <tbody>
-            {props.results.map((result: any, index: number) => {
+            {props.results.results.map((result: any, index: number) => {
                 const percent = 100 - result.jaccard * 100;
                 const progress = Number.parseFloat(String(percent)).toFixed(2);
                 let compare = <></>;
-                console.log('result!');
-                console.log(result);
-                console.log(props.currentPage);
+                let titlePage = <></>;
 
                 if (props.currentPage && props.currentPage.id !== result.id) {
                     const cp = props.currentPage;
@@ -74,32 +81,27 @@ const SearchResultList = (props: SearchResultProps) => {
                         width='16' height='16' src='/img/magnifying-glass.svg'
                         onClick={() => {
                             window.open(url, "_blank",
-                                'width=1200, \
-                                 height=600, \
-                                 directories=no, \
-                                 location=no, \
-                                 menubar=no, \
-                                 resizable=no, \
-                                 scrollbars=1, \
-                                 status=no, \
-                                 toolbar=no');
+                                'width=1200, height=600, directories=no, location=no, menubar=no, resizable=no, scrollbars=1, status=no, toolbar=no');
                         }}
                     />;
                 }
+                if (result.titlepage) {
+                    titlePage = <img src="/img/tp_book.svg" height="20" />;
+                }
                 return <tr
                     key={result.id}
-                    onClick={() => setResultCallback(index)}
-                    style={{backgroundColor: selectedResult === index ? "lightpink" : "white",
+                    onClick={() => setResultCallback(index + 1)}
+                    style={{backgroundColor: hashNumber === index + 1 ? "lightpink" : "white",
                         cursor: "pointer"
                     }}>
-                    <td />
+                    <td>{titlePage}</td>
                     <td>{result.id}</td>
                     <td><ProgressBar now={percent} label={progress} /></td>
                     <td>{compare}</td>
                 </tr>;
             })}
         </tbody>
-    </table>;
+    </Table>;
 };
 
 export default SearchResultList;

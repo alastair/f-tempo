@@ -11,3 +11,21 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.results-enter {
+  height: 0;
+}
+.results-enter-active {
+  height: calc(100vh - 220px);
+  transition: height;
+  transition-timing-function: ease-out;
+  transition-duration: 300ms;
+}
+.results-exit {
+  opacity: 1;
+}
+.results-exit-active {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 300ms, transform 300ms;
+}

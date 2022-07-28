@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from "react";
 import {Button, ButtonToolbar, Col, Form, Row} from "react-bootstrap";
-import {useNavigate, useSearchParams} from "react-router-dom";
+import {useSearchParams} from "react-router-dom";
 
 type SelectOptions = {
     value: string
@@ -22,21 +22,36 @@ const numResultsTypes: SelectOptions[] = [
     {value: '30', label: '30'}
 ];
 
-const collectionList = [
-    'D-Mbs', 'D-Bsb', 'F-Pn', 'GB-Lbl', 'PL-Wn'
-];
-
 type SearchOptionsProps = {
     onSearch: (searchOptions: any) => void
     readyToSearch: boolean
+    hasActiveSearch: boolean
 };
 
+/**
+ * Show search options.
+ * This component interacts with react-router in order to handle
+ *  - On page load, if any query parameters are invalid, all query parameters are cleared
+ *  - When a form option is changed, state is modified
+ *  - When state is modified, query parameters are set (
+ * @param props
+ * @constructor
+ */
+
+/*
+TODO: any time we use setSearchParams, use 'replace' to make sure that we don't add another history item
+ */
 const SearchOptions = (props: SearchOptionsProps) => {
+    const {readyToSearch, onSearch, hasActiveSearch} = props;
     const [ranking, setRanking] = useState('jaccard');
     const [numResults, setNumResults] = useState('10');
-    const [collections, setCollections] = useState(new Array(collectionList.length).fill(true));
-
+    const [collectionList, setCollectionList] = useState<string[]>([]);
+    const [collections, setCollections] = useState<boolean[]>([]);
     const [searchParams, setSearchParams] = useSearchParams();
+
+    const paramCollections = searchParams.get('collections_to_search');
+    const paramNumResults = searchParams.get('num_results');
+    const paramSimilarityType = searchParams.get('similarity_type');
 
     const handleCollectionTick = (position: number) => {
         const updatedCheckedState = collections.map((item, index) =>
@@ -45,7 +60,21 @@ const SearchOptions = (props: SearchOptionsProps) => {
         setCollections(updatedCheckedState);
     };
 
-    // when the button is pressed
+    // On component load get the list of catalogues
+    useEffect(() => {
+        fetch(`/api/catalogues`).then(r => {
+            if (r.status === 200) {
+                return r.json();
+            } else {
+                alert('error');
+            }
+        }).then(response => {
+            setCollections(new Array(response.data.length).fill(true));
+            setCollectionList(response.data);
+        });
+    }, []);
+
+    // when the search button is pressed, set the query parameters to the current state
     const doSearch = useCallback(() => {
         const searchOptions = {
             similarity_type: ranking,
@@ -54,13 +83,18 @@ const SearchOptions = (props: SearchOptionsProps) => {
                 (element, index) => collections[index]
             ).join(" ")
         };
-        setSearchParams(searchOptions);
-    }, [collections, numResults, ranking, setSearchParams]);
+        setSearchParams(searchOptions, {replace: true});
+    }, [collectionList, collections, numResults, ranking, setSearchParams]);
 
-    const paramCollections = searchParams.get('collections_to_search');
-    const paramNumResults = searchParams.get('num_results');
-    const paramSimilarityType = searchParams.get('similarity_type');
-    const {readyToSearch, onSearch} = props;
+    // TODO: Ideally this should re-trigger the search if a search has already been made
+    //  and a query parameter changes. In reality it re-triggers the search also when
+    //  hasActiveSearch changes from false to true, causing setSearchParams() to be called again,
+    //  resulting in any set hash value being cleared.
+    // useEffect(() => {
+    //     if (hasActiveSearch) {
+    //         doSearch();
+    //     }
+    // }, [collections, numResults, ranking, hasActiveSearch, doSearch]);
 
     useEffect(() => {
         // Check that the search parameters are valid and if they are,
@@ -68,25 +102,23 @@ const SearchOptions = (props: SearchOptionsProps) => {
         const validNumResults = numResultsTypes.map((r) => r.value);
         const validRanking = rankingTypes.map((r) => r.value);
 
-        let isGood = true;
+        // Don't do anything if the Collection List hasn't been loaded yet
+        if (!collectionList.length) {
+            return;
+        }
+
         // If any parameter is invalid, clear them all
         if (paramNumResults && !validNumResults.includes(paramNumResults)) {
-            isGood = false;
-            console.log('set search params empty - bad num results');
-            setSearchParams({});
+            setSearchParams({}, {replace: true});
             return;
         } else if (paramNumResults) {
-            console.log('set numresults');
             setNumResults(paramNumResults);
         }
 
         if (paramSimilarityType && !validRanking.includes(paramSimilarityType)) {
-            isGood = false;
-            console.log('set search params empty - bad similarity');
-            setSearchParams({});
+            setSearchParams({}, {replace: true});
             return;
         } else if (paramSimilarityType) {
-            console.log('set similairty ');
             setRanking(paramSimilarityType);
         }
 
@@ -97,9 +129,7 @@ const SearchOptions = (props: SearchOptionsProps) => {
             paramCollectionParts.forEach((col) => {
                 if (col && !collectionList.includes(col)) {
                     goodCollections = false;
-                    isGood = false;
-                    console.log('set search params empty - bad collections');
-                    setSearchParams({});
+                    setSearchParams({}, {replace: true});
                     return;
                 }
             });
@@ -107,12 +137,10 @@ const SearchOptions = (props: SearchOptionsProps) => {
                 collectionsToSet = collectionList.map((col) => {
                     return paramCollectionParts.includes(col);
                 });
-                console.log('set collections', collectionsToSet);
                 setCollections(collectionsToSet);
             }
         }
-        console.log(`is goof? ${isGood}`);
-        if (isGood && readyToSearch) {
+        if (readyToSearch && paramSimilarityType && paramNumResults && collectionsToSet) {
             onSearch({
                 similarity_type: paramSimilarityType,
                 num_results: paramNumResults,
@@ -121,15 +149,14 @@ const SearchOptions = (props: SearchOptionsProps) => {
                 )
             });
         }
-    }, [paramCollections, paramNumResults, paramSimilarityType, setSearchParams, readyToSearch, onSearch]);
+    }, [paramCollections, paramNumResults, paramSimilarityType, setSearchParams, readyToSearch, onSearch, collectionList]);
 
-    return <>
+    return <div>
         <Form.Group as={Row} className="mb-3" controlId="form-result-ranking">
             <Form.Label column sm={4}>Result Ranking</Form.Label>
             <Col>
                 <Form.Select value={ranking} onChange={
-                    (e) => setRanking(e.currentTarget.value)
-                }>
+                    (e) => setRanking(e.currentTarget.value) }>
                     {rankingTypes.map(rt => {
                         return <option key={rt.value} value={rt.value}>{rt.label}</option>;
                     })}
@@ -167,7 +194,7 @@ const SearchOptions = (props: SearchOptionsProps) => {
         <ButtonToolbar>
             <Button variant="primary" type="submit" onClick={doSearch}>Search</Button>
         </ButtonToolbar>
-    </>;
+    </div>;
 };
 
 export default SearchOptions;

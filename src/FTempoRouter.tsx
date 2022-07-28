@@ -4,7 +4,6 @@ import {
     Routes,
 } from "react-router-dom";
 import ResourceLoader from "./ResourceLoader";
-import React from "react";
 import FTempo from "./FTempo";
 import HelpPage from "./HelpPage";
 import ExampleLoader from "./ExampleLoader";
@@ -13,9 +12,6 @@ import BrowseLoader from "./BrowseLoader";
 import ExternalLoader from "./ExternalLoader";
 
 const FTempoRouter = () => {
-    /*
-     <Route exact path="/"  />
-     */
     return (
         <Routes>
             <Route path="/" element={<Navigate replace to={"/choose"} />} />
@@ -24,8 +20,17 @@ const FTempoRouter = () => {
             <Route path="/search" element={<SearchLoader />} />
             <Route path="/browse" element={<BrowseLoader />} />
             <Route path="/external" element={<ExternalLoader />} />
-            <Route path="/ftempo" element={<FTempo />} />
+            <Route path="/ftempo" element={<Navigate replace to={"/ftempo/GB-Lbl/A103b/GB-Lbl_A103b_025_0"} />} />
+            <Route path="/ftempo/:library/:book/:id" element={<FTempo />} />
             <Route path="/help" element={<HelpPage />} />
+            <Route
+                path="*"
+                element={
+                    <main style={{ padding: "1rem" }}>
+                        <p>There's nothing here!</p>
+                    </main>
+                }
+            />
         </Routes>
     );
 };

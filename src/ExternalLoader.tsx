@@ -1,4 +1,4 @@
-import {Button, Col, Form, Row} from "react-bootstrap-v5";
+import {Button, Col, Form, Row} from "react-bootstrap";
 import React from "react";
 
 function ExternalLoader() {

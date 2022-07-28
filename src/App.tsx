@@ -1,8 +1,7 @@
 import { BrowserRouter as Router } from 'react-router-dom';
-import React from 'react';
 import './App.css';
 import Navigation from './Navigation';
-import { Container } from 'react-bootstrap-v5';
+import { Container } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import FTempoRouter from './FTempoRouter';
 

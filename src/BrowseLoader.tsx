@@ -1,5 +1,4 @@
-import {Col, Form, Row} from "react-bootstrap-v5";
-import React from "react";
+import {Col, Form, Row} from "react-bootstrap";
 
 function BrowseLoader() {
     return <Row>

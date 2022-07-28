@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, Col, Form, Row } from "react-bootstrap-v5";
+import { Button, Col, Form, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 
 

@@ -12,7 +12,7 @@ function App() {
     return (
         <Router>
             <Navigation/>
-            <Container fluid="lg">
+            <Container fluid={true}>
                 <FTempoRouter />
             </Container>
         </Router>
